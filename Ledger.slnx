@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ledger.Api/Ledger.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Identity/">
+    <Project Path="src/Modules/Identity/Ledger.Modules.Identity.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Wallets/">
+    <Project Path="src/Modules/Wallets/Ledger.Modules.Wallets.csproj" />
+  </Folder>
+</Solution>
