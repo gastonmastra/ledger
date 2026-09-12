@@ -1,0 +1,10 @@
+{
+    "configurations": [
+    {
+        "name": "C#: Ledger Api Debug",
+        "type": "dotnet",
+        "request": "launch",
+        "projectPath": "${workspaceFolder}/src/Ledger.Api/Ledger.Api.csproj"
+    }
+    ]
+}
