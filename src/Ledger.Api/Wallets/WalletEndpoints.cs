@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Ledger.Api.Identity;
 using Ledger.Modules.Wallets.Application.CreateWallet;
 using Ledger.Modules.Wallets.Application.GetWallets;
 
@@ -13,19 +14,19 @@ public static class WalletsEndpoints
             .MapGroup("/api/wallets")
             .WithTags("Wallets");
 
-        group.MapGet("/", GetWallets);
-        group.MapPost("/", CreateWallet);
+        group.MapGet("/", GetWallets).RequireAuthorization();
+        group.MapPost("/", CreateWallet).RequireAuthorization();
 
         return endpoints;
     }
 
     private static async Task<IResult> GetWallets(
-        ClaimsPrincipal user,
+        ICurrentUser user,
+        ClaimsPrincipal user2,
         GetWalletsHandler handler,
         CancellationToken cancellationToken)
     {
-        var userId = Guid.Parse(
-            user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userId = Guid.Parse(user.ExternalId);
         var query = new GetWalletsQuery(userId);
         var wallets = await handler.Handle(query, cancellationToken);
 
@@ -33,15 +34,13 @@ public static class WalletsEndpoints
     }
 
     private static async Task<IResult> CreateWallet(
-        ClaimsPrincipal user,
+        ICurrentUser user,
         CreateWalletRequest request,
         CreateWalletHandler handler,
         CancellationToken cancellationToken)
     {
-        // var userId = Guid.Parse(
-        //     user.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var command = new CreateWalletCommand(
-            UserId: Guid.NewGuid(),
+            UserId: Guid.Parse(user.ExternalId),
             Name: request.Name,
             Currency: request.Currency
         );
