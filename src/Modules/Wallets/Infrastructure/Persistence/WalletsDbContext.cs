@@ -3,14 +3,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ledger.Modules.Wallets.Infrastructure.Persistence;
 
-public sealed class WalletsDbContext : DbContext
+public sealed class WalletsDbContext(
+    DbContextOptions<WalletsDbContext> options) 
+    : DbContext(options)
 {
-    public WalletsDbContext(
-        DbContextOptions<WalletsDbContext> options)
-        : base(options)
-    {
-    }
-
     public DbSet<Wallet> Wallets => Set<Wallet>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

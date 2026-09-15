@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Modules\Wallets\Ledger.Modules.Wallets.csproj" />
     <ProjectReference Include="..\Modules\Identity\Ledger.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\Transactions\Ledger.Modules.Transactions.csproj" />
   </ItemGroup>
 
 </Project>
