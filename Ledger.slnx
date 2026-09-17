@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Ledger.Api/Ledger.Api.csproj" />
+    <Project Path="src/Ledger.Console/Ledger.Console.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
   <Folder Name="/src/Modules/Identity/">
