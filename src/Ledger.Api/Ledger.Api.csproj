@@ -15,7 +15,6 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Modules\Wallets\Ledger.Modules.Wallets.csproj" />
     <ProjectReference Include="..\Modules\Identity\Ledger.Modules.Identity.csproj" />
