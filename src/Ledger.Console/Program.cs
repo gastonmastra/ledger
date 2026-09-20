@@ -1,61 +1,28 @@
-﻿using Ledger.Modules.Wallets.Application.CreateWallet;
+﻿using Ledger.Console;
+using Ledger.Modules.Wallets;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-Console.WriteLine("Welcome to ledger!");
+using IHost host = CreateHostBuilder(args).Build();
+using var scope = host.Services.CreateScope();
 
-var userId = Guid.NewGuid();
-var walletName = ReadWalletName();
-var currency = ReadCurrency();
+var services = scope.ServiceProvider;
 
-var command = new CreateWalletCommand(
-    userId,
-    walletName,
-    currency
-);
-
-static string ReadWalletName()
+try
 {
-    Console.Write("Ingrese nombre de la wallet: ");
-    var userInput = Console.ReadLine();
-    
-    if (string.IsNullOrWhiteSpace(userInput))
-        throw new ArgumentException(
-            "The wallet name should not be emtpy"
-        );
-
-    if (userInput.Length > 255)
-        throw new ArgumentException(
-            "The wallet name should not be bigger than 255 characters"
-        );
-
-    
-    return userInput;
+    await services.GetRequiredService<App>().Run(args);
+}
+catch (Exception ex)
+{
+    Console.WriteLine(ex.Message);
 }
 
-static string ReadCurrency()
+static IHostBuilder CreateHostBuilder(string[] args)
 {
-    Console.Write("""
-    Select currency:
-    1. Euro
-    2. Dolar
-    3. Argentine peso
-    """);
-
-    var options = new Dictionary<int, string>()
-    {
-        {1, "Eur"},
-        {2, "Usd"},
-        {3, "Ars"}  
-    };
-
-    var userChoice = Console.ReadLine();
-
-    if (!int.TryParse(userChoice, out int choice))
-        throw new ArgumentException("Debe ingresar un numero");
-
-    if (choice < 1 | choice > 3)
-        throw new ArgumentException("El numero debe estar entre 1 y 3");
-
-    options.TryGetValue(choice, out string currency);
-
-    return currency;
+    return Host.CreateDefaultBuilder(args)
+        .ConfigureServices((builder, services) =>
+        {
+            services.AddWalletsModule(builder.Configuration);
+            services.AddSingleton<App>();
+        });
 }
