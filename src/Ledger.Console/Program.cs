@@ -22,7 +22,7 @@ static IHostBuilder CreateHostBuilder(string[] args)
     return Host.CreateDefaultBuilder(args)
         .ConfigureServices((builder, services) =>
         {
+            services.AddScoped<App>();
             services.AddWalletsModule(builder.Configuration);
-            services.AddSingleton<App>();
         });
 }
