@@ -23,6 +23,7 @@ static IHostBuilder CreateHostBuilder(string[] args)
         .ConfigureServices((builder, services) =>
         {
             services.AddScoped<App>();
+            services.AddScoped<WalletsMenu>();
             services.AddWalletsModule(builder.Configuration);
         });
 }
