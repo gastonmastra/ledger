@@ -1,72 +1,63 @@
-using Ledger.Modules.Wallets.Application.CreateWallet;
+using SystemConsole = System.Console;
 
 namespace Ledger.Console;
 
 public class App(
-    CreateWalletHandler createWalletHandler)
+    WalletsMenu walletsMenu)
 {
-    private readonly CreateWalletHandler _createWalletHandler = createWalletHandler;
+    private readonly WalletsMenu _walletsMenu = walletsMenu;
     public async Task Run(string[] args)
     {
-        var userId = Guid.NewGuid();
-        var walletName = ReadWalletName();
-        var currency = ReadCurrency();
-
-        var command = new CreateWalletCommand(
-            userId,
-            walletName,
-            currency
-        );
-        var ct = new CancellationToken();
-        var result = await _createWalletHandler.Handle(command, ct);
-        System.Console.WriteLine($"Result { result }");
-    }
-
-    static string ReadWalletName()
-    {
-        System.Console.Write("Ingrese nombre de la wallet: ");
-        var userInput = System.Console.ReadLine();
-        
-        if (string.IsNullOrWhiteSpace(userInput))
-            throw new ArgumentException(
-                "The wallet name should not be emtpy"
-            );
-
-        if (userInput.Length > 255)
-            throw new ArgumentException(
-                "The wallet name should not be bigger than 255 characters"
-            );
-
-        
-        return userInput;
-    }
-
-    static string ReadCurrency()
-    {
-        System.Console.Write("""
-        Select currency:
-        1. Euro
-        2. Dolar
-        3. Argentine peso
-        """);
-
-        var options = new Dictionary<int, string>()
+        bool executing = true;
+        while (executing)
         {
-            {1, "Eur"},
-            {2, "Usd"},
-            {3, "Ars"}  
-        };
+            ShowMainOptions();
 
-        var userChoice = System.Console.ReadLine();
+            var option = SystemConsole.ReadLine();
 
-        if (!int.TryParse(userChoice, out int choice))
-            throw new ArgumentException("Debe ingresar un numero");
+            switch (option)
+            {
+                case "1":
+                    await _walletsMenu.RunAsync();
+                    break;
+                case "2":
+                    SystemConsole.Clear();
+                    SystemConsole.WriteLine("======================================");
+                    SystemConsole.WriteLine("             Wallets module.          ");
+                    SystemConsole.WriteLine("======================================");
+                    SystemConsole.WriteLine("Not implemented.");
+                    SystemConsole.WriteLine("Press ENTER...");
+                    SystemConsole.ReadLine();
+                    break;
+                case "3":
+                    executing = false;
+                    break;
+                default: 
+                    ShowErrorMessage("Invalid option.");
+                    break;
 
-        if (choice < 1 | choice > 3)
-            throw new ArgumentException("El numero debe estar entre 1 y 3");
+            }
+        }
+    }
 
-        options.TryGetValue(choice, out string currency);
+    private static void ShowErrorMessage(string error)
+    {
+        SystemConsole.ForegroundColor = ConsoleColor.Red;
+        SystemConsole.WriteLine($"\n[ERROR] {error}");
+        SystemConsole.ResetColor();
+        SystemConsole.WriteLine("Press ENTER to continue...");
+        SystemConsole.ReadLine();
+    }
 
-        return currency;
+    private static void ShowMainOptions()
+    {
+        SystemConsole.Clear();
+        SystemConsole.WriteLine("======================================");
+        SystemConsole.WriteLine("               LEDGER                 ");
+        SystemConsole.WriteLine("======================================");
+        SystemConsole.WriteLine("1. Wallets module");
+        SystemConsole.WriteLine("2. Transactions module");
+        SystemConsole.WriteLine("3. Exit");
+        SystemConsole.Write("\nChoose an option: ");
     }
 }
