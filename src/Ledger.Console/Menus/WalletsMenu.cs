@@ -1,4 +1,5 @@
 using SystemConsole = System.Console;
+using Ledger.Console.Menus;
 using Ledger.Modules.Wallets.Application.CreateWallet;
 using Ledger.Modules.Wallets.Application.GetWallets;
 
@@ -8,41 +9,33 @@ public class WalletsMenu(
     CreateWalletHandler createWalletHandler,
     GetWalletsHandler getWalletsHandler)
 {
+    private readonly string _header = "WALLETS";
     private readonly CreateWalletHandler _createWalletHandler = createWalletHandler;
     private readonly GetWalletsHandler _getWalletsHandler = getWalletsHandler;
     public async Task RunAsync()
     {
-        var executing = true;
-        while (executing)
-        {
-            ShowOptions();
-            var option = SystemConsole.ReadLine();
-
-            switch (option)
+        var option = ConsoleUi.ShowMenu(
+            _header,
+            new[]
             {
-                case "1":
-                    await CreateWallet();
-                    break;
-                case "2":
-                    await ListWallets();
-                    break;
-                default:
-                    executing = false;
-                    break;
-            }
-        }
-    }
+                new Option(1, "List wallets"),
+                new Option(2, "Create wallet"),
+                new Option(3, "Back")
+            });
 
-    private static void ShowOptions()
-    {
-        SystemConsole.Clear();
-        SystemConsole.WriteLine("======================================");
-        SystemConsole.WriteLine("             Wallets module.          ");
-        SystemConsole.WriteLine("======================================");
-        SystemConsole.WriteLine("1. Create a new wallet");
-        SystemConsole.WriteLine("2. List wallets");
-        SystemConsole.WriteLine("3. Back");
-        SystemConsole.Write("\nChoose an option: ");
+        switch (option.Order)
+        {
+            case 1:
+                await ListWallets();
+                break;
+
+            case 2:
+                await CreateWallet();
+                break;
+
+            case 3:
+                return;
+        }
     }
 
     private async Task CreateWallet()
@@ -64,16 +57,12 @@ public class WalletsMenu(
     private async Task ListWallets()
     {
         SystemConsole.Clear();
-        SystemConsole.WriteLine("======================================");
-        SystemConsole.WriteLine("             Wallets module.          ");
-        SystemConsole.WriteLine("======================================");
-        SystemConsole.Write("Enter user id: ");
-        var userId = SystemConsole.ReadLine();
+        ConsoleUi.Header(_header);
+        var userId = ConsoleUi.Read<Guid>("Enter user id: ");
         
-        ArgumentNullException.ThrowIfNull(userId);
         
         var ct = new CancellationToken();
-        var query = new GetWalletsQuery(Guid.Parse(userId));
+        var query = new GetWalletsQuery(userId);
         var wallets = await _getWalletsHandler.Handle(query, ct);
         foreach (var wallet in wallets)
         {

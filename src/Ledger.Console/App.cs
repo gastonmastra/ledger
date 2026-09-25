@@ -1,63 +1,45 @@
-using SystemConsole = System.Console;
+using Ledger.Console.Menus;
+using Ledger.Console.Menus.Transactions;
 
 namespace Ledger.Console;
 
 public class App(
-    WalletsMenu walletsMenu)
+    WalletsMenu walletsMenu,
+    TransactionsMenu transactionsMenu)
 {
+    private readonly string _header = "LEDGER";
     private readonly WalletsMenu _walletsMenu = walletsMenu;
+    private readonly TransactionsMenu _transactionsMenu = transactionsMenu;
     public async Task Run(string[] args)
     {
         bool executing = true;
         while (executing)
         {
-            ShowMainOptions();
+            var option = ConsoleUi.ShowMenu(
+                _header,
+                new[]
+                {
+                    new Option(1, "Wallets"),
+                    new Option(2, "Transactions"),
+                    new Option(3, "Exit")
+                });
 
-            var option = SystemConsole.ReadLine();
-
-            switch (option)
+            switch (option.Order)
             {
-                case "1":
+                case 1:
                     await _walletsMenu.RunAsync();
                     break;
-                case "2":
-                    SystemConsole.Clear();
-                    SystemConsole.WriteLine("======================================");
-                    SystemConsole.WriteLine("             Wallets module.          ");
-                    SystemConsole.WriteLine("======================================");
-                    SystemConsole.WriteLine("Not implemented.");
-                    SystemConsole.WriteLine("Press ENTER...");
-                    SystemConsole.ReadLine();
+                case 2:
+                    await _transactionsMenu.RunAsync();
                     break;
-                case "3":
+                case 3:
                     executing = false;
                     break;
-                default: 
-                    ShowErrorMessage("Invalid option.");
-                    break;
-
+                default:
+                    ConsoleUi.Header(_header);
+                    ConsoleUi.ShowError("Not implemented");
+                    return;
             }
         }
-    }
-
-    private static void ShowErrorMessage(string error)
-    {
-        SystemConsole.ForegroundColor = ConsoleColor.Red;
-        SystemConsole.WriteLine($"\n[ERROR] {error}");
-        SystemConsole.ResetColor();
-        SystemConsole.WriteLine("Press ENTER to continue...");
-        SystemConsole.ReadLine();
-    }
-
-    private static void ShowMainOptions()
-    {
-        SystemConsole.Clear();
-        SystemConsole.WriteLine("======================================");
-        SystemConsole.WriteLine("               LEDGER                 ");
-        SystemConsole.WriteLine("======================================");
-        SystemConsole.WriteLine("1. Wallets module");
-        SystemConsole.WriteLine("2. Transactions module");
-        SystemConsole.WriteLine("3. Exit");
-        SystemConsole.Write("\nChoose an option: ");
     }
 }
