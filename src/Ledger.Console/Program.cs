@@ -1,4 +1,6 @@
 ﻿using Ledger.Console;
+using Ledger.Console.Menus.Transactions;
+using Ledger.Modules.Transactions;
 using Ledger.Modules.Wallets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -24,6 +26,8 @@ static IHostBuilder CreateHostBuilder(string[] args)
         {
             services.AddScoped<App>();
             services.AddScoped<WalletsMenu>();
+            services.AddScoped<TransactionsMenu>();
             services.AddWalletsModule(builder.Configuration);
+            services.AddTransactionsModule(builder.Configuration);
         });
 }
