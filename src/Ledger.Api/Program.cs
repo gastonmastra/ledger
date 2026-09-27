@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Ledger.Api.Identity;
 using Ledger.Modules.Transactions.Api;
 using Ledger.Modules.Transactions;
+using Ledger.Modules.Accounts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,6 +62,7 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddWalletsModule(builder.Configuration);
 builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddTransactionsModule(builder.Configuration);
+builder.Services.AddAccountsModule(builder.Configuration);
 
 var app = builder.Build();
 

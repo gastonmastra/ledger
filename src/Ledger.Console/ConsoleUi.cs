@@ -22,6 +22,7 @@ public static class ConsoleUi
 
     public static void Header(string title)
     {
+        SystemConsole.Clear();
         SystemConsole.WriteLine(new string('=', Width));
         SystemConsole.WriteLine(CenterText(title, Width));
         SystemConsole.WriteLine(new string('=', Width));
@@ -111,4 +112,62 @@ public static class ConsoleUi
             } 
         }
     } 
+    public static void ShowInfo( 
+        string title, 
+        params (string Label, object? Value)[] information) 
+    { 
+        Header(title); 
+        foreach (var (label, value) in information) 
+        { 
+            SystemConsole.WriteLine( $"{label,-15}: {value}"); 
+        } 
+    } 
+    public static void ShowTable<T>( 
+        string title, 
+        IEnumerable<T> items, 
+        params (string Header, Func<T, object?> Value)[] columns) 
+    { 
+        SystemConsole.WriteLine(); 
+        SystemConsole.WriteLine(title); 
+        SystemConsole.WriteLine(new string('-', Width)); 
+        var widths = columns 
+            .Select(column => Math.Max( 
+                column.Header.Length, 
+                items 
+                    .Select(item => column.Value(item)?.ToString()?.Length ?? 0)
+                    .DefaultIfEmpty(0) .Max())) 
+            .ToArray(); 
+        // Headers 
+        for (var i = 0; i < columns.Length; i++) 
+        { 
+            SystemConsole.Write(columns[i].Header.PadRight(widths[i])); 
+            if (i < columns.Length - 1) 
+                SystemConsole.Write(" "); 
+        } 
+        SystemConsole.WriteLine(); 
+        // Separator 
+        SystemConsole.WriteLine( 
+            string.Join( 
+                " ", 
+                widths.Select(width => new string('-', width)))); 
+        // Rows 
+        foreach (var item in items) 
+        { 
+            for (var i = 0; i < columns.Length; i++) 
+            { 
+                var value = columns[i].Value(item)?.ToString() ?? ""; 
+                SystemConsole.Write(value.PadRight(widths[i])); 
+                if (i < columns.Length - 1) 
+                    SystemConsole.Write(" "); 
+            } 
+            SystemConsole.WriteLine(); 
+        } 
+    }
+
+    public static void Pause()
+    {
+        SystemConsole.WriteLine();
+        SystemConsole.WriteLine("Press ENTER to continue...");
+        SystemConsole.ReadLine();
+    }
 }

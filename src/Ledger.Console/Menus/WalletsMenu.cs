@@ -23,18 +23,21 @@ public class WalletsMenu(
                 new Option(3, "Back")
             });
 
-        switch (option.Order)
+        while (option.Order != 3)
         {
-            case 1:
-                await ListWallets();
-                break;
+            switch (option.Order)
+            {
+                case 1:
+                    await ListWallets();
+                    break;
 
-            case 2:
-                await CreateWallet();
-                break;
+                case 2:
+                    await CreateWallet();
+                    break;
 
-            case 3:
-                return;
+                case 3:
+                    return;
+            }
         }
     }
 
@@ -56,7 +59,6 @@ public class WalletsMenu(
 
     private async Task ListWallets()
     {
-        SystemConsole.Clear();
         ConsoleUi.Header(_header);
         var userId = ConsoleUi.Read<Guid>("Enter user id: ");
         

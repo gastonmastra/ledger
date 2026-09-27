@@ -4,6 +4,9 @@
     <Project Path="src/Ledger.Console/Ledger.Console.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Accounts/">
+    <Project Path="src/Modules/Accounts/Ledger.Modules.Accounts.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Identity/">
     <Project Path="src/Modules/Identity/Ledger.Modules.Identity.csproj" />
   </Folder>
