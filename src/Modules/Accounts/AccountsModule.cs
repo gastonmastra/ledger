@@ -1,5 +1,6 @@
 using Ledger.Modules.Accounts.Application;
 using Ledger.Modules.Accounts.Application.CreateAccount;
+using Ledger.Modules.Accounts.Application.GetAccount;
 using Ledger.Modules.Accounts.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -25,7 +26,7 @@ public static class AccountsModule
         });
 
         services.AddScoped<IAccountReader, AccountReader>();
-
+        services.AddScoped<GetAccountHandler>();
         services.AddScoped<CreateAccountHandler>();
 
         return services;

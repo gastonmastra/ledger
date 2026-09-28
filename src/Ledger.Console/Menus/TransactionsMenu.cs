@@ -14,7 +14,7 @@ public class TransactionsMenu(
     private readonly GetTransactionHandler _getTransactionHandler = getTransactionHandler;
     private readonly ILogger<TransactionsMenu> _logger = logger;
 
-    public async Task RunAsync()
+    public async Task RunAsync(CancellationToken cancellationToken)
     {
         var option = ConsoleUi.ShowMenu(
             "Wallets",
@@ -30,7 +30,7 @@ public class TransactionsMenu(
             switch (option.Order)
             {
                 case 1:
-                    await ListTransactions();
+                    await ListTransactionsAsync(cancellationToken);
                     break;
                 default:
                     ConsoleUi.Header(_header);
@@ -40,15 +40,14 @@ public class TransactionsMenu(
         }
     }
 
-    private async Task ListTransactions()
+    private async Task ListTransactionsAsync(CancellationToken cancellationToken)
     {
         ConsoleUi.Header(_header);
         var transactionId = ConsoleUi
             .Read<Guid>("Enter transaction id: ");
         var getTransactionQuery = new GetTransactionQuery(transactionId);
-        var ct = new CancellationToken();
         var transaction = await _getTransactionHandler
-            .Handle(getTransactionQuery, ct);
+            .Handle(getTransactionQuery, cancellationToken);
 
         if (transaction is null)
         {
@@ -69,6 +68,5 @@ public class TransactionsMenu(
         );
 
         ConsoleUi.Pause();
-        
     }
 }
