@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Modules\Transactions\Ledger.Modules.Transactions.csproj" />
     <ProjectReference Include="..\Modules\Wallets\Ledger.Modules.Wallets.csproj" />
+    <ProjectReference Include="..\Modules\Accounts\Ledger.Modules.Accounts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

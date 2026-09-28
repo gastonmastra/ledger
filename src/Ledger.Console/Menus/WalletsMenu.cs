@@ -12,7 +12,7 @@ public class WalletsMenu(
     private readonly string _header = "WALLETS";
     private readonly CreateWalletHandler _createWalletHandler = createWalletHandler;
     private readonly GetWalletsHandler _getWalletsHandler = getWalletsHandler;
-    public async Task RunAsync()
+    public async Task RunAsync(CancellationToken cancellationToken)
     {
         var option = ConsoleUi.ShowMenu(
             _header,
@@ -28,11 +28,11 @@ public class WalletsMenu(
             switch (option.Order)
             {
                 case 1:
-                    await ListWallets();
+                    await ListWalletsAsync(cancellationToken);
                     break;
 
                 case 2:
-                    await CreateWallet();
+                    await CreateWalletAsync(cancellationToken);
                     break;
 
                 case 3:
@@ -41,7 +41,7 @@ public class WalletsMenu(
         }
     }
 
-    private async Task CreateWallet()
+    private async Task CreateWalletAsync(CancellationToken cancellationToken)
     {
         var userId = Guid.NewGuid();
         var walletName = ReadWalletName();
@@ -52,20 +52,18 @@ public class WalletsMenu(
             walletName,
             currency
         );
-        var ct = new CancellationToken();
-        var result = await _createWalletHandler.Handle(command, ct);
+        var result = await _createWalletHandler.Handle(command, cancellationToken);
         SystemConsole.WriteLine($"Result { result }");
     }
 
-    private async Task ListWallets()
+    private async Task ListWalletsAsync(CancellationToken cancellationToken)
     {
         ConsoleUi.Header(_header);
         var userId = ConsoleUi.Read<Guid>("Enter user id: ");
         
         
-        var ct = new CancellationToken();
         var query = new GetWalletsQuery(userId);
-        var wallets = await _getWalletsHandler.Handle(query, ct);
+        var wallets = await _getWalletsHandler.Handle(query, cancellationToken);
         foreach (var wallet in wallets)
         {
             SystemConsole.WriteLine();

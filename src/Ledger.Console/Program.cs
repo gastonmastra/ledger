@@ -1,5 +1,7 @@
 ﻿using Ledger.Console;
+using Ledger.Console.Menus;
 using Ledger.Console.Menus.Transactions;
+using Ledger.Modules.Accounts;
 using Ledger.Modules.Transactions;
 using Ledger.Modules.Wallets;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +14,15 @@ var services = scope.ServiceProvider;
 
 try
 {
-    await services.GetRequiredService<App>().Run(args);
+    using var cancellationTokenSource = new CancellationTokenSource();
+
+    Console.CancelKeyPress += (_, e) =>
+    {
+        e.Cancel = true;
+        cancellationTokenSource.Cancel();
+    };
+    var app = services.GetRequiredService<App>();
+    await app.RunAsync(args, cancellationTokenSource.Token);
 }
 catch (Exception ex)
 {
@@ -27,7 +37,9 @@ static IHostBuilder CreateHostBuilder(string[] args)
             services.AddScoped<App>();
             services.AddScoped<WalletsMenu>();
             services.AddScoped<TransactionsMenu>();
+            services.AddScoped<AccountsMenu>();
             services.AddWalletsModule(builder.Configuration);
             services.AddTransactionsModule(builder.Configuration);
+            services.AddAccountsModule(builder.Configuration);
         });
 }
