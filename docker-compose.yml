@@ -1,3 +1,10 @@
+# Local environment.
+#   Infrastructure only (run/debug the API and console from your IDE):
+#     docker compose up -d
+#   Everything, including the API in a container:
+#     docker compose --profile full up -d --build
+name: ledger
+
 services:
   postgres:
     image: postgres:17
@@ -11,17 +18,80 @@ services:
       - "5432:5432"
     volumes:
       - ledger-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ledger"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4.2-management
+    container_name: ledger-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
 
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:26.7.4
     container_name: ledger-keycloak
     restart: unless-stopped
-    command: start-dev
-    environment: 
+    command: start-dev --import-realm
+    environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # Tokens are always issued for http://localhost:8080, also when the API reaches Keycloak
+      # through the docker network (http://keycloak:8080).
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
     ports:
       - "8080:8080"
+    volumes:
+      - ./infra/keycloak:/opt/keycloak/data/import:ro
+
+  migrator:
+    build:
+      context: .
+      dockerfile: src/Ledger.Migrator/Dockerfile
+    container_name: ledger-migrator
+    environment:
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=ledger;Username=postgres;Password=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: src/Ledger.Api/Dockerfile
+    container_name: ledger-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=ledger;Username=postgres;Password=postgres
+      ConnectionStrings__RabbitMq: amqp://guest:guest@rabbitmq:5672/
+      Authentication__Authority: http://localhost:8080/realms/ledger
+      Authentication__MetadataAddress: http://keycloak:8080/realms/ledger/.well-known/openid-configuration
+    ports:
+      - "8081:8080"
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
 
 volumes:
   ledger-postgres-data:
