@@ -17,6 +17,7 @@ public sealed class SummaryScreen(LedgerApiClient api)
             ("Owed to me", t => t.OwedToMe),
             ("I owe", t => t.IOwe),
             ("Pending", t => t.Pending),
+            ("Adjustments", t => t.Adjustments),
             ("Net", t => t.Net));
 
         SystemConsole.WriteLine("\nWallets:");

@@ -99,6 +99,36 @@ public static class ConsoleUi
         }
     }
 
+    /// <summary>
+    /// Asks for a local date and time ("yyyy-MM-dd HH:mm" or "yyyy-MM-dd"); ENTER = now.
+    /// Returns it in UTC; future dates are not accepted.
+    /// </summary>
+    public static DateTimeOffset ReadWhen(string prompt = "When (yyyy-MM-dd HH:mm, ENTER = now): ", DateTimeOffset? defaultValue = null)
+    {
+        while (true)
+        {
+            var input = ReadText(prompt, optional: true);
+
+            if (input.Length == 0)
+                return (defaultValue ?? DateTimeOffset.Now).ToUniversalTime();
+
+            string[] formats = ["yyyy-MM-dd HH:mm", "yyyy-MM-dd H:mm", "yyyy-MM-dd"];
+
+            if (DateTime.TryParseExact(input, formats, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var local))
+            {
+                var when = new DateTimeOffset(local, TimeZoneInfo.Local.GetUtcOffset(local)).ToUniversalTime();
+
+                if (when <= DateTimeOffset.UtcNow.AddMinutes(1))
+                    return when;
+
+                Error("The date cannot be in the future.");
+                continue;
+            }
+
+            Error("Use the format yyyy-MM-dd HH:mm (e.g. 2026-09-30 18:45).");
+        }
+    }
+
     public static bool Confirm(string prompt)
         => ReadText($"{prompt} (y/n): ").Equals("y", StringComparison.OrdinalIgnoreCase);
 

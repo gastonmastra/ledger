@@ -13,6 +13,7 @@ public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard) : Me
         ("Lend money to a contact", LendAsync),
         ("Split an expense with contacts", SplitAsync),
         ("A friend paid for me", FriendPaidAsync),
+        ("Add an existing debt", InitialDebtAsync),
         ("Settle one debt", SettleDebtAsync),
         ("Settle up with a contact", SettleContactAsync)
     ];
@@ -50,8 +51,9 @@ public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard) : Me
 
         var amount = ConsoleUi.ReadDecimal($"Amount ({wallet.Currency}): ");
         var description = ConsoleUi.ReadText("Description (optional): ", optional: true);
+        var when = ConsoleUi.ReadWhen();
 
-        var operation = await api.LendAsync(contact.Id, wallet.Id, amount, description, ct);
+        var operation = await api.LendAsync(contact.Id, wallet.Id, amount, description, when, ct);
 
         ShowOperation(await api.WaitForOperationAsync(operation, ct), $"{contact.Name} owes you {ConsoleUi.Money(amount, wallet.Currency)}.");
     }
@@ -86,13 +88,44 @@ public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard) : Me
         var categories = (await api.CategoriesAsync(ct)).Where(c => c.Type == "Expense").ToList();
         var category = categories.Count == 0 ? null : ConsoleUi.Choose("Category (0 = uncategorized)", categories, c => c.Name, allowNone: true);
 
+        var when = ConsoleUi.ReadWhen();
+
         var operation = await api.SplitAsync(
             null, amount, currency, "Custom",
             [new SplitPayer(friend.PersonId, amount)],
             [new SplitParticipant(me.PersonId, amount)],
-            category?.Id, description, ct);
+            category?.Id, description, when, ct);
 
         ShowOperation(await api.WaitForOperationAsync(operation, ct), $"You owe {friend.Name} {ConsoleUi.Money(amount, currency)}.");
+    }
+
+    private async Task InitialDebtAsync(CancellationToken ct)
+    {
+        var direction = ConsoleUi.Choose("What was it", ["I owed them", "They owed me"], d => d)!;
+        var iOwe = direction == "I owed them";
+
+        if (ConsoleUi.Choose("Contact", await api.ContactsAsync(ct), c => c.Name) is not { } contact)
+        {
+            ConsoleUi.Pause();
+            return;
+        }
+
+        var amount = ConsoleUi.ReadDecimal("Amount: ");
+        var currency = ConsoleUi.Choose("Currency", ["EUR", "USD", "ARS"], c => c)!;
+        var categories = (await api.CategoriesAsync(ct)).Where(c => c.Type == (iOwe ? "Expense" : "Income")).ToList();
+        var category = categories.Count == 0
+            ? null
+            : ConsoleUi.Choose("Category (0 = uncategorized)", categories, c => c.Name, allowNone: true);
+        var description = ConsoleUi.ReadText("Description (optional): ", optional: true);
+        var when = ConsoleUi.ReadWhen("When did it start? (yyyy-MM-dd HH:mm, ENTER = now): ");
+
+        var operation = await api.RecordInitialDebtAsync(
+            contact.Id, iOwe ? "IOwe" : "TheyOweMe", amount, currency, category?.Id,
+            description.Length == 0 ? null : description, when, ct);
+
+        ShowOperation(await api.WaitForOperationAsync(operation, ct),
+            iOwe ? $"Recorded: you owe {contact.Name} {ConsoleUi.Money(amount, currency)}."
+                 : $"Recorded: {contact.Name} owes you {ConsoleUi.Money(amount, currency)}.");
     }
 
     private async Task SettleDebtAsync(CancellationToken ct)
@@ -112,7 +145,8 @@ public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard) : Me
         if (await ChooseWalletAsync(debt.Currency, debt.Direction == "OwedToMe", ct) is not { } wallet)
             return;
 
-        var operation = await api.SettleAsync(new { scope = "Debt", debtId = debt.Id, walletId = wallet.Id }, ct);
+        var when = ConsoleUi.ReadWhen();
+        var operation = await api.SettleAsync(new { scope = "Debt", debtId = debt.Id, walletId = wallet.Id, occurredAt = when }, ct);
         ShowOperation(await api.WaitForOperationAsync(operation, ct), "Debt settled.");
     }
 
@@ -139,8 +173,9 @@ public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard) : Me
             walletId = wallet.Id;
         }
 
+        var when = ConsoleUi.ReadWhen();
         var operation = await api.SettleAsync(
-            new { scope = "Contact", contactId = contact.Id, currency = balance.Currency, walletId }, ct);
+            new { scope = "Contact", contactId = contact.Id, currency = balance.Currency, walletId, occurredAt = when }, ct);
 
         ShowOperation(await api.WaitForOperationAsync(operation, ct), $"All settled with {contact.Name}.");
     }

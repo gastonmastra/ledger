@@ -67,8 +67,20 @@ public sealed class LedgerApiClient(HttpClient http)
     public Task<List<Wallet>> WalletsAsync(bool includeArchived, CancellationToken ct)
         => GetAsync<List<Wallet>>($"api/wallets?includeArchived={includeArchived}", ct);
 
-    public Task<Wallet> CreateWalletAsync(string name, string currency, decimal openingBalance, CancellationToken ct)
-        => SendAsync<Wallet>(HttpMethod.Post, "api/wallets", new { name, currency, openingBalance }, ct);
+    public Task<Wallet> CreateWalletAsync(
+        string name, string currency, decimal openingBalance, DateTimeOffset? openingBalanceAt, CancellationToken ct)
+        => SendAsync<Wallet>(HttpMethod.Post, "api/wallets", new { name, currency, openingBalance, openingBalanceAt }, ct);
+
+    public Task<OpeningBalance> OpeningBalanceAsync(Guid walletId, CancellationToken ct)
+        => GetAsync<OpeningBalance>($"api/transactions/opening-balance/{walletId}", ct);
+
+    public Task ChangeOpeningBalanceAsync(Guid walletId, decimal amount, DateTimeOffset? occurredAt, CancellationToken ct)
+        => SendAsync<object>(HttpMethod.Put, "api/transactions/opening-balance", new { walletId, amount, occurredAt }, ct);
+
+    public Task AdjustBalanceAsync(
+        Guid walletId, decimal actualBalance, DateTimeOffset? occurredAt, string? description, CancellationToken ct)
+        => SendAsync<object>(HttpMethod.Post, "api/transactions/balance-adjustment",
+            new { walletId, actualBalance, occurredAt, description }, ct);
 
     public Task RenameWalletAsync(Guid id, string name, CancellationToken ct)
         => SendAsync<object>(HttpMethod.Patch, $"api/wallets/{id}", new { name }, ct);
@@ -105,22 +117,28 @@ public sealed class LedgerApiClient(HttpClient http)
         return GetAsync<PagedList<Transaction>>($"api/transactions?{string.Join('&', query)}", ct);
     }
 
-    public Task RecordIncomeAsync(Guid walletId, decimal amount, Guid? categoryId, string? description, CancellationToken ct)
-        => SendAsync<object>(HttpMethod.Post, "api/transactions/income", new { walletId, amount, categoryId, description }, ct);
+    public Task RecordIncomeAsync(
+        Guid walletId, decimal amount, Guid? categoryId, string? description, DateTimeOffset? occurredAt, CancellationToken ct)
+        => SendAsync<object>(HttpMethod.Post, "api/transactions/income",
+            new { walletId, amount, categoryId, description, occurredAt }, ct);
 
-    public Task RecordExpenseAsync(Guid walletId, decimal amount, Guid? categoryId, string? description, CancellationToken ct)
-        => SendAsync<object>(HttpMethod.Post, "api/transactions/expense", new { walletId, amount, categoryId, description }, ct);
+    public Task RecordExpenseAsync(
+        Guid walletId, decimal amount, Guid? categoryId, string? description, DateTimeOffset? occurredAt, CancellationToken ct)
+        => SendAsync<object>(HttpMethod.Post, "api/transactions/expense",
+            new { walletId, amount, categoryId, description, occurredAt }, ct);
 
-    public Task TransferAsync(Guid fromWalletId, Guid toWalletId, decimal amount, decimal? receivedAmount, string? description, CancellationToken ct)
+    public Task TransferAsync(
+        Guid fromWalletId, Guid toWalletId, decimal amount, decimal? receivedAmount, string? description,
+        DateTimeOffset? occurredAt, CancellationToken ct)
         => SendAsync<object>(HttpMethod.Post, "api/transactions/transfer",
-            new { fromWalletId, toWalletId, amount, receivedAmount, description }, ct);
+            new { fromWalletId, toWalletId, amount, receivedAmount, description, occurredAt }, ct);
 
     // Pending assignments
     public Task<List<PendingAssignment>> PendingAssignmentsAsync(CancellationToken ct)
         => GetAsync<List<PendingAssignment>>("api/pending-assignments", ct);
 
-    public Task AssignWalletAsync(Guid assignmentId, Guid walletId, CancellationToken ct)
-        => SendAsync<object>(HttpMethod.Post, $"api/pending-assignments/{assignmentId}/assign", new { walletId }, ct);
+    public Task AssignWalletAsync(Guid assignmentId, Guid walletId, DateTimeOffset? occurredAt, CancellationToken ct)
+        => SendAsync<object>(HttpMethod.Post, $"api/pending-assignments/{assignmentId}/assign", new { walletId, occurredAt }, ct);
 
     // Contacts
     public Task<List<Contact>> ContactsAsync(CancellationToken ct) => GetAsync<List<Contact>>("api/contacts", ct);
@@ -150,14 +168,23 @@ public sealed class LedgerApiClient(HttpClient http)
     public Task<MyDebts> DebtsAsync(bool includeSettled, CancellationToken ct)
         => GetAsync<MyDebts>($"api/debts?includeSettled={includeSettled}", ct);
 
-    public Task<Operation> LendAsync(Guid contactId, Guid walletId, decimal amount, string? description, CancellationToken ct)
-        => SendAsync<Operation>(HttpMethod.Post, "api/debts/loans", new { contactId, walletId, amount, description }, ct);
+    public Task<Operation> LendAsync(
+        Guid contactId, Guid walletId, decimal amount, string? description, DateTimeOffset? occurredAt, CancellationToken ct)
+        => SendAsync<Operation>(HttpMethod.Post, "api/debts/loans",
+            new { contactId, walletId, amount, description, occurredAt }, ct);
+
+    public Task<Operation> RecordInitialDebtAsync(
+        Guid contactId, string direction, decimal amount, string currency, Guid? categoryId, string? description,
+        DateTimeOffset? occurredAt, CancellationToken ct)
+        => SendAsync<Operation>(HttpMethod.Post, "api/debts/initial",
+            new { contactId, direction, amount, currency, categoryId, description, occurredAt }, ct);
 
     public Task<Operation> SplitAsync(
         Guid? groupId, decimal total, string currency, string method, IReadOnlyList<SplitPayer> payers,
-        IReadOnlyList<SplitParticipant> participants, Guid? categoryId, string? description, CancellationToken ct)
+        IReadOnlyList<SplitParticipant> participants, Guid? categoryId, string? description, DateTimeOffset? occurredAt,
+        CancellationToken ct)
         => SendAsync<Operation>(HttpMethod.Post, "api/debts/splits",
-            new { groupId, total, currency, method, payers, participants, categoryId, description }, ct);
+            new { groupId, total, currency, method, payers, participants, categoryId, description, occurredAt }, ct);
 
     public Task<Operation> SettleAsync(object request, CancellationToken ct)
         => SendAsync<Operation>(HttpMethod.Post, "api/debts/settlements", request, ct);
@@ -175,6 +202,16 @@ public sealed class LedgerApiClient(HttpClient http)
         }
 
         return operation;
+    }
+
+    public Task<Report> ReportAsync(DateTimeOffset from, DateTimeOffset to, string? currency, CancellationToken ct)
+    {
+        var query = $"from={Uri.EscapeDataString(from.ToString("O"))}&to={Uri.EscapeDataString(to.ToString("O"))}" +
+                    $"&timeZone={Uri.EscapeDataString(TimeZoneInfo.Local.Id)}";
+
+        if (currency is not null) query += $"&currency={currency}";
+
+        return GetAsync<Report>($"api/reports?{query}", ct);
     }
 
     private Task<T> GetAsync<T>(string path, CancellationToken ct) => SendAsync<T>(HttpMethod.Get, path, null, ct);

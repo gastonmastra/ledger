@@ -95,7 +95,8 @@ public sealed class SplitWizard(LedgerApiClient api)
                 categoryId = ConsoleUi.Choose("Category of my share (0 = uncategorized)", categories, c => c.Name, allowNone: true)?.Id;
         }
 
-        var operation = await api.SplitAsync(groupId, total, currency, method, payers, shares, categoryId, description, ct);
+        var when = ConsoleUi.ReadWhen();
+        var operation = await api.SplitAsync(groupId, total, currency, method, payers, shares, categoryId, description, when, ct);
 
         return await api.WaitForOperationAsync(operation, ct);
     }

@@ -89,8 +89,9 @@ public sealed class TransactionsMenu(LedgerApiClient api) : Menu
         var amount = ConsoleUi.ReadDecimal($"Amount ({wallet.Currency}): ");
         var category = await ChooseCategoryAsync("Income", ct);
         var description = ConsoleUi.ReadText("Description (optional): ", optional: true);
+        var when = ConsoleUi.ReadWhen();
 
-        await api.RecordIncomeAsync(wallet.Id, amount, category?.Id, description, ct);
+        await api.RecordIncomeAsync(wallet.Id, amount, category?.Id, description, when, ct);
         ConsoleUi.Success("Income recorded.");
     }
 
@@ -102,8 +103,9 @@ public sealed class TransactionsMenu(LedgerApiClient api) : Menu
         var amount = ConsoleUi.ReadDecimal($"Amount ({wallet.Currency}): ");
         var category = await ChooseCategoryAsync("Expense", ct);
         var description = ConsoleUi.ReadText("Description (optional): ", optional: true);
+        var when = ConsoleUi.ReadWhen();
 
-        await api.RecordExpenseAsync(wallet.Id, amount, category?.Id, description, ct);
+        await api.RecordExpenseAsync(wallet.Id, amount, category?.Id, description, when, ct);
         ConsoleUi.Success("Expense recorded.");
     }
 
@@ -123,8 +125,9 @@ public sealed class TransactionsMenu(LedgerApiClient api) : Menu
             ? null
             : ConsoleUi.ReadDecimal($"Amount received ({to.Currency}): ");
         var description = ConsoleUi.ReadText("Description (optional): ", optional: true);
+        var when = ConsoleUi.ReadWhen();
 
-        await api.TransferAsync(from.Id, to.Id, amount, received, description, ct);
+        await api.TransferAsync(from.Id, to.Id, amount, received, description, when, ct);
         ConsoleUi.Success("Transfer recorded.");
     }
 

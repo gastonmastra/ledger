@@ -23,7 +23,8 @@ public sealed record Transaction(
 
 public sealed record PagedList<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount, int TotalPages);
 
-public sealed record CurrencySummary(string Currency, decimal Wallets, decimal OwedToMe, decimal IOwe, decimal Pending, decimal Net);
+public sealed record CurrencySummary(
+    string Currency, decimal Wallets, decimal OwedToMe, decimal IOwe, decimal Pending, decimal Net, decimal Adjustments);
 
 public sealed record WalletBalance(Guid WalletId, string Name, string Currency, decimal Balance);
 
@@ -52,6 +53,19 @@ public sealed record SuggestedPayment(Guid FromPersonId, string FromName, Guid T
 public sealed record GroupBalances(
     Guid GroupId, string GroupName, IReadOnlyList<MemberBalance> Balances,
     IReadOnlyList<SuggestedPayment> SuggestedPayments, IReadOnlyList<Debt> Debts);
+
+public sealed record OpeningBalance(decimal Amount, DateTimeOffset? OccurredAt);
+
+public sealed record ReportBucket(DateTimeOffset Start, decimal Income, decimal Expenses, decimal NetWorth);
+
+public sealed record CategoryAmount(Guid AccountId, string Name, string Purpose, decimal Amount);
+
+public sealed record ReportWallet(Guid WalletId, string Name, decimal Balance);
+
+public sealed record Report(
+    string Currency, IReadOnlyList<string> Currencies, string Granularity, decimal TotalIncome, decimal TotalExpenses,
+    IReadOnlyList<ReportBucket> Buckets, IReadOnlyList<CategoryAmount> SpendingByCategory,
+    IReadOnlyList<ReportWallet> WalletBalances);
 
 public sealed record SplitPayer(Guid PersonId, decimal Amount, Guid? WalletId = null);
 

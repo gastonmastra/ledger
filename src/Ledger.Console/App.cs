@@ -12,7 +12,8 @@ public sealed class App(
     ContactsMenu contacts,
     GroupsMenu groups,
     DebtsMenu debts,
-    PendingMenu pending)
+    PendingMenu pending,
+    ReportsMenu reports)
 {
     public async Task RunAsync(CancellationToken cancellationToken)
     {
@@ -35,7 +36,8 @@ public sealed class App(
                     new Option(6, "Groups"),
                     new Option(7, "Debts & splits"),
                     new Option(8, pendingCount == 0 ? "Pending wallet assignments" : $"Pending wallet assignments ({pendingCount})"),
-                    new Option(9, "Exit")
+                    new Option(9, "Reports"),
+                    new Option(10, "Exit")
                 ],
                 subtitle: $"Logged in as {me.DisplayName} ({me.Email})");
 
@@ -51,7 +53,8 @@ public sealed class App(
                     case 6: await groups.RunAsync(cancellationToken); break;
                     case 7: await debts.RunAsync(cancellationToken); break;
                     case 8: await pending.RunAsync(cancellationToken); break;
-                    case 9: return;
+                    case 9: await reports.RunAsync(cancellationToken); break;
+                    case 10: return;
                 }
             }
             catch (ApiException ex)

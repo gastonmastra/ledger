@@ -147,7 +147,8 @@ public sealed class GroupsMenu(LedgerApiClient api, SplitWizard splitWizard) : M
             fromPersonId = payment.FromPersonId,
             toPersonId = payment.ToPersonId,
             currency = payment.Currency,
-            walletId
+            walletId,
+            occurredAt = ConsoleUi.ReadWhen()
         }, ct);
 
         ShowOperation(await api.WaitForOperationAsync(operation, ct), "Payment recorded.");
