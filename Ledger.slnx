@@ -1,19 +1,75 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="docker-compose.yml" />
+    <File Path="README.md" />
+    <File Path="Migrations.md" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Ledger.Api/Ledger.Api.csproj" />
     <Project Path="src/Ledger.Console/Ledger.Console.csproj" />
+    <Project Path="src/Ledger.Migrator/Ledger.Migrator.csproj" />
+  </Folder>
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Ledger.BuildingBlocks.Application/Ledger.BuildingBlocks.Application.csproj" />
+    <Project Path="src/BuildingBlocks/Ledger.BuildingBlocks.Domain/Ledger.BuildingBlocks.Domain.csproj" />
+    <Project Path="src/BuildingBlocks/Ledger.BuildingBlocks.Infrastructure/Ledger.BuildingBlocks.Infrastructure.csproj" />
+    <Project Path="src/BuildingBlocks/Ledger.BuildingBlocks.Presentation/Ledger.BuildingBlocks.Presentation.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
   <Folder Name="/src/Modules/Accounts/">
-    <Project Path="src/Modules/Accounts/Ledger.Modules.Accounts.csproj" />
+    <Project Path="src/Modules/Accounts/Ledger.Modules.Accounts.Application/Ledger.Modules.Accounts.Application.csproj" />
+    <Project Path="src/Modules/Accounts/Ledger.Modules.Accounts.Contracts/Ledger.Modules.Accounts.Contracts.csproj" />
+    <Project Path="src/Modules/Accounts/Ledger.Modules.Accounts.Domain/Ledger.Modules.Accounts.Domain.csproj" />
+    <Project Path="src/Modules/Accounts/Ledger.Modules.Accounts.Infrastructure/Ledger.Modules.Accounts.Infrastructure.csproj" />
+    <Project Path="src/Modules/Accounts/Ledger.Modules.Accounts.Presentation/Ledger.Modules.Accounts.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Contacts/">
+    <Project Path="src/Modules/Contacts/Ledger.Modules.Contacts.Application/Ledger.Modules.Contacts.Application.csproj" />
+    <Project Path="src/Modules/Contacts/Ledger.Modules.Contacts.Contracts/Ledger.Modules.Contacts.Contracts.csproj" />
+    <Project Path="src/Modules/Contacts/Ledger.Modules.Contacts.Domain/Ledger.Modules.Contacts.Domain.csproj" />
+    <Project Path="src/Modules/Contacts/Ledger.Modules.Contacts.Infrastructure/Ledger.Modules.Contacts.Infrastructure.csproj" />
+    <Project Path="src/Modules/Contacts/Ledger.Modules.Contacts.Presentation/Ledger.Modules.Contacts.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Debts/">
+    <Project Path="src/Modules/Debts/Ledger.Modules.Debts.Application/Ledger.Modules.Debts.Application.csproj" />
+    <Project Path="src/Modules/Debts/Ledger.Modules.Debts.Contracts/Ledger.Modules.Debts.Contracts.csproj" />
+    <Project Path="src/Modules/Debts/Ledger.Modules.Debts.Domain/Ledger.Modules.Debts.Domain.csproj" />
+    <Project Path="src/Modules/Debts/Ledger.Modules.Debts.Infrastructure/Ledger.Modules.Debts.Infrastructure.csproj" />
+    <Project Path="src/Modules/Debts/Ledger.Modules.Debts.Presentation/Ledger.Modules.Debts.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Groups/">
+    <Project Path="src/Modules/Groups/Ledger.Modules.Groups.Application/Ledger.Modules.Groups.Application.csproj" />
+    <Project Path="src/Modules/Groups/Ledger.Modules.Groups.Contracts/Ledger.Modules.Groups.Contracts.csproj" />
+    <Project Path="src/Modules/Groups/Ledger.Modules.Groups.Domain/Ledger.Modules.Groups.Domain.csproj" />
+    <Project Path="src/Modules/Groups/Ledger.Modules.Groups.Infrastructure/Ledger.Modules.Groups.Infrastructure.csproj" />
+    <Project Path="src/Modules/Groups/Ledger.Modules.Groups.Presentation/Ledger.Modules.Groups.Presentation.csproj" />
   </Folder>
   <Folder Name="/src/Modules/Identity/">
-    <Project Path="src/Modules/Identity/Ledger.Modules.Identity.csproj" />
+    <Project Path="src/Modules/Identity/Ledger.Modules.Identity.Application/Ledger.Modules.Identity.Application.csproj" />
+    <Project Path="src/Modules/Identity/Ledger.Modules.Identity.Contracts/Ledger.Modules.Identity.Contracts.csproj" />
+    <Project Path="src/Modules/Identity/Ledger.Modules.Identity.Domain/Ledger.Modules.Identity.Domain.csproj" />
+    <Project Path="src/Modules/Identity/Ledger.Modules.Identity.Infrastructure/Ledger.Modules.Identity.Infrastructure.csproj" />
+    <Project Path="src/Modules/Identity/Ledger.Modules.Identity.Presentation/Ledger.Modules.Identity.Presentation.csproj" />
   </Folder>
   <Folder Name="/src/Modules/Transactions/">
-    <Project Path="src/Modules/Transactions/Ledger.Modules.Transactions.csproj" />
+    <Project Path="src/Modules/Transactions/Ledger.Modules.Transactions.Application/Ledger.Modules.Transactions.Application.csproj" />
+    <Project Path="src/Modules/Transactions/Ledger.Modules.Transactions.Contracts/Ledger.Modules.Transactions.Contracts.csproj" />
+    <Project Path="src/Modules/Transactions/Ledger.Modules.Transactions.Domain/Ledger.Modules.Transactions.Domain.csproj" />
+    <Project Path="src/Modules/Transactions/Ledger.Modules.Transactions.Infrastructure/Ledger.Modules.Transactions.Infrastructure.csproj" />
+    <Project Path="src/Modules/Transactions/Ledger.Modules.Transactions.Presentation/Ledger.Modules.Transactions.Presentation.csproj" />
   </Folder>
   <Folder Name="/src/Modules/Wallets/">
-    <Project Path="src/Modules/Wallets/Ledger.Modules.Wallets.csproj" />
+    <Project Path="src/Modules/Wallets/Ledger.Modules.Wallets.Application/Ledger.Modules.Wallets.Application.csproj" />
+    <Project Path="src/Modules/Wallets/Ledger.Modules.Wallets.Contracts/Ledger.Modules.Wallets.Contracts.csproj" />
+    <Project Path="src/Modules/Wallets/Ledger.Modules.Wallets.Domain/Ledger.Modules.Wallets.Domain.csproj" />
+    <Project Path="src/Modules/Wallets/Ledger.Modules.Wallets.Infrastructure/Ledger.Modules.Wallets.Infrastructure.csproj" />
+    <Project Path="src/Modules/Wallets/Ledger.Modules.Wallets.Presentation/Ledger.Modules.Wallets.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ledger.ArchitectureTests/Ledger.ArchitectureTests.csproj" />
+    <Project Path="tests/Ledger.IntegrationTests/Ledger.IntegrationTests.csproj" />
+    <Project Path="tests/Ledger.UnitTests/Ledger.UnitTests.csproj" />
   </Folder>
 </Solution>
