@@ -77,6 +77,8 @@
       </ui-table>
     }
   </ui-card>
+
+  <app-operations-list class="mt-6 block" i18n-heading="@@groups.expenses" heading="Expenses and payments" [groupId]="id()" />
 } @else if (group.isLoading()) {
   <div class="flex justify-center py-16"><ui-spinner /></div>
 }

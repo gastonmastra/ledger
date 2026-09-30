@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, firstValueFrom } from 'rxjs';
 import { appSettings } from '../../app.settings';
 import { LedgerApi } from '../api/ledger-api';
-import { Operation } from '../api/models';
+import { ChangeResult, Operation } from '../api/models';
 import { DataChanges } from '../data-changes';
 import { ToastService } from '../notifications/toast.service';
 
@@ -25,6 +25,59 @@ export class OperationTracker {
   /** Submits the request, then tracks it. Rejects only if the API refused the request itself. */
   async submit(request: Observable<Operation>, successMessage: string): Promise<void> {
     this.track(await firstValueFrom(request), successMessage);
+  }
+
+  /**
+   * Submits a change of a shared operation (edit, delete, restore, or an answer to a change).
+   * Linked users may have to confirm it first; otherwise the books are updated asynchronously.
+   */
+  async submitChange(request: Observable<ChangeResult>, successMessage: string): Promise<void> {
+    this.trackChange(await firstValueFrom(request), successMessage);
+  }
+
+  trackChange(result: ChangeResult, successMessage: string): void {
+    this.changes.notify();
+
+    if (result.status === 'Pending') {
+      this.toasts.info(
+        $localize`:@@change.waiting:Sent for confirmation to ${result.waitingFor.join(', ')}:names:. Nothing changes until they answer.`,
+      );
+      return;
+    }
+
+    void this.pollChange(result, successMessage);
+  }
+
+  private async pollChange(result: ChangeResult, successMessage: string): Promise<void> {
+    const deadline = Date.now() + appSettings.operationTimeoutMs;
+    let status = result.status;
+    let failure: string | null = null;
+
+    while (status === 'Applying' && Date.now() < deadline) {
+      await delay(appSettings.operationPollMs);
+
+      try {
+        const history = await firstValueFrom(this.api.operationHistory(result.operationId));
+        const change = history.changes.find((c) => c.id === result.changeId);
+        status = change?.status ?? status;
+        failure = change?.failureReason ?? null;
+      } catch {
+        // Transient error: keep trying until the deadline.
+      }
+    }
+
+    switch (status) {
+      case 'Applied':
+        this.toasts.success(successMessage);
+        this.changes.notify();
+        break;
+      case 'Failed':
+        this.toasts.error($localize`:@@change.failed:The change could not be applied: ${failure}:reason:`);
+        this.changes.notify();
+        break;
+      default:
+        this.toasts.info($localize`:@@operation.slow:It is taking longer than usual. Check again in a moment.`);
+    }
   }
 
   private async poll(operation: Operation, successMessage: string): Promise<void> {

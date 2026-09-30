@@ -1775,8 +1775,8 @@
         </context-group>
       </trans-unit>
       <trans-unit id="initialDebt.description" datatype="html">
-        <source>A debt from before you used Ledger. No money moves now; settle it when it is paid.</source>
-        <target state="translated">Una deuda de antes de usar Ledger. Ahora no se mueve dinero; sáldala cuando se pague.</target>
+        <source>A debt from before you used Ledger. No money moves now; settle it when it is paid. It is neither income nor expense.</source>
+        <target state="translated">Una deuda de antes de usar Ledger. Ahora no se mueve dinero; saldala cuando se pague. No es ingreso ni gasto.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
           <context context-type="linenumber">21,23</context>
@@ -3125,6 +3125,518 @@
           <context context-type="sourcefile">src/app/ui/toast-container.ts</context>
           <context context-type="linenumber">34,35</context>
         </context-group>
+      </trans-unit>
+      <trans-unit id="error.booksLocked" datatype="html">
+        <source>Your books are closed for that date. Move the lock date back in Settings to change it.</source>
+        <target state="translated">Tus libros están cerrados para esa fecha. Mové la fecha de cierre hacia atrás en Configuración para cambiarlo.</target>
+      </trans-unit>
+      <trans-unit id="error.booksLockedForOther" datatype="html">
+        <source>Someone involved closed their books for that date, so it cannot change.</source>
+        <target state="translated">Alguien involucrado cerró sus libros para esa fecha, así que no se puede cambiar.</target>
+      </trans-unit>
+      <trans-unit id="error.debtSettled" datatype="html">
+        <source>It was already settled. Undo (delete) the settlement first, then change it.</source>
+        <target state="translated">Ya se saldó. Primero deshacé (eliminá) la liquidación y después cambialo.</target>
+      </trans-unit>
+      <trans-unit id="error.changePending" datatype="html">
+        <source>A change is waiting for confirmation. Try again once it is answered.</source>
+        <target state="translated">Hay un cambio esperando confirmación. Probá de nuevo cuando lo respondan.</target>
+      </trans-unit>
+      <trans-unit id="error.notCurrent" datatype="html">
+        <source>Only the current version can be changed.</source>
+        <target state="translated">Solo se puede cambiar la versión actual.</target>
+      </trans-unit>
+      <trans-unit id="error.notLatest" datatype="html">
+        <source>Only the latest version can be restored.</source>
+        <target state="translated">Solo se puede restaurar la última versión.</target>
+      </trans-unit>
+      <trans-unit id="error.settlementNotRestorable" datatype="html">
+        <source>A deleted settlement cannot be restored: settle the debts again instead.</source>
+        <target state="translated">Una liquidación eliminada no se puede restaurar: volvé a saldar las deudas.</target>
+      </trans-unit>
+      <trans-unit id="error.initiatorOnly" datatype="html">
+        <source>Only the person who recorded it can change the currency.</source>
+        <target state="translated">Solo quien lo registró puede cambiar la moneda.</target>
+      </trans-unit>
+      <trans-unit id="error.notEditable" datatype="html">
+        <source>This transaction cannot be edited here. Loans, splits and settlements are changed in Debts &amp; splits.</source>
+        <target state="translated">Esta transacción no se puede editar acá. Los préstamos, gastos compartidos y liquidaciones se cambian en Deudas y gastos compartidos.</target>
+      </trans-unit>
+      <trans-unit id="error.notDeletable" datatype="html">
+        <source>This transaction cannot be deleted here. Loans, splits and settlements are changed in Debts &amp; splits.</source>
+        <target state="translated">Esta transacción no se puede eliminar acá. Los préstamos, gastos compartidos y liquidaciones se cambian en Deudas y gastos compartidos.</target>
+      </trans-unit>
+      <trans-unit id="error.alreadyAnswered" datatype="html">
+        <source>You already answered this change.</source>
+        <target state="translated">Ya respondiste este cambio.</target>
+      </trans-unit>
+      <trans-unit id="error.changeNotPending" datatype="html">
+        <source>This change is no longer waiting for an answer.</source>
+        <target state="translated">Este cambio ya no espera respuesta.</target>
+      </trans-unit>
+      <trans-unit id="error.settlementWallet" datatype="html">
+        <source>Choose the wallet the money comes from or goes to.</source>
+        <target state="translated">Elegí la billetera de donde sale o a donde va el dinero.</target>
+      </trans-unit>
+      <trans-unit id="kind.reversal" datatype="html">
+        <source>Reversal</source>
+        <target state="translated">Reversión</target>
+      </trans-unit>
+      <trans-unit id="debtStatus.superseded" datatype="html">
+        <source>Replaced</source>
+        <target state="translated">Reemplazada</target>
+      </trans-unit>
+      <trans-unit id="txStatus.current" datatype="html">
+        <source>Current</source>
+        <target state="translated">Actual</target>
+      </trans-unit>
+      <trans-unit id="txStatus.changed" datatype="html">
+        <source>Changed</source>
+        <target state="translated">Modificada</target>
+      </trans-unit>
+      <trans-unit id="txStatus.deleted" datatype="html">
+        <source>Deleted</source>
+        <target state="translated">Eliminada</target>
+      </trans-unit>
+      <trans-unit id="txStatus.reversal" datatype="html">
+        <source>Reversal</source>
+        <target state="translated">Reversión</target>
+      </trans-unit>
+      <trans-unit id="action.edit" datatype="html">
+        <source>Edited</source>
+        <target state="translated">Editado</target>
+      </trans-unit>
+      <trans-unit id="action.delete" datatype="html">
+        <source>Deleted</source>
+        <target state="translated">Eliminado</target>
+      </trans-unit>
+      <trans-unit id="action.restore" datatype="html">
+        <source>Restored</source>
+        <target state="translated">Restaurado</target>
+      </trans-unit>
+      <trans-unit id="action.system" datatype="html">
+        <source>Changed by Ledger</source>
+        <target state="translated">Cambiado por Ledger</target>
+      </trans-unit>
+      <trans-unit id="opStatus.pending" datatype="html">
+        <source>Being recorded</source>
+        <target state="translated">Registrándose</target>
+      </trans-unit>
+      <trans-unit id="opStatus.rejected" datatype="html">
+        <source>Refused</source>
+        <target state="translated">Rechazada</target>
+      </trans-unit>
+      <trans-unit id="changeStatus.pending" datatype="html">
+        <source>Waiting for confirmation</source>
+        <target state="translated">Esperando confirmación</target>
+      </trans-unit>
+      <trans-unit id="changeStatus.applying" datatype="html">
+        <source>Updating the books</source>
+        <target state="translated">Actualizando los libros</target>
+      </trans-unit>
+      <trans-unit id="changeStatus.applied" datatype="html">
+        <source>Applied</source>
+        <target state="translated">Aplicado</target>
+      </trans-unit>
+      <trans-unit id="changeStatus.failed" datatype="html">
+        <source>Failed</source>
+        <target state="translated">Falló</target>
+      </trans-unit>
+      <trans-unit id="approval.pending" datatype="html">
+        <source>Not answered yet</source>
+        <target state="translated">Sin responder</target>
+      </trans-unit>
+      <trans-unit id="approval.accepted" datatype="html">
+        <source>Accepted</source>
+        <target state="translated">Aceptado</target>
+      </trans-unit>
+      <trans-unit id="approval.rejected" datatype="html">
+        <source>Rejected</source>
+        <target state="translated">Rechazado</target>
+      </trans-unit>
+      <trans-unit id="change.waiting" datatype="html">
+        <source>Sent for confirmation to <x id="names" equiv-text="result.waitingFor.join(&apos;, &apos;)"/>. Nothing changes until they answer.</source>
+        <target state="translated">Enviado para confirmar a <x id="names" equiv-text="result.waitingFor.join(&amp;apos;, &amp;apos;)"/>. Nada cambia hasta que respondan.</target>
+      </trans-unit>
+      <trans-unit id="change.failed" datatype="html">
+        <source>The change could not be applied: <x id="reason" equiv-text="failure"/></source>
+        <target state="translated">No se pudo aplicar el cambio: <x id="reason" equiv-text="failure"/></target>
+      </trans-unit>
+      <trans-unit id="activity.title" datatype="html">
+        <source>Activity</source>
+        <target state="translated">Actividad</target>
+      </trans-unit>
+      <trans-unit id="activity.subtitle" datatype="html">
+        <source>What was changed, deleted or restored, by whom and why.</source>
+        <target state="translated">Qué se cambió, eliminó o restauró, quién y por qué.</target>
+      </trans-unit>
+      <trans-unit id="activity.empty" datatype="html">
+        <source>Nothing has been changed yet.</source>
+        <target state="translated">Todavía no se cambió nada.</target>
+      </trans-unit>
+      <trans-unit id="operations.disputed" datatype="html">
+        <source>Disputed</source>
+        <target state="translated">En disputa</target>
+      </trans-unit>
+      <trans-unit id="history.byName" datatype="html">
+        <source>by <x id="NAME" equiv-text="{{ row.by // i18n(ph=&quot;name&quot;) }}"/></source>
+        <target state="translated">por <x id="NAME" equiv-text="{{ row.by // i18n(ph=&amp;quot;name&amp;quot;) }}"/></target>
+      </trans-unit>
+      <trans-unit id="history.title" datatype="html">
+        <source>History</source>
+        <target state="translated">Historial</target>
+      </trans-unit>
+      <trans-unit id="activity.more" datatype="html">
+        <source>Show more</source>
+        <target state="translated">Ver más</target>
+      </trans-unit>
+      <trans-unit id="changes.title" datatype="html">
+        <source>Changes to review</source>
+        <target state="translated">Cambios para revisar</target>
+      </trans-unit>
+      <trans-unit id="changes.subtitle" datatype="html">
+        <source>Someone changed something you share. Nothing changes in your books until you answer.</source>
+        <target state="translated">Alguien cambió algo que compartís. Nada cambia en tus libros hasta que respondas.</target>
+      </trans-unit>
+      <trans-unit id="changes.showAll" datatype="html">
+        <source>Also answered and mine</source>
+        <target state="translated">Incluir respondidos y míos</target>
+      </trans-unit>
+      <trans-unit id="changes.empty" datatype="html">
+        <source>Nothing waiting for you.</source>
+        <target state="translated">No hay nada esperándote.</target>
+      </trans-unit>
+      <trans-unit id="changes.byMe" datatype="html">
+        <source>You asked:</source>
+        <target state="translated">Pediste:</target>
+      </trans-unit>
+      <trans-unit id="changes.byOther" datatype="html">
+        <source><x id="NAME" equiv-text="{{ change.requestedByName // i18n(ph=&quot;name&quot;) }}"/> asks:</source>
+        <target state="translated"><x id="NAME" equiv-text="{{ change.requestedByName // i18n(ph=&amp;quot;name&amp;quot;) }}"/> pide:</target>
+      </trans-unit>
+      <trans-unit id="changes.willBeDeleted" datatype="html">
+        <source>It will be deleted (it stays in the history).</source>
+        <target state="translated">Se eliminará (queda en el historial).</target>
+      </trans-unit>
+      <trans-unit id="changes.reject" datatype="html">
+        <source>Reject</source>
+        <target state="translated">Rechazar</target>
+      </trans-unit>
+      <trans-unit id="changes.accept" datatype="html">
+        <source>Accept</source>
+        <target state="translated">Aceptar</target>
+      </trans-unit>
+      <trans-unit id="changes.now" datatype="html">
+        <source>Now</source>
+        <target state="translated">Ahora</target>
+      </trans-unit>
+      <trans-unit id="changes.proposed" datatype="html">
+        <source>Proposed</source>
+        <target state="translated">Propuesto</target>
+      </trans-unit>
+      <trans-unit id="changes.rejectTitle" datatype="html">
+        <source>Reject the change?</source>
+        <target state="translated">¿Rechazar el cambio?</target>
+      </trans-unit>
+      <trans-unit id="changes.rejectMessage" datatype="html">
+        <source>Your books keep the current version; the others may apply it to theirs. It will be marked as disputed.</source>
+        <target state="translated">Tus libros mantienen la versión actual; los demás pueden aplicarlo en los suyos. Quedará marcado como en disputa.</target>
+      </trans-unit>
+      <trans-unit id="changes.rejectReason" datatype="html">
+        <source>Why? (optional)</source>
+        <target state="translated">¿Por qué? (opcional)</target>
+      </trans-unit>
+      <trans-unit id="changes.answeredWaiting" datatype="html">
+        <source>Answer recorded. Still waiting for <x id="names" equiv-text="result.waitingFor.join(&apos;, &apos;)"/>.</source>
+        <target state="translated">Respuesta registrada. Todavía falta <x id="names" equiv-text="result.waitingFor.join(&amp;apos;, &amp;apos;)"/>.</target>
+      </trans-unit>
+      <trans-unit id="changes.answered" datatype="html">
+        <source>Thanks, your answer was recorded.</source>
+        <target state="translated">Gracias, tu respuesta quedó registrada.</target>
+      </trans-unit>
+      <trans-unit id="lend.recordedBy" datatype="html">
+        <source><x id="NAME" equiv-text="{{ edit!.recordedByName // i18n(ph=&quot;name&quot;) }}"/> lent it to <x id="BORROWER" equiv-text="{{ edit!.toName // i18n(ph=&quot;borrower&quot;) }}"/>. Only they can change who got it or the wallet.</source>
+        <target state="translated"><x id="NAME" equiv-text="{{ edit!.recordedByName // i18n(ph=&amp;quot;name&amp;quot;) }}"/> se lo prestó a <x id="BORROWER" equiv-text="{{ edit!.toName // i18n(ph=&amp;quot;borrower&amp;quot;) }}"/>. Solo esa persona puede cambiar a quién o la billetera.</target>
+      </trans-unit>
+      <trans-unit id="lend.editTitle" datatype="html">
+        <source>Change the loan</source>
+        <target state="translated">Cambiar el préstamo</target>
+      </trans-unit>
+      <trans-unit id="change.applied" datatype="html">
+        <source>Change applied.</source>
+        <target state="translated">Cambio aplicado.</target>
+      </trans-unit>
+      <trans-unit id="debts.changesToReview" datatype="html">
+        <source>{VAR_PLURAL, plural, =1 {1 change is waiting for your answer.} other {<x id="INTERPOLATION"/> changes are waiting for your answer.}}</source>
+        <target state="translated">{VAR_PLURAL, plural, =1 {1 cambio espera tu respuesta.} other {<x id="INTERPOLATION"/> cambios esperan tu respuesta.}}</target>
+      </trans-unit>
+      <trans-unit id="debts.review" datatype="html">
+        <source>Review</source>
+        <target state="translated">Revisar</target>
+      </trans-unit>
+      <trans-unit id="operations.changePending" datatype="html">
+        <source>Change pending</source>
+        <target state="translated">Cambio pendiente</target>
+      </trans-unit>
+      <trans-unit id="debts.operations" datatype="html">
+        <source>Loans, splits and settlements</source>
+        <target state="translated">Préstamos, gastos compartidos y liquidaciones</target>
+      </trans-unit>
+      <trans-unit id="initialDebt.recordedBy" datatype="html">
+        <source>Recorded by <x id="NAME" equiv-text="{{ edit!.recordedByName // i18n(ph=&quot;name&quot;) }}"/>. Only they can change who owes whom or the currency.</source>
+        <target state="translated">Registrada por <x id="NAME" equiv-text="{{ edit!.recordedByName // i18n(ph=&amp;quot;name&amp;quot;) }}"/>. Solo esa persona puede cambiar quién le debe a quién o la moneda.</target>
+      </trans-unit>
+      <trans-unit id="initialDebt.editTitle" datatype="html">
+        <source>Change the existing debt</source>
+        <target state="translated">Cambiar la deuda existente</target>
+      </trans-unit>
+      <trans-unit id="operations.deleteTitle" datatype="html">
+        <source>Delete this <x id="kind" equiv-text="kind"/>?</source>
+        <target state="translated">¿Eliminar este registro (<x id="kind" equiv-text="kind"/>)?</target>
+      </trans-unit>
+      <trans-unit id="operations.deleteSettlement" datatype="html">
+        <source>The debts it paid will be open again. It stays in the history.</source>
+        <target state="translated">Las deudas que pagó volverán a quedar abiertas. Queda en el historial.</target>
+      </trans-unit>
+      <trans-unit id="operations.deleteMessage" datatype="html">
+        <source>It stays in the history and can be restored. Linked people involved have to confirm it.</source>
+        <target state="translated">Queda en el historial y se puede restaurar. Las personas vinculadas involucradas tienen que confirmarlo.</target>
+      </trans-unit>
+      <trans-unit id="operations.deleted" datatype="html">
+        <source>Deleted.</source>
+        <target state="translated">Eliminado.</target>
+      </trans-unit>
+      <trans-unit id="operations.restoreTitle" datatype="html">
+        <source>Restore it?</source>
+        <target state="translated">¿Restaurarlo?</target>
+      </trans-unit>
+      <trans-unit id="operations.restoreMessage" datatype="html">
+        <source>It counts again as it was before it was deleted. Linked people involved have to confirm it.</source>
+        <target state="translated">Vuelve a contar como estaba antes de eliminarse. Las personas vinculadas involucradas tienen que confirmarlo.</target>
+      </trans-unit>
+      <trans-unit id="history.restore" datatype="html">
+        <source>Restore</source>
+        <target state="translated">Restaurar</target>
+      </trans-unit>
+      <trans-unit id="operations.restored" datatype="html">
+        <source>Restored.</source>
+        <target state="translated">Restaurado.</target>
+      </trans-unit>
+      <trans-unit id="history.operationDescription" datatype="html">
+        <source>Nothing is edited in place: every change is a new version, with who asked for it and why.</source>
+        <target state="translated">Nada se edita en el lugar: cada cambio es una nueva versión, con quién lo pidió y por qué.</target>
+      </trans-unit>
+      <trans-unit id="history.versions" datatype="html">
+        <source>Versions</source>
+        <target state="translated">Versiones</target>
+      </trans-unit>
+      <trans-unit id="history.revision" datatype="html">
+        <source>Version <x id="INTERPOLATION" equiv-text="{{ version.revision }}"/></source>
+        <target state="translated">Versión <x id="INTERPOLATION" equiv-text="{{ version.revision }}"/></target>
+      </trans-unit>
+      <trans-unit id="history.changes" datatype="html">
+        <source>Changes</source>
+        <target state="translated">Cambios</target>
+      </trans-unit>
+      <trans-unit id="history.noChanges" datatype="html">
+        <source>It has not been changed.</source>
+        <target state="translated">No se modificó.</target>
+      </trans-unit>
+      <trans-unit id="history.by" datatype="html">
+        <source>By <x id="NAME" equiv-text="{{ change.requestedByName // i18n(ph=&quot;name&quot;) }}"/>:</source>
+        <target state="translated">Por <x id="NAME" equiv-text="{{ change.requestedByName // i18n(ph=&amp;quot;name&amp;quot;) }}"/>:</target>
+      </trans-unit>
+      <trans-unit id="operations.showChanged" datatype="html">
+        <source>Show changed and deleted</source>
+        <target state="translated">Mostrar modificados y eliminados</target>
+      </trans-unit>
+      <trans-unit id="operations.empty" datatype="html">
+        <source>Nothing recorded yet.</source>
+        <target state="translated">Todavía no hay nada registrado.</target>
+      </trans-unit>
+      <trans-unit id="operations.waitingForYou" datatype="html">
+        <source>Change waiting for you</source>
+        <target state="translated">Cambio esperando tu respuesta</target>
+      </trans-unit>
+      <trans-unit id="operations.settled" datatype="html">
+        <source>Settled</source>
+        <target state="translated">Saldada</target>
+      </trans-unit>
+      <trans-unit id="operations.recordedBy" datatype="html">
+        <source>recorded by <x id="NAME" equiv-text="{{ operation.recordedByName // i18n(ph=&quot;name&quot;) }}"/></source>
+        <target state="translated">registrado por <x id="NAME" equiv-text="{{ operation.recordedByName // i18n(ph=&amp;quot;name&amp;quot;) }}"/></target>
+      </trans-unit>
+      <trans-unit id="ui.edit" datatype="html">
+        <source>Edit</source>
+        <target state="translated">Editar</target>
+      </trans-unit>
+      <trans-unit id="operations.undoSettlementHint" datatype="html">
+        <source>It was settled: undo the settlement to change it.</source>
+        <target state="translated">Se saldó: deshacé la liquidación para cambiarlo.</target>
+      </trans-unit>
+      <trans-unit id="operations.undoSettlement" datatype="html">
+        <source>Undo settlement</source>
+        <target state="translated">Deshacer liquidación</target>
+      </trans-unit>
+      <trans-unit id="operations.splitSummary" datatype="html">
+        <source>Paid by <x id="payers" equiv-text="payers"/>, shared by <x id="count" equiv-text="people"/> people</source>
+        <target state="translated">Pagó <x id="payers" equiv-text="payers"/>, compartido entre <x id="count" equiv-text="people"/> personas</target>
+      </trans-unit>
+      <trans-unit id="settlementEdit.title" datatype="html">
+        <source>Change the settlement</source>
+        <target state="translated">Cambiar la liquidación</target>
+      </trans-unit>
+      <trans-unit id="settlementEdit.description" datatype="html">
+        <source>The amount comes from the debts it paid. To pay a different amount, delete it and settle again.</source>
+        <target state="translated">El monto sale de las deudas que pagó. Para pagar otro monto, eliminala y volvé a saldar.</target>
+      </trans-unit>
+      <trans-unit id="settlementEdit.wallet" datatype="html">
+        <source>Wallet</source>
+        <target state="translated">Billetera</target>
+      </trans-unit>
+      <trans-unit id="groups.expenses" datatype="html">
+        <source>Expenses and payments</source>
+        <target state="translated">Gastos y pagos</target>
+      </trans-unit>
+      <trans-unit id="settings.title" datatype="html">
+        <source>Settings</source>
+        <target state="translated">Configuración</target>
+      </trans-unit>
+      <trans-unit id="settings.lockTitle" datatype="html">
+        <source>Close my books</source>
+        <target state="translated">Cerrar mis libros</target>
+      </trans-unit>
+      <trans-unit id="settings.lockExplanation" datatype="html">
+        <source> Once a period is reviewed (e.g. a closed month), lock it: nothing dated on or before the lock date can be recorded, edited, deleted or restored, and shared operations that would touch it are refused. You can move the date back at any time. </source>
+        <target state="translated"> Cuando revisás un período (por ejemplo, un mes cerrado), bloquealo: nada con fecha igual o anterior a la de cierre se puede registrar, editar, eliminar ni restaurar, y se rechazan las operaciones compartidas que lo afecten. Podés mover la fecha hacia atrás cuando quieras. </target>
+      </trans-unit>
+      <trans-unit id="settings.lockedUntil" datatype="html">
+        <source>Closed up to <x id="INTERPOLATION" equiv-text="{{ until | date: &apos;medium&apos; }}"/></source>
+        <target state="translated">Cerrado hasta <x id="INTERPOLATION" equiv-text="{{ until | date: &amp;apos;medium&amp;apos; }}"/></target>
+      </trans-unit>
+      <trans-unit id="settings.notLocked" datatype="html">
+        <source>Nothing is locked.</source>
+        <target state="translated">No hay nada bloqueado.</target>
+      </trans-unit>
+      <trans-unit id="settings.lockDate" datatype="html">
+        <source>Closed up to</source>
+        <target state="translated">Cerrado hasta</target>
+      </trans-unit>
+      <trans-unit id="settings.lock" datatype="html">
+        <source>Lock</source>
+        <target state="translated">Bloquear</target>
+      </trans-unit>
+      <trans-unit id="settings.unlock" datatype="html">
+        <source>Unlock everything</source>
+        <target state="translated">Desbloquear todo</target>
+      </trans-unit>
+      <trans-unit id="settings.locked" datatype="html">
+        <source>Books closed.</source>
+        <target state="translated">Libros cerrados.</target>
+      </trans-unit>
+      <trans-unit id="settings.unlocked" datatype="html">
+        <source>Everything is open again.</source>
+        <target state="translated">Todo está abierto otra vez.</target>
+      </trans-unit>
+      <trans-unit id="split.editTitle" datatype="html">
+        <source>Change the split</source>
+        <target state="translated">Cambiar el gasto compartido</target>
+      </trans-unit>
+      <trans-unit id="split.editDescription" datatype="html">
+        <source>A new version is recorded; the previous one stays in the history.</source>
+        <target state="translated">Se registra una nueva versión; la anterior queda en el historial.</target>
+      </trans-unit>
+      <trans-unit id="movement.editIncomeTitle" datatype="html">
+        <source>Correct income</source>
+        <target state="translated">Corregir ingreso</target>
+      </trans-unit>
+      <trans-unit id="movement.editExpenseTitle" datatype="html">
+        <source>Correct expense</source>
+        <target state="translated">Corregir gasto</target>
+      </trans-unit>
+      <trans-unit id="history.transactionDescription" datatype="html">
+        <source>Posted entries are never edited: a change cancels the previous version with a reversal and records the new one.</source>
+        <target state="translated">Los asientos nunca se editan: un cambio anula la versión anterior con una reversión y registra la nueva.</target>
+      </trans-unit>
+      <trans-unit id="history.recordedAt" datatype="html">
+        <source>recorded <x id="INTERPOLATION" equiv-text="{{ item.recordedAt | date: &apos;medium&apos; }}"/></source>
+        <target state="translated">registrado <x id="INTERPOLATION" equiv-text="{{ item.recordedAt | date: &amp;apos;medium&amp;apos; }}"/></target>
+      </trans-unit>
+      <trans-unit id="transactions.showChangesHint" datatype="html">
+        <source>Also show replaced and deleted versions and the reversals that cancelled them.</source>
+        <target state="translated">Mostrar también las versiones reemplazadas y eliminadas y las reversiones que las anularon.</target>
+      </trans-unit>
+      <trans-unit id="transactions.showChanges" datatype="html">
+        <source>Show changes</source>
+        <target state="translated">Mostrar cambios</target>
+      </trans-unit>
+      <trans-unit id="transactions.edited" datatype="html">
+        <source>Edited</source>
+        <target state="translated">Editada</target>
+      </trans-unit>
+      <trans-unit id="transactions.openOperationHint" datatype="html">
+        <source>Loans, splits and settlements are changed in Debts &amp; splits.</source>
+        <target state="translated">Los préstamos, gastos compartidos y liquidaciones se cambian en Deudas y gastos compartidos.</target>
+      </trans-unit>
+      <trans-unit id="transactions.openOperation" datatype="html">
+        <source>Operation</source>
+        <target state="translated">Operación</target>
+      </trans-unit>
+      <trans-unit id="transactions.corrected" datatype="html">
+        <source>Corrected. The previous version is kept in the history.</source>
+        <target state="translated">Corregida. La versión anterior queda en el historial.</target>
+      </trans-unit>
+      <trans-unit id="transactions.deleteTitle" datatype="html">
+        <source>Delete this transaction?</source>
+        <target state="translated">¿Eliminar esta transacción?</target>
+      </trans-unit>
+      <trans-unit id="transactions.deleteMessage" datatype="html">
+        <source>A reversal cancels it; it stays in the history and can be restored.</source>
+        <target state="translated">Una reversión la anula; queda en el historial y se puede restaurar.</target>
+      </trans-unit>
+      <trans-unit id="transactions.deleted" datatype="html">
+        <source>Transaction deleted.</source>
+        <target state="translated">Transacción eliminada.</target>
+      </trans-unit>
+      <trans-unit id="transactions.restoreTitle" datatype="html">
+        <source>Restore this transaction?</source>
+        <target state="translated">¿Restaurar esta transacción?</target>
+      </trans-unit>
+      <trans-unit id="transactions.restoreMessage" datatype="html">
+        <source>It counts again as it was before it was deleted.</source>
+        <target state="translated">Vuelve a contar como estaba antes de eliminarse.</target>
+      </trans-unit>
+      <trans-unit id="transactions.restored" datatype="html">
+        <source>Transaction restored.</source>
+        <target state="translated">Transacción restaurada.</target>
+      </trans-unit>
+      <trans-unit id="transfer.editTitle" datatype="html">
+        <source>Correct transfer</source>
+        <target state="translated">Corregir transferencia</target>
+      </trans-unit>
+      <trans-unit id="nav.changes" datatype="html">
+        <source>Changes to review</source>
+        <target state="translated">Cambios para revisar</target>
+      </trans-unit>
+      <trans-unit id="nav.activity" datatype="html">
+        <source>Activity</source>
+        <target state="translated">Actividad</target>
+      </trans-unit>
+      <trans-unit id="nav.settings" datatype="html">
+        <source>Settings</source>
+        <target state="translated">Configuración</target>
+      </trans-unit>
+      <trans-unit id="reason.label" datatype="html">
+        <source>Why?</source>
+        <target state="translated">¿Por qué?</target>
+      </trans-unit>
+      <trans-unit id="reason.hint" datatype="html">
+        <source>Kept in the history, so everybody involved knows what changed and why.</source>
+        <target state="translated">Queda en el historial, para que todos los involucrados sepan qué cambió y por qué.</target>
+      </trans-unit>
+      <trans-unit id="reason.placeholder" datatype="html">
+        <source>E.g. wrong amount, duplicated…</source>
+        <target state="translated">Ej.: monto equivocado, duplicado…</target>
       </trans-unit>
     </body>
   </file>

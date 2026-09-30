@@ -2,7 +2,9 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
+  BooksLock,
   Category,
+  ChangeResult,
   CategoryType,
   Contact,
   Currency,
@@ -12,15 +14,23 @@ import {
   Me,
   MyDebts,
   Operation,
+  OperationChange,
+  OperationDetails,
+  OperationFilter,
+  OperationHistory,
   OpeningBalance,
   PagedResult,
   PendingAssignment,
   Report,
+  ReviseOperationRequest,
+  ReviseTransactionRequest,
   SettleRequest,
   SplitRequest,
   Summary,
   Transaction,
+  TransactionActivity,
   TransactionFilter,
+  TransactionHistoryItem,
   Wallet,
 } from './models';
 
@@ -51,8 +61,8 @@ export class LedgerApi {
     return this.http.get<OpeningBalance>(`${this.base}/transactions/opening-balance/${walletId}`);
   }
 
-  changeOpeningBalance(walletId: string, amount: number, occurredAt: string): Observable<void> {
-    return this.http.put<void>(`${this.base}/transactions/opening-balance`, { walletId, amount, occurredAt });
+  changeOpeningBalance(walletId: string, amount: number, occurredAt: string, reason: string): Observable<void> {
+    return this.http.put<void>(`${this.base}/transactions/opening-balance`, { walletId, amount, occurredAt, reason });
   }
 
   adjustBalance(body: { walletId: string; actualBalance: number; occurredAt: string; description?: string | null }) {
@@ -97,7 +107,41 @@ export class LedgerApi {
       if (value) params = params.set(key, value);
     }
 
+    if (filter.includeHistory) params = params.set('includeHistory', true);
+
     return this.http.get<PagedResult<Transaction>>(`${this.base}/transactions`, { params });
+  }
+
+  /** Posts a reversal of the current version and the corrected one. Returns the new version's id. */
+  reviseTransaction(id: string, body: ReviseTransactionRequest) {
+    return this.http.put<{ id: string }>(`${this.base}/transactions/${id}`, body);
+  }
+
+  deleteTransaction(id: string, reason: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/transactions/${id}`, { body: { reason } });
+  }
+
+  restoreTransaction(id: string, reason: string) {
+    return this.http.post<{ id: string }>(`${this.base}/transactions/${id}/restore`, { reason });
+  }
+
+  transactionHistory(id: string): Observable<TransactionHistoryItem[]> {
+    return this.http.get<TransactionHistoryItem[]>(`${this.base}/transactions/${id}/history`);
+  }
+
+  transactionActivity(page = 1, pageSize = 30): Observable<PagedResult<TransactionActivity>> {
+    return this.http.get<PagedResult<TransactionActivity>>(`${this.base}/transactions/activity`, {
+      params: { page, pageSize },
+    });
+  }
+
+  // Settings
+  booksLock(): Observable<BooksLock> {
+    return this.http.get<BooksLock>(`${this.base}/settings/books-lock`);
+  }
+
+  setBooksLock(lockedUntil: string | null): Observable<BooksLock> {
+    return this.http.put<BooksLock>(`${this.base}/settings/books-lock`, { lockedUntil });
   }
 
   recordIncome(body: MovementBody) {
@@ -196,8 +240,53 @@ export class LedgerApi {
     return this.http.post<Operation>(`${this.base}/debts/settlements`, body);
   }
 
-  operation(id: string): Observable<Operation> {
-    return this.http.get<Operation>(`${this.base}/debts/operations/${id}`);
+  operation(id: string): Observable<OperationDetails> {
+    return this.http.get<OperationDetails>(`${this.base}/debts/operations/${id}`);
+  }
+
+  operations(filter: OperationFilter): Observable<PagedResult<OperationDetails>> {
+    let params = new HttpParams().set('page', filter.page).set('pageSize', filter.pageSize);
+
+    for (const key of ['kind', 'groupId', 'personId'] as const) {
+      const value = filter[key];
+      if (value) params = params.set(key, value);
+    }
+
+    if (filter.includeHistory) params = params.set('includeHistory', true);
+
+    return this.http.get<PagedResult<OperationDetails>>(`${this.base}/debts/operations`, { params });
+  }
+
+  operationHistory(id: string): Observable<OperationHistory> {
+    return this.http.get<OperationHistory>(`${this.base}/debts/operations/${id}/history`);
+  }
+
+  /** Linked users involved confirm it first; then the books are updated asynchronously. */
+  reviseOperation(id: string, body: ReviseOperationRequest): Observable<ChangeResult> {
+    return this.http.put<ChangeResult>(`${this.base}/debts/operations/${id}`, body);
+  }
+
+  deleteOperation(id: string, reason: string): Observable<ChangeResult> {
+    return this.http.delete<ChangeResult>(`${this.base}/debts/operations/${id}`, { body: { reason } });
+  }
+
+  restoreOperation(id: string, reason: string): Observable<ChangeResult> {
+    return this.http.post<ChangeResult>(`${this.base}/debts/operations/${id}/restore`, { reason });
+  }
+
+  /** filter: ToReview (waiting for my answer) or All. */
+  changes(filter: 'ToReview' | 'All' = 'ToReview'): Observable<OperationChange[]> {
+    return this.http.get<OperationChange[]>(`${this.base}/debts/changes`, { params: { filter } });
+  }
+
+  respondToChange(id: string, accept: boolean, reason?: string | null): Observable<ChangeResult> {
+    return this.http.post<ChangeResult>(`${this.base}/debts/changes/${id}/${accept ? 'accept' : 'reject'}`, {
+      reason: reason || null,
+    });
+  }
+
+  debtActivity(page = 1, pageSize = 30): Observable<PagedResult<OperationChange>> {
+    return this.http.get<PagedResult<OperationChange>>(`${this.base}/debts/activity`, { params: { page, pageSize } });
   }
 
   // Reports

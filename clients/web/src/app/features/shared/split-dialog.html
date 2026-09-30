@@ -1,5 +1,4 @@
-<ui-dialog i18n-heading="@@split.title" heading="Split an expense"
-           i18n-description="@@split.description" description="Who paid, who took part and how to share it.">
+<ui-dialog [heading]="heading" [description]="subheading">
   <div class="grid gap-5">
     <div class="grid gap-4 sm:grid-cols-3">
       <ui-form-field class="sm:col-span-2" i18n-label="@@split.what" label="What was it?">
@@ -10,9 +9,9 @@
       </ui-form-field>
     </div>
 
-    @if (!myPayer()) {
+    @if (!myWalletPayer()) {
       <ui-form-field i18n-label="@@split.currency" label="Currency">
-        <select uiInput [ngModel]="chosenCurrency()" (ngModelChange)="chosenCurrency.set($event)">
+        <select uiInput [ngModel]="chosenCurrency()" (ngModelChange)="chosenCurrency.set($event)" [disabled]="!mine">
           @for (currency of currencies; track currency) {
             <option [value]="currency">{{ currency }}</option>
           }
@@ -40,7 +39,7 @@
               <ui-icon name="close" size="sm" />
             </button>
           }
-          @if (payer.personId === me?.personId) {
+          @if (payer.personId === me?.personId && mine) {
             <ui-form-field class="sm:col-span-3" i18n-label="@@split.paidFrom" label="Paid from">
               <select uiInput [ngModel]="payer.walletId" (ngModelChange)="updatePayer(i, { walletId: $event })">
                 <option value="" disabled i18n="@@ui.choose">Choose…</option>
@@ -90,7 +89,7 @@
       </ul>
     </fieldset>
 
-    @if (iParticipate()) {
+    @if (iParticipate() && mine) {
       <ui-form-field i18n-label="@@split.myCategory" label="Category of my share">
         <select uiInput [ngModel]="categoryId()" (ngModelChange)="categoryId.set($event)">
           <option value="" i18n="@@movement.uncategorized">Uncategorized</option>
@@ -105,6 +104,10 @@
       <ui-datetime-input [ngModel]="occurredAt()" (ngModelChange)="occurredAt.set($event)" />
     </ui-form-field>
 
+    @if (edit) {
+      <ui-reason-field [ngModel]="reason()" (ngModelChange)="reason.set($event)" />
+    }
+
     @if (problem()) {
       <p class="rounded-ui bg-warning-soft px-3 py-2 text-sm text-warning" role="alert">{{ problem() }}</p>
     }
@@ -112,6 +115,6 @@
 
   <div dialog-actions class="contents">
     <button uiButton variant="secondary" type="button" (click)="ref.close()" i18n="@@ui.cancel">Cancel</button>
-    <button uiButton type="button" [disabled]="!canSave()" [loading]="saving()" (click)="save()" i18n="@@split.submit">Split</button>
+    <button uiButton type="button" [disabled]="!canSave()" [loading]="saving()" (click)="save()">{{ submitLabel }}</button>
   </div>
 </ui-dialog>

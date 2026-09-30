@@ -44,7 +44,12 @@
       <input uiInput type="date" [ngModel]="filters().to" (ngModelChange)="setFilter('to', $event)" />
     </ui-form-field>
   </div>
-  <div class="mt-3 flex justify-end">
+  <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+    <label class="flex cursor-pointer items-center gap-2 text-sm text-muted"
+           i18n-title="@@transactions.showChangesHint" title="Also show replaced and deleted versions and the reversals that cancelled them.">
+      <input type="checkbox" class="accent-primary" [checked]="includeHistory()" (change)="toggleHistory()" />
+      <ng-container i18n="@@transactions.showChanges">Show changes</ng-container>
+    </label>
     <button uiButton variant="ghost" size="sm" type="button" (click)="clearFilters()" i18n="@@transactions.clearFilters">Clear filters</button>
   </div>
 </ui-card>
@@ -58,12 +63,41 @@
     @let result = transactions.value()!;
     <ul class="divide-y divide-border">
       @for (transaction of result.items; track transaction.id) {
-        <li class="px-4 py-3">
+        <li class="px-4 py-3" [class.opacity-60]="transaction.status !== 'Current'">
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-sm text-muted tabular-nums">{{ transaction.occurredAt | date: 'medium' }}</span>
             <ui-badge tone="primary">{{ kindLabel(transaction.kind) }}</ui-badge>
+            @if (transaction.status !== 'Current') {
+              <ui-badge [tone]="transaction.status === 'Deleted' ? 'danger' : 'neutral'">{{ statusLabel(transaction.status) }}</ui-badge>
+            } @else if (transaction.revision > 1) {
+              <ui-badge i18n="@@transactions.edited">Edited</ui-badge>
+            }
             <span class="text-sm font-medium">{{ transaction.description }}</span>
+            <div class="ml-auto flex flex-wrap gap-1">
+              @if (transaction.editable) {
+                <button uiButton variant="ghost" size="sm" type="button" (click)="edit(transaction)">
+                  <ui-icon name="pencil" size="sm" /><ng-container i18n="@@ui.edit">Edit</ng-container>
+                </button>
+              }
+              @if (transaction.deletable) {
+                <button uiButton variant="ghost" size="sm" type="button" (click)="remove(transaction)">
+                  <ui-icon name="trash" size="sm" /><ng-container i18n="@@ui.delete">Delete</ng-container>
+                </button>
+              }
+              @if (isDebtOperation(transaction)) {
+                <button uiButton variant="ghost" size="sm" type="button" (click)="openOperation(transaction)"
+                        i18n-title="@@transactions.openOperationHint" title="Loans, splits and settlements are changed in Debts & splits.">
+                  <ui-icon name="scale" size="sm" /><ng-container i18n="@@transactions.openOperation">Operation</ng-container>
+                </button>
+              }
+              <button uiButton variant="ghost" size="sm" type="button" (click)="history(transaction)">
+                <ui-icon name="clock" size="sm" /><ng-container i18n="@@history.title">History</ng-container>
+              </button>
+            </div>
           </div>
+          @if (transaction.changeReason && transaction.status === 'Reversal') {
+            <p class="mt-1 text-xs text-muted">“{{ transaction.changeReason }}”</p>
+          }
           <ul class="mt-2 grid gap-1 text-sm sm:pl-4">
             @for (posting of transaction.postings; track posting.accountId + posting.currency + posting.amount + posting.counterpartyId) {
               <li class="flex justify-between gap-4">

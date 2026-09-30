@@ -1,10 +1,17 @@
 import {
   AccountPurpose,
+  ApprovalStatus,
   CategoryType,
+  ChangeAction,
+  ChangeKind,
+  ChangeStatus,
   DebtStatus,
+  OperationKind,
+  OperationStatus,
   Posting,
   SplitMethod,
   TransactionKind,
+  TransactionStatus,
   WalletStatus,
 } from '../api/models';
 
@@ -23,6 +30,7 @@ export function transactionKindLabel(kind: TransactionKind): string {
     OpeningBalanceReversal: () => $localize`:@@kind.openingBalanceReversal:Opening balance replaced`,
     BalanceAdjustment: () => $localize`:@@kind.balanceAdjustment:Balance adjustment`,
     InitialDebt: () => $localize`:@@kind.initialDebt:Existing debt`,
+    Reversal: () => $localize`:@@kind.reversal:Reversal`,
   };
 
   return labels[kind]?.() ?? kind;
@@ -65,6 +73,7 @@ export function debtStatusLabel(status: DebtStatus, isSettling: boolean): string
     Open: () => $localize`:@@debtStatus.open:Open`,
     Settled: () => $localize`:@@debtStatus.settled:Settled`,
     Rejected: () => $localize`:@@debtStatus.rejected:Rejected`,
+    Superseded: () => $localize`:@@debtStatus.superseded:Replaced`,
   };
 
   return labels[status]();
@@ -82,4 +91,71 @@ export function splitMethodLabel(method: SplitMethod): string {
 
 export function meLabel(): string {
   return $localize`:@@person.me:Me`;
+}
+
+export function transactionStatusLabel(status: TransactionStatus): string {
+  const labels: Record<TransactionStatus, () => string> = {
+    Current: () => $localize`:@@txStatus.current:Current`,
+    Changed: () => $localize`:@@txStatus.changed:Changed`,
+    Deleted: () => $localize`:@@txStatus.deleted:Deleted`,
+    Reversal: () => $localize`:@@txStatus.reversal:Reversal`,
+  };
+
+  return labels[status]();
+}
+
+export function changeActionLabel(action: ChangeAction | ChangeKind): string {
+  const labels: Record<ChangeAction | ChangeKind, () => string> = {
+    Edit: () => $localize`:@@action.edit:Edited`,
+    Revise: () => $localize`:@@action.edit:Edited`,
+    Delete: () => $localize`:@@action.delete:Deleted`,
+    Restore: () => $localize`:@@action.restore:Restored`,
+    System: () => $localize`:@@action.system:Changed by Ledger`,
+  };
+
+  return labels[action]();
+}
+
+export function operationKindLabel(kind: OperationKind): string {
+  const labels: Record<OperationKind, () => string> = {
+    Loan: () => $localize`:@@kind.loan:Loan`,
+    Split: () => $localize`:@@kind.split:Split`,
+    Settlement: () => $localize`:@@kind.settlement:Settlement`,
+    InitialDebt: () => $localize`:@@kind.initialDebt:Existing debt`,
+  };
+
+  return labels[kind]();
+}
+
+export function operationStatusLabel(status: OperationStatus): string {
+  const labels: Record<OperationStatus, () => string> = {
+    Pending: () => $localize`:@@opStatus.pending:Being recorded`,
+    Completed: () => $localize`:@@txStatus.current:Current`,
+    Rejected: () => $localize`:@@opStatus.rejected:Refused`,
+    Superseded: () => $localize`:@@txStatus.changed:Changed`,
+    Deleted: () => $localize`:@@txStatus.deleted:Deleted`,
+  };
+
+  return labels[status]();
+}
+
+export function changeStatusLabel(status: ChangeStatus): string {
+  const labels: Record<ChangeStatus, () => string> = {
+    Pending: () => $localize`:@@changeStatus.pending:Waiting for confirmation`,
+    Applying: () => $localize`:@@changeStatus.applying:Updating the books`,
+    Applied: () => $localize`:@@changeStatus.applied:Applied`,
+    Failed: () => $localize`:@@changeStatus.failed:Failed`,
+  };
+
+  return labels[status]();
+}
+
+export function approvalStatusLabel(status: ApprovalStatus): string {
+  const labels: Record<ApprovalStatus, () => string> = {
+    Pending: () => $localize`:@@approval.pending:Not answered yet`,
+    Accepted: () => $localize`:@@approval.accepted:Accepted`,
+    Rejected: () => $localize`:@@approval.rejected:Rejected`,
+  };
+
+  return labels[status]();
 }

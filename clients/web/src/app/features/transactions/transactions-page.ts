@@ -3,14 +3,16 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { LedgerApi } from '../../core/api/ledger-api';
-import { TransactionFilter } from '../../core/api/models';
+import { Transaction, TransactionFilter } from '../../core/api/models';
 import { DataChanges } from '../../core/data-changes';
-import { accountLabel, transactionKindLabel } from '../../core/i18n/labels';
+import { accountLabel, transactionKindLabel, transactionStatusLabel } from '../../core/i18n/labels';
 import { ToastService } from '../../core/notifications/toast.service';
+import { firstValueFrom } from 'rxjs';
 import {
   Badge,
   Button,
   Card,
+  ConfirmService,
   DialogService,
   EmptyState,
   FormField,
@@ -22,7 +24,9 @@ import {
   Spinner,
 } from '../../ui';
 import { amountClass } from '../shared/amount';
-import { MovementDialog, MovementKind } from './movement-dialog';
+import { OperationActions } from '../debts/operation-actions';
+import { MovementDialog, MovementDialogData, MovementKind } from './movement-dialog';
+import { TransactionHistoryDialog, TransactionHistoryResult } from './transaction-history-dialog';
 import { TransferDialog } from './transfer-dialog';
 
 interface Filters {
@@ -61,10 +65,15 @@ export class TransactionsPage {
   private readonly changes = inject(DataChanges);
   private readonly dialogs = inject(DialogService);
   private readonly toasts = inject(ToastService);
+  private readonly confirm = inject(ConfirmService);
+  private readonly operations = inject(OperationActions);
 
   protected readonly filters = signal<Filters>({ ...EMPTY_FILTERS });
   protected readonly page = signal(1);
+  /** Also show changed and deleted versions and their reversals. */
+  protected readonly includeHistory = signal(false);
   protected readonly kindLabel = transactionKindLabel;
+  protected readonly statusLabel = transactionStatusLabel;
   protected readonly accountLabel = accountLabel;
   protected readonly amountClass = amountClass;
 
@@ -73,9 +82,79 @@ export class TransactionsPage {
   protected readonly contacts = rxResource({ stream: () => this.api.contacts() });
 
   protected readonly transactions = rxResource({
-    params: () => ({ filters: this.filters(), page: this.page(), version: this.changes.version() }),
-    stream: ({ params }) => this.api.transactions(toQuery(params.filters, params.page)),
+    params: () => ({
+      filters: this.filters(),
+      page: this.page(),
+      includeHistory: this.includeHistory(),
+      version: this.changes.version(),
+    }),
+    stream: ({ params }) => this.api.transactions({ ...toQuery(params.filters, params.page), includeHistory: params.includeHistory }),
   });
+
+  protected toggleHistory(): void {
+    this.includeHistory.update((v) => !v);
+    this.page.set(1);
+  }
+
+  /** Loans, splits, settlements and existing debts are changed in Debts & splits. */
+  protected isDebtOperation(transaction: Transaction): boolean {
+    return (
+      !!transaction.correlationId &&
+      ['Loan', 'Split', 'Settlement', 'InitialDebt', 'WalletAssignment'].includes(transaction.kind)
+    );
+  }
+
+  protected async edit(transaction: Transaction): Promise<void> {
+    const saved =
+      transaction.kind === 'Transfer'
+        ? await this.dialogs.open<boolean, Transaction>(TransferDialog, transaction)
+        : await this.dialogs.open<boolean, MovementDialogData>(MovementDialog, {
+            kind: transaction.kind === 'Income' ? 'income' : 'expense',
+            edit: transaction,
+          });
+
+    if (saved) {
+      this.toasts.success($localize`:@@transactions.corrected:Corrected. The previous version is kept in the history.`);
+      this.changes.notify();
+    }
+  }
+
+  protected async remove(transaction: Transaction): Promise<void> {
+    const reason = await this.confirm.askReason({
+      title: $localize`:@@transactions.deleteTitle:Delete this transaction?`,
+      message: $localize`:@@transactions.deleteMessage:A reversal cancels it; it stays in the history and can be restored.`,
+      confirmLabel: $localize`:@@ui.delete:Delete`,
+      danger: true,
+    });
+
+    if (reason === null) return;
+
+    await firstValueFrom(this.api.deleteTransaction(transaction.id, reason));
+    this.toasts.success($localize`:@@transactions.deleted:Transaction deleted.`);
+    this.changes.notify();
+  }
+
+  protected async history(transaction: Transaction): Promise<void> {
+    const result = await this.dialogs.open<TransactionHistoryResult, string>(TransactionHistoryDialog, transaction.id, 'lg');
+    if (!result?.restore) return;
+
+    const reason = await this.confirm.askReason({
+      title: $localize`:@@transactions.restoreTitle:Restore this transaction?`,
+      message: $localize`:@@transactions.restoreMessage:It counts again as it was before it was deleted.`,
+      confirmLabel: $localize`:@@history.restore:Restore`,
+    });
+
+    if (reason === null) return;
+
+    await firstValueFrom(this.api.restoreTransaction(result.restore.id, reason));
+    this.toasts.success($localize`:@@transactions.restored:Transaction restored.`);
+    this.changes.notify();
+  }
+
+  /** Opens the loan, split or settlement the transaction belongs to. */
+  protected openOperation(transaction: Transaction): void {
+    if (transaction.correlationId) void this.operations.history(transaction.correlationId);
+  }
 
   protected setFilter(key: keyof Filters, value: string): void {
     this.filters.update((f) => ({ ...f, [key]: value }));

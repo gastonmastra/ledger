@@ -45,6 +45,7 @@ test.describe('Ledger web: dates, balances and existing debts', () => {
     await row.getByRole('button', { name: 'Opening balance' }).click();
     await expect(dialog.getByLabel(/Amount/)).toHaveValue('100');
     await dialog.getByLabel(/Amount/).fill('250');
+    await dialog.getByLabel('Why?').fill('E2E: counted wrong');
     await dialog.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Opening balance updated.')).toBeVisible();
     await expect(row).toContainText('250.00');

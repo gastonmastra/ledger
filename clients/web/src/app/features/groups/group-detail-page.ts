@@ -24,11 +24,12 @@ import {
 import { amountClass } from '../shared/amount';
 import { SplitDialog, SplitDialogData } from '../shared/split-dialog';
 import { WalletPickerDialog, WalletPickerData, WalletPickerResult } from '../shared/wallet-picker-dialog';
+import { OperationsList } from '../debts/operations-list';
 import { AddMemberDialog } from './group-dialogs';
 
 @Component({
   selector: 'app-group-detail-page',
-  imports: [RouterLink, PageHeader, Card, Table, Badge, Button, Icon, EmptyState, Spinner, MoneyPipe],
+  imports: [RouterLink, PageHeader, Card, Table, Badge, Button, Icon, EmptyState, Spinner, MoneyPipe, OperationsList],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './group-detail-page.html',
 })

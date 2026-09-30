@@ -88,6 +88,9 @@
         @if (item.path === '/pending' && pendingCount() > 0) {
           <ui-badge tone="warning">{{ pendingCount() }}</ui-badge>
         }
+        @if (item.path === '/changes' && toReviewCount() > 0) {
+          <ui-badge tone="warning">{{ toReviewCount() }}</ui-badge>
+        }
       </a>
     }
   </nav>

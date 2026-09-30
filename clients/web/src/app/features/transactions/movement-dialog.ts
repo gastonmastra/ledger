@@ -4,14 +4,21 @@ import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { LedgerApi } from '../../core/api/ledger-api';
-import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, nowIso } from '../../ui';
+import { Transaction } from '../../core/api/models';
+import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, ReasonField, nowIso } from '../../ui';
 
 export type MovementKind = 'income' | 'expense';
 
-/** Records money coming into (income) or going out of (expense) a wallet. */
+/** A kind to record a new one, or the transaction to correct. */
+export type MovementDialogData = MovementKind | { kind: MovementKind; edit: Transaction };
+
+/**
+ * Records money coming into (income) or going out of (expense) a wallet. In edit mode it records
+ * a corrected version (the current one is reversed, never modified) and asks why.
+ */
 @Component({
   selector: 'app-movement-dialog',
-  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, MoneyPipe, DateTimeInput],
+  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, MoneyPipe, DateTimeInput, ReasonField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="save()">
@@ -43,6 +50,9 @@ export type MovementKind = 'income' | 'expense';
           <ui-form-field i18n-label="@@ui.when" label="When">
             <ui-datetime-input formControlName="occurredAt" />
           </ui-form-field>
+          @if (editing) {
+            <ui-reason-field formControlName="reason" />
+          }
         </div>
         <div dialog-actions class="contents">
           <button uiButton variant="secondary" type="button" (click)="ref.close()" i18n="@@ui.cancel">Cancel</button>
@@ -54,12 +64,17 @@ export type MovementKind = 'income' | 'expense';
 })
 export class MovementDialog {
   private readonly api = inject(LedgerApi);
-  protected readonly kind = inject<MovementKind>(DIALOG_DATA);
+  private readonly data = inject<MovementDialogData>(DIALOG_DATA);
+  protected readonly kind: MovementKind = typeof this.data === 'string' ? this.data : this.data.kind;
+  protected readonly editing: Transaction | null = typeof this.data === 'string' ? null : this.data.edit;
   protected readonly ref = inject<DialogRef<boolean>>(DialogRef);
   protected readonly saving = signal(false);
 
-  protected readonly heading =
-    this.kind === 'income'
+  protected readonly heading = this.editing
+    ? this.kind === 'income'
+      ? $localize`:@@movement.editIncomeTitle:Correct income`
+      : $localize`:@@movement.editExpenseTitle:Correct expense`
+    : this.kind === 'income'
       ? $localize`:@@movement.incomeTitle:Record income`
       : $localize`:@@movement.expenseTitle:Record expense`;
 
@@ -76,6 +91,7 @@ export class MovementDialog {
     categoryId: [''],
     description: [''],
     occurredAt: [nowIso(), Validators.required],
+    reason: ['', this.editing ? [Validators.required, Validators.pattern(/\S/)] : []],
   });
 
   private readonly walletId = toSignal(this.form.controls.walletId.valueChanges, { initialValue: '' });
@@ -84,6 +100,10 @@ export class MovementDialog {
     const currency = this.wallets.value()?.find((w) => w.id === this.walletId())?.currency;
     return currency ? $localize`:@@movement.amountIn:Amount (${currency}:currency:)` : $localize`:@@movement.amount:Amount`;
   });
+
+  constructor() {
+    if (this.editing) this.form.patchValue(movementValues(this.editing));
+  }
 
   protected async save(): Promise<void> {
     if (this.form.invalid) return;
@@ -100,10 +120,27 @@ export class MovementDialog {
     this.saving.set(true);
 
     try {
-      await firstValueFrom(this.kind === 'income' ? this.api.recordIncome(body) : this.api.recordExpense(body));
+      if (this.editing) {
+        await firstValueFrom(this.api.reviseTransaction(this.editing.id, { ...body, reason: value.reason.trim() }));
+      } else {
+        await firstValueFrom(this.kind === 'income' ? this.api.recordIncome(body) : this.api.recordExpense(body));
+      }
       this.ref.close(true);
     } catch {
       this.saving.set(false);
     }
   }
+}
+
+/** The form values of an existing income or expense, read from its postings. */
+function movementValues(transaction: Transaction) {
+  const wallet = transaction.postings.find((p) => p.walletId);
+
+  return {
+    walletId: wallet?.walletId ?? '',
+    amount: wallet ? Math.abs(wallet.amount) : null,
+    categoryId: transaction.postings.find((p) => p.categoryId)?.categoryId ?? '',
+    description: transaction.description ?? '',
+    occurredAt: transaction.occurredAt,
+  };
 }

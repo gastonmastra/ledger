@@ -8,6 +8,14 @@
   </button>
 </ui-page-header>
 
+@if (toReview.value()?.length; as count) {
+  <a routerLink="/changes" class="mb-4 flex items-center gap-3 rounded-ui border border-warning bg-warning-soft px-4 py-3 text-sm text-warning">
+    <ui-icon name="review" />
+    <span class="flex-1" i18n="@@debts.changesToReview">{count, plural, =1 {1 change is waiting for your answer.} other {{{count}} changes are waiting for your answer.}}</span>
+    <span class="font-medium" i18n="@@debts.review">Review</span>
+  </a>
+}
+
 @if (debts.isLoading() && !debts.value()) {
   <div class="flex justify-center py-16"><ui-spinner /></div>
 } @else {
@@ -75,9 +83,19 @@
                   <span i18n="@@debts.youOweAmount">you owe {{ debt.amount | money: debt.currency }}</span>
                 }
               </td>
-              <td><ui-badge [tone]="debt.status === 'Open' && !debt.isSettling ? 'primary' : 'neutral'">{{ statusLabel(debt.status, debt.isSettling) }}</ui-badge></td>
+              <td>
+                <div class="flex flex-wrap gap-1">
+                  <ui-badge [tone]="debt.status === 'Open' && !debt.isSettling ? 'primary' : 'neutral'">{{ statusLabel(debt.status, debt.isSettling) }}</ui-badge>
+                  @if (debt.pendingChange) {
+                    <ui-badge tone="warning" i18n="@@operations.changePending">Change pending</ui-badge>
+                  }
+                  @if (debt.disputed) {
+                    <ui-badge tone="danger" i18n="@@operations.disputed">Disputed</ui-badge>
+                  }
+                </div>
+              </td>
               <td class="text-right">
-                @if (!debt.groupId && debt.status === 'Open' && !debt.isSettling) {
+                @if (!debt.groupId && debt.status === 'Open' && !debt.isSettling && !debt.pendingChange) {
                   <button uiButton variant="ghost" size="sm" type="button" (click)="settleDebt(debt)" i18n="@@debts.settle">Settle</button>
                 }
               </td>
@@ -88,3 +106,5 @@
     }
   </ui-card>
 }
+
+<app-operations-list class="mt-6 block" i18n-heading="@@debts.operations" heading="Loans, splits and settlements" />

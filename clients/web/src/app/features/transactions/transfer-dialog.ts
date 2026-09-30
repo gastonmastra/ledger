@@ -1,19 +1,23 @@
-import { DialogRef } from '@angular/cdk/dialog';
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { LedgerApi } from '../../core/api/ledger-api';
-import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, nowIso } from '../../ui';
+import { Transaction } from '../../core/api/models';
+import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, ReasonField, nowIso } from '../../ui';
 
-/** Moves money between two of my wallets; across currencies it asks for the amount received. */
+/**
+ * Moves money between two of my wallets; across currencies it asks for the amount received.
+ * Opened with a transfer, it records a corrected version and asks why.
+ */
 @Component({
   selector: 'app-transfer-dialog',
-  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, MoneyPipe, DateTimeInput],
+  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, MoneyPipe, DateTimeInput, ReasonField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="save()">
-      <ui-dialog i18n-heading="@@transfer.title" heading="Transfer between wallets">
+      <ui-dialog [heading]="heading">
         <div class="grid gap-4">
           <div class="grid gap-4 sm:grid-cols-2">
             <ui-form-field i18n-label="@@transfer.from" label="From">
@@ -52,10 +56,13 @@ import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, nowIs
           <ui-form-field i18n-label="@@ui.when" label="When">
             <ui-datetime-input formControlName="occurredAt" />
           </ui-form-field>
+          @if (editing) {
+            <ui-reason-field formControlName="reason" />
+          }
         </div>
         <div dialog-actions class="contents">
           <button uiButton variant="secondary" type="button" (click)="ref.close()" i18n="@@ui.cancel">Cancel</button>
-          <button uiButton type="submit" [disabled]="!canSave()" [loading]="saving()" i18n="@@transfer.submit">Transfer</button>
+          <button uiButton type="submit" [disabled]="!canSave()" [loading]="saving()">{{ submitLabel }}</button>
         </div>
       </ui-dialog>
     </form>
@@ -64,8 +71,14 @@ import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, nowIs
 export class TransferDialog {
   private readonly api = inject(LedgerApi);
   protected readonly ref = inject<DialogRef<boolean>>(DialogRef);
+  protected readonly editing = inject<Transaction | null>(DIALOG_DATA, { optional: true }) ?? null;
   protected readonly saving = signal(false);
   protected readonly wallets = rxResource({ stream: () => this.api.wallets() });
+
+  protected readonly heading = this.editing
+    ? $localize`:@@transfer.editTitle:Correct transfer`
+    : $localize`:@@transfer.title:Transfer between wallets`;
+  protected readonly submitLabel = this.editing ? $localize`:@@ui.save:Save` : $localize`:@@transfer.submit:Transfer`;
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     fromWalletId: ['', Validators.required],
@@ -74,6 +87,7 @@ export class TransferDialog {
     receivedAmount: [null as number | null],
     description: [''],
     occurredAt: [nowIso(), Validators.required],
+    reason: [''],
   });
 
   private readonly value = toSignal(this.form.valueChanges, { initialValue: this.form.value });
@@ -93,9 +107,26 @@ export class TransferDialog {
       !!value.toWalletId &&
       value.fromWalletId !== value.toWalletId &&
       (value.amount ?? 0) > 0 &&
-      (!this.crossCurrency() || (value.receivedAmount ?? 0) > 0)
+      (!this.crossCurrency() || (value.receivedAmount ?? 0) > 0) &&
+      (!this.editing || !!value.reason?.trim())
     );
   });
+
+  constructor() {
+    if (this.editing) {
+      const from = this.editing.postings.find((p) => p.walletId && p.amount < 0);
+      const to = this.editing.postings.find((p) => p.walletId && p.amount > 0);
+
+      this.form.patchValue({
+        fromWalletId: from?.walletId ?? '',
+        toWalletId: to?.walletId ?? '',
+        amount: from ? -from.amount : null,
+        receivedAmount: to?.amount ?? null,
+        description: this.editing.description ?? '',
+        occurredAt: this.editing.occurredAt,
+      });
+    }
+  }
 
   protected async save(): Promise<void> {
     if (!this.canSave()) return;
@@ -104,16 +135,30 @@ export class TransferDialog {
     this.saving.set(true);
 
     try {
-      await firstValueFrom(
-        this.api.transfer({
-          fromWalletId: value.fromWalletId,
-          toWalletId: value.toWalletId,
-          amount: value.amount!,
-          receivedAmount: this.crossCurrency() ? value.receivedAmount : null,
-          description: value.description.trim() || null,
-          occurredAt: value.occurredAt,
-        }),
-      );
+      if (this.editing) {
+        await firstValueFrom(
+          this.api.reviseTransaction(this.editing.id, {
+            walletId: value.fromWalletId,
+            toWalletId: value.toWalletId,
+            amount: value.amount!,
+            receivedAmount: this.crossCurrency() ? value.receivedAmount : null,
+            description: value.description.trim() || null,
+            occurredAt: value.occurredAt,
+            reason: value.reason.trim(),
+          }),
+        );
+      } else {
+        await firstValueFrom(
+          this.api.transfer({
+            fromWalletId: value.fromWalletId,
+            toWalletId: value.toWalletId,
+            amount: value.amount!,
+            receivedAmount: this.crossCurrency() ? value.receivedAmount : null,
+            description: value.description.trim() || null,
+            occurredAt: value.occurredAt,
+          }),
+        );
+      }
       this.ref.close(true);
     } catch {
       this.saving.set(false);

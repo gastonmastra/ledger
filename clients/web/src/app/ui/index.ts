@@ -14,6 +14,7 @@ export * from './input';
 export * from './money.pipe';
 export * from './page-header';
 export * from './pagination';
+export * from './reason-field';
 export * from './spinner';
 export * from './stat';
 export * from './table';

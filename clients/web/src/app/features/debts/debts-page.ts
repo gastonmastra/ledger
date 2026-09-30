@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, LOCALE_ID, computed, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { LedgerApi } from '../../core/api/ledger-api';
 import { ContactDebts, Debt } from '../../core/api/models';
 import { CurrentUser } from '../../core/current-user';
@@ -12,10 +13,11 @@ import { SplitDialog, SplitDialogData } from '../shared/split-dialog';
 import { WalletPickerDialog, WalletPickerData, WalletPickerResult } from '../shared/wallet-picker-dialog';
 import { FriendPaidDialog, LendDialog } from './debt-dialogs';
 import { InitialDebtDialog } from './initial-debt-dialog';
+import { OperationsList } from './operations-list';
 
 @Component({
   selector: 'app-debts-page',
-  imports: [PageHeader, Card, Table, Badge, Button, Icon, EmptyState, Spinner, MoneyPipe],
+  imports: [RouterLink, PageHeader, Card, Table, Badge, Button, Icon, EmptyState, Spinner, MoneyPipe, OperationsList],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './debts-page.html',
 })
@@ -35,13 +37,21 @@ export class DebtsPage {
     stream: () => this.api.debts(),
   });
 
+  /** Changes of shared operations waiting for my answer. */
+  protected readonly toReview = rxResource({
+    params: () => this.changes.version(),
+    stream: () => this.api.changes(),
+  });
+
   private readonly contacts = rxResource({
     params: () => this.changes.version(),
     stream: () => this.api.contacts(),
   });
 
   protected readonly settleable = computed(() =>
-    (this.debts.value()?.debts ?? []).filter((d) => d.groupId === null && d.status === 'Open' && !d.isSettling),
+    (this.debts.value()?.debts ?? []).filter(
+      (d) => d.groupId === null && d.status === 'Open' && !d.isSettling && !d.pendingChange,
+    ),
   );
 
   protected openDialog(kind: 'lend' | 'friend' | 'initial'): void {

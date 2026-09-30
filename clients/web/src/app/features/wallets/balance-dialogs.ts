@@ -4,12 +4,12 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { firstValueFrom } from 'rxjs';
 import { LedgerApi } from '../../core/api/ledger-api';
 import { Wallet } from '../../core/api/models';
-import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, Spinner, nowIso } from '../../ui';
+import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, ReasonField, Spinner, nowIso } from '../../ui';
 
 /** Replaces the opening balance of a wallet (amount and date). */
 @Component({
   selector: 'app-opening-balance-dialog',
-  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, DateTimeInput, Spinner],
+  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, DateTimeInput, Spinner, ReasonField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="save()">
@@ -25,6 +25,7 @@ import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, Spinn
             <ui-form-field i18n-label="@@wallets.openingDate" label="Date of the opening balance">
               <ui-datetime-input formControlName="occurredAt" />
             </ui-form-field>
+            <ui-reason-field formControlName="reason" />
           </div>
         }
         <div dialog-actions class="contents">
@@ -46,12 +47,13 @@ export class OpeningBalanceDialog {
   protected readonly form = inject(NonNullableFormBuilder).group({
     amount: [0, [Validators.required, Validators.min(0)]],
     occurredAt: [nowIso(), Validators.required],
+    reason: ['', [Validators.required, Validators.pattern(/\S/)]],
   });
 
   constructor() {
     firstValueFrom(this.api.openingBalance(this.wallet.id))
       .then((opening) =>
-        this.form.setValue({ amount: opening.amount, occurredAt: opening.occurredAt ?? this.wallet.createdAt }),
+        this.form.patchValue({ amount: opening.amount, occurredAt: opening.occurredAt ?? this.wallet.createdAt }),
       )
       .catch(() => this.ref.close())
       .finally(() => this.loading.set(false));
@@ -60,11 +62,11 @@ export class OpeningBalanceDialog {
   protected async save(): Promise<void> {
     if (this.form.invalid) return;
 
-    const { amount, occurredAt } = this.form.getRawValue();
+    const { amount, occurredAt, reason } = this.form.getRawValue();
     this.saving.set(true);
 
     try {
-      await firstValueFrom(this.api.changeOpeningBalance(this.wallet.id, amount ?? 0, occurredAt));
+      await firstValueFrom(this.api.changeOpeningBalance(this.wallet.id, amount ?? 0, occurredAt, reason.trim()));
       this.ref.close(true);
     } catch {
       this.saving.set(false);

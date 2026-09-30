@@ -11,6 +11,14 @@ describe('errorMessage', () => {
     expect(errorMessage(error)).toBe('The wallet does not have enough money.');
   });
 
+  it('explains why a change is refused', () => {
+    const locked = new HttpErrorResponse({ status: 400, error: { code: 'books.locked', detail: 'Closed up to…' } });
+    const settled = new HttpErrorResponse({ status: 400, error: { code: 'debt.settled', detail: '…' } });
+
+    expect(errorMessage(locked)).toContain('Settings');
+    expect(errorMessage(settled)).toContain('Undo (delete) the settlement first');
+  });
+
   it('joins validation errors', () => {
     const error = new HttpErrorResponse({
       status: 400,

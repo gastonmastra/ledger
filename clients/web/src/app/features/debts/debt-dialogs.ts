@@ -1,38 +1,45 @@
-import { DialogRef } from '@angular/cdk/dialog';
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LedgerApi } from '../../core/api/ledger-api';
-import { CURRENCIES, Currency } from '../../core/api/models';
+import { CURRENCIES, Currency, OperationDetails } from '../../core/api/models';
 import { CurrentUser } from '../../core/current-user';
 import { OperationTracker } from '../../core/operations/operation-tracker';
-import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, nowIso } from '../../ui';
+import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, ReasonField, nowIso } from '../../ui';
 
-/** Lend money from one of my wallets to a contact. */
+/**
+ * Lend money from one of my wallets to a contact. Opened with a loan, it records a new version
+ * (linked users confirm it); only whoever lent the money can change the contact or the wallet.
+ */
 @Component({
   selector: 'app-lend-dialog',
-  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, MoneyPipe, DateTimeInput],
+  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, MoneyPipe, DateTimeInput, ReasonField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="save()">
-      <ui-dialog i18n-heading="@@lend.title" heading="Lend money">
+      <ui-dialog [heading]="heading">
         <div class="grid gap-4">
-          <ui-form-field i18n-label="@@lend.to" label="To">
-            <select uiInput formControlName="contactId">
-              <option value="" disabled i18n="@@ui.choose">Choose…</option>
-              @for (contact of contacts.value(); track contact.id) {
-                <option [value]="contact.id">{{ contact.name }}</option>
-              }
-            </select>
-          </ui-form-field>
-          <ui-form-field i18n-label="@@lend.from" label="From wallet">
-            <select uiInput formControlName="walletId">
-              <option value="" disabled i18n="@@ui.choose">Choose…</option>
-              @for (wallet of wallets.value(); track wallet.id) {
-                <option [value]="wallet.id">{{ wallet.name }} · {{ wallet.balance | money: wallet.currency }}</option>
-              }
-            </select>
-          </ui-form-field>
+          @if (mine) {
+            <ui-form-field i18n-label="@@lend.to" label="To">
+              <select uiInput formControlName="contactId">
+                <option value="" disabled i18n="@@ui.choose">Choose…</option>
+                @for (contact of contacts.value(); track contact.id) {
+                  <option [value]="contact.id">{{ contact.name }}</option>
+                }
+              </select>
+            </ui-form-field>
+            <ui-form-field i18n-label="@@lend.from" label="From wallet">
+              <select uiInput formControlName="walletId">
+                <option value="" disabled i18n="@@ui.choose">Choose…</option>
+                @for (wallet of wallets.value(); track wallet.id) {
+                  <option [value]="wallet.id">{{ wallet.name }} · {{ wallet.balance | money: wallet.currency }}</option>
+                }
+              </select>
+            </ui-form-field>
+          } @else {
+            <p class="text-sm text-muted" i18n="@@lend.recordedBy">{{ edit!.recordedByName // i18n(ph="name") }} lent it to {{ edit!.toName // i18n(ph="borrower") }}. Only they can change who got it or the wallet.</p>
+          }
           <ui-form-field i18n-label="@@movement.amount" label="Amount">
             <input uiInput type="number" min="0.01" step="0.01" formControlName="amount" />
           </ui-form-field>
@@ -42,10 +49,13 @@ import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, nowIs
           <ui-form-field i18n-label="@@ui.when" label="When">
             <ui-datetime-input formControlName="occurredAt" />
           </ui-form-field>
+          @if (edit) {
+            <ui-reason-field formControlName="reason" />
+          }
         </div>
         <div dialog-actions class="contents">
           <button uiButton variant="secondary" type="button" (click)="ref.close()" i18n="@@ui.cancel">Cancel</button>
-          <button uiButton type="submit" [disabled]="form.invalid" [loading]="saving()" i18n="@@lend.submit">Lend</button>
+          <button uiButton type="submit" [disabled]="form.invalid" [loading]="saving()">{{ submitLabel }}</button>
         </div>
       </ui-dialog>
     </form>
@@ -55,16 +65,22 @@ export class LendDialog {
   private readonly api = inject(LedgerApi);
   private readonly tracker = inject(OperationTracker);
   protected readonly ref = inject<DialogRef<boolean>>(DialogRef);
+  protected readonly edit = inject<OperationDetails | null>(DIALOG_DATA, { optional: true }) ?? null;
+  protected readonly mine = !this.edit || this.edit.recordedByMe;
   protected readonly saving = signal(false);
   protected readonly contacts = rxResource({ stream: () => this.api.contacts() });
   protected readonly wallets = rxResource({ stream: () => this.api.wallets() });
 
+  protected readonly heading = this.edit ? $localize`:@@lend.editTitle:Change the loan` : $localize`:@@lend.title:Lend money`;
+  protected readonly submitLabel = this.edit ? $localize`:@@ui.save:Save` : $localize`:@@lend.submit:Lend`;
+
   protected readonly form = inject(NonNullableFormBuilder).group({
-    contactId: ['', Validators.required],
-    walletId: ['', Validators.required],
-    amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
-    description: [''],
-    occurredAt: [nowIso(), Validators.required],
+    contactId: [this.edit?.contactId ?? '', this.mine ? Validators.required : []],
+    walletId: [this.edit?.walletId ?? '', this.mine ? Validators.required : []],
+    amount: [this.edit?.total ?? (null as number | null), [Validators.required, Validators.min(0.01)]],
+    description: [this.edit?.description ?? ''],
+    occurredAt: [this.edit?.occurredAt ?? nowIso(), Validators.required],
+    reason: ['', this.edit ? [Validators.required, Validators.pattern(/\S/)] : []],
   });
 
   protected async save(): Promise<void> {
@@ -75,6 +91,22 @@ export class LendDialog {
     this.saving.set(true);
 
     try {
+      if (this.edit) {
+        await this.tracker.submitChange(
+          this.api.reviseOperation(this.edit.id, {
+            reason: value.reason.trim(),
+            occurredAt: value.occurredAt,
+            description: value.description.trim() || null,
+            amount: value.amount!,
+            contactId: this.mine ? value.contactId : null,
+            walletId: this.mine ? value.walletId : null,
+          }),
+          $localize`:@@change.applied:Change applied.`,
+        );
+        this.ref.close(true);
+        return;
+      }
+
       await this.tracker.submit(
         this.api.lend({
           contactId: value.contactId,

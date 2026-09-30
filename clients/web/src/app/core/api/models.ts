@@ -71,7 +71,8 @@ export type TransactionKind =
   | 'WalletAssignment'
   | 'OpeningBalanceReversal'
   | 'BalanceAdjustment'
-  | 'InitialDebt';
+  | 'InitialDebt'
+  | 'Reversal';
 
 export type AccountPurpose =
   | 'Wallet'
@@ -94,15 +95,73 @@ export interface Posting {
   currency: Currency;
   counterpartyId: string | null;
   counterpartyName: string | null;
+  /** Set on category postings. */
+  categoryId: string | null;
 }
+
+/** Current: the version that counts. Changed/Deleted: replaced or deleted. Reversal: cancels another one. */
+export type TransactionStatus = 'Current' | 'Changed' | 'Deleted' | 'Reversal';
 
 export interface Transaction {
   id: string;
+  /** Stable id of the entry: every version of a transaction shares it. */
+  entryId: string;
+  revision: number;
   occurredAt: string;
   description: string | null;
   kind: TransactionKind;
+  status: TransactionStatus;
   correlationId: string | null;
+  changeReason: string | null;
+  /** Income, expense or transfer that can be edited here. */
+  editable: boolean;
+  deletable: boolean;
   postings: Posting[];
+}
+
+export type ChangeAction = 'Edit' | 'Delete' | 'Restore' | 'System';
+
+export interface TransactionHistoryItem {
+  id: string;
+  revision: number;
+  kind: TransactionKind;
+  status: TransactionStatus;
+  occurredAt: string;
+  recordedAt: string;
+  description: string | null;
+  action: ChangeAction | null;
+  reason: string | null;
+  changedByUserId: string | null;
+  changedByMe: boolean;
+  changedByName: string | null;
+  postings: Posting[];
+}
+
+export interface TransactionActivity {
+  transactionId: string;
+  entryId: string;
+  kind: TransactionKind;
+  action: ChangeAction;
+  description: string | null;
+  reason: string;
+  at: string;
+  changedByMe: boolean;
+  changedByName: string | null;
+}
+
+export interface ReviseTransactionRequest {
+  walletId: string;
+  amount: number;
+  occurredAt: string;
+  reason: string;
+  toWalletId?: string | null;
+  receivedAmount?: number | null;
+  categoryId?: string | null;
+  description?: string | null;
+}
+
+export interface BooksLock {
+  lockedUntil: string | null;
 }
 
 export interface PagedResult<T> {
@@ -121,6 +180,7 @@ export interface TransactionFilter {
   contactId?: string | null;
   from?: string | null;
   to?: string | null;
+  includeHistory?: boolean;
 }
 
 export interface CurrencySummary {
@@ -170,7 +230,7 @@ export interface PendingAssignment {
 }
 
 export type OperationKind = 'Loan' | 'Split' | 'Settlement' | 'InitialDebt';
-export type OperationStatus = 'Pending' | 'Completed' | 'Rejected';
+export type OperationStatus = 'Pending' | 'Completed' | 'Rejected' | 'Superseded' | 'Deleted';
 
 export interface Operation {
   id: string;
@@ -182,7 +242,7 @@ export interface Operation {
 }
 
 export type DebtDirection = 'OwedToMe' | 'IOwe';
-export type DebtStatus = 'Pending' | 'Open' | 'Settled' | 'Rejected';
+export type DebtStatus = 'Pending' | 'Open' | 'Settled' | 'Rejected' | 'Superseded';
 
 export interface Debt {
   id: string;
@@ -198,6 +258,10 @@ export interface Debt {
   isSettling: boolean;
   description: string | null;
   createdAt: string;
+  /** A change of its operation is waiting for confirmation. */
+  pendingChange: boolean;
+  /** Somebody rejected the last change: their books keep the previous version. */
+  disputed: boolean;
 }
 
 export interface ContactDebts {
@@ -263,7 +327,6 @@ export interface InitialDebtRequest {
   direction: InitialDebtDirection;
   amount: number;
   currency: Currency;
-  categoryId?: string | null;
   occurredAt?: string | null;
   description?: string | null;
 }
@@ -325,6 +388,150 @@ export type SettleRequest =
       walletId: string | null;
       occurredAt?: string | null;
     };
+
+export type SettlementScope = 'Debt' | 'Contact' | 'GroupPair';
+export type ChangeKind = 'Revise' | 'Delete' | 'Restore';
+export type ChangeStatus = 'Pending' | 'Applying' | 'Applied' | 'Failed';
+export type ApprovalStatus = 'Pending' | 'Accepted' | 'Rejected';
+
+export interface PersonAmount {
+  personId: string;
+  name: string;
+  amount: number;
+  /** Only my own wallet, and only if I recorded the operation. */
+  walletId: string | null;
+}
+
+export interface PendingChange {
+  changeId: string;
+  kind: ChangeKind;
+  requestedByName: string;
+  requestedByMe: boolean;
+  reason: string;
+  waitingFor: string[];
+  waitingForMe: boolean;
+}
+
+/**
+ * A loan, existing debt, split or settlement from my point of view. contactId, walletId and
+ * categoryId are only set if I recorded it (they are mine).
+ */
+export interface OperationDetails extends Operation {
+  entryId: string;
+  revision: number;
+  occurredAt: string;
+  description: string | null;
+  currency: Currency;
+  total: number;
+  groupId: string | null;
+  groupName: string | null;
+  method: SplitMethod | null;
+  scope: SettlementScope | null;
+  recordedByMe: boolean;
+  recordedByName: string;
+  fromPersonId: string | null;
+  fromName: string | null;
+  toPersonId: string | null;
+  toName: string | null;
+  counterpartyPersonId: string | null;
+  counterpartyName: string | null;
+  contactId: string | null;
+  direction: InitialDebtDirection | null;
+  walletId: string | null;
+  categoryId: string | null;
+  payers: PersonAmount[];
+  shares: PersonAmount[];
+  isDisputed: boolean;
+  pendingChange: PendingChange | null;
+  canEdit: boolean;
+  canDelete: boolean;
+  canRestore: boolean;
+  /** Why it cannot change now (an error code). */
+  blockedReason: string | null;
+  /** Settlements to undo before changing it. */
+  settlementOperationIds: string[];
+}
+
+export interface OperationFilter {
+  kind?: OperationKind | null;
+  groupId?: string | null;
+  personId?: string | null;
+  includeHistory?: boolean;
+  page: number;
+  pageSize: number;
+}
+
+export interface ChangeSnapshot {
+  total: number;
+  currency: Currency;
+  occurredAt: string;
+  description: string | null;
+  fromName: string | null;
+  toName: string | null;
+  payers: PersonAmount[];
+  shares: PersonAmount[];
+}
+
+export interface Approval {
+  userId: string;
+  name: string;
+  status: ApprovalStatus;
+  reason: string | null;
+  respondedAt: string | null;
+}
+
+export interface OperationChange {
+  id: string;
+  operationId: string;
+  entryId: string;
+  operationKind: OperationKind;
+  kind: ChangeKind;
+  status: ChangeStatus;
+  requestedByName: string;
+  requestedByMe: boolean;
+  reason: string;
+  createdAt: string;
+  appliedAt: string | null;
+  failureReason: string | null;
+  newOperationId: string | null;
+  approvals: Approval[];
+  myApproval: ApprovalStatus | null;
+  disputed: boolean;
+  current: ChangeSnapshot;
+  /** Null for a delete. */
+  proposed: ChangeSnapshot | null;
+}
+
+export interface OperationHistory {
+  versions: OperationDetails[];
+  changes: OperationChange[];
+}
+
+export interface ChangeResult {
+  changeId: string;
+  operationId: string;
+  kind: ChangeKind;
+  status: ChangeStatus;
+  newOperationId: string | null;
+  /** Names of the people who still have to answer. */
+  waitingFor: string[];
+}
+
+/** New values of an operation (every field of its kind is sent again) and why it changes. */
+export interface ReviseOperationRequest {
+  reason: string;
+  occurredAt: string;
+  description?: string | null;
+  amount?: number | null;
+  currency?: Currency | null;
+  contactId?: string | null;
+  direction?: InitialDebtDirection | null;
+  walletId?: string | null;
+  method?: SplitMethod | null;
+  payers?: SplitPayer[] | null;
+  participants?: SplitParticipant[] | null;
+  categoryId?: string | null;
+}
 
 /** RFC 7807 problem details returned by the API. */
 export interface ProblemDetails {

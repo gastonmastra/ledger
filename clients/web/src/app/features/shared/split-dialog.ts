@@ -3,10 +3,10 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { rxResource } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { LedgerApi } from '../../core/api/ledger-api';
-import { CURRENCIES, Currency, SplitMethod, SplitRequest } from '../../core/api/models';
+import { CURRENCIES, Currency, OperationDetails, SplitMethod, SplitRequest } from '../../core/api/models';
 import { splitMethodLabel } from '../../core/i18n/labels';
 import { OperationTracker } from '../../core/operations/operation-tracker';
-import { Button, DateTimeInput, DialogLayout, FormField, Icon, Input, MoneyPipe, nowIso } from '../../ui';
+import { Button, DateTimeInput, DialogLayout, FormField, Icon, Input, MoneyPipe, ReasonField, nowIso } from '../../ui';
 
 export interface SplitPerson {
   personId: string;
@@ -17,6 +17,8 @@ export interface SplitPerson {
 export interface SplitDialogData {
   groupId: string | null;
   people: SplitPerson[];
+  /** The split to change (a new version is recorded; linked users confirm it). */
+  edit?: OperationDetails;
 }
 
 interface PayerRow {
@@ -34,7 +36,7 @@ interface ParticipantRow {
 /** Splits an expense among people (me, my contacts or a group's members), with any number of payers. */
 @Component({
   selector: 'app-split-dialog',
-  imports: [FormsModule, DialogLayout, FormField, Input, Button, Icon, MoneyPipe, DateTimeInput],
+  imports: [FormsModule, DialogLayout, FormField, Input, Button, Icon, MoneyPipe, DateTimeInput, ReasonField],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './split-dialog.html',
 })
@@ -48,6 +50,17 @@ export class SplitDialog {
   protected readonly methods: SplitMethod[] = ['Equal', 'Custom', 'Percent'];
   protected readonly methodLabel = splitMethodLabel;
   protected readonly me = this.data.people.find((p) => p.isMe) ?? null;
+  protected readonly edit = this.data.edit ?? null;
+  /** Wallets, category and currency belong to whoever recorded it. */
+  protected readonly mine = !this.edit || this.edit.recordedByMe;
+
+  protected readonly heading = this.edit
+    ? $localize`:@@split.editTitle:Change the split`
+    : $localize`:@@split.title:Split an expense`;
+  protected readonly subheading = this.edit
+    ? $localize`:@@split.editDescription:A new version is recorded; the previous one stays in the history.`
+    : $localize`:@@split.description:Who paid, who took part and how to share it.`;
+  protected readonly submitLabel = this.edit ? $localize`:@@ui.save:Save` : $localize`:@@split.submit:Split`;
 
   protected readonly wallets = rxResource({ stream: () => this.api.wallets() });
   private readonly allCategories = rxResource({ stream: () => this.api.categories() });
@@ -60,6 +73,7 @@ export class SplitDialog {
   protected readonly categoryId = signal('');
   protected readonly occurredAt = signal(nowIso());
   protected readonly saving = signal(false);
+  protected readonly reason = signal('');
 
   protected readonly payers = signal<PayerRow[]>([
     { personId: this.me?.personId ?? this.data.people[0].personId, amount: null, walletId: '' },
@@ -69,11 +83,12 @@ export class SplitDialog {
     this.data.people.map((p) => ({ personId: p.personId, selected: true, value: null })),
   );
 
-  /** If I paid, the currency is my wallet's. */
+  /** If I paid (and it is mine), the currency is my wallet's. */
   protected readonly myPayer = computed(() => this.payers().find((p) => p.personId === this.me?.personId) ?? null);
+  protected readonly myWalletPayer = computed(() => (this.mine ? this.myPayer() : null));
 
   protected readonly currency = computed<Currency>(() => {
-    const walletId = this.myPayer()?.walletId;
+    const walletId = this.myWalletPayer()?.walletId;
     return this.wallets.value()?.find((w) => w.id === walletId)?.currency ?? this.chosenCurrency();
   });
 
@@ -99,7 +114,7 @@ export class SplitDialog {
       return $localize`:@@split.payersMismatch:The payers add up to ${paid}:paid:, not ${total}:total:.`;
     }
 
-    if (this.myPayer() && !this.myPayer()!.walletId) {
+    if (this.myWalletPayer() && !this.myWalletPayer()!.walletId) {
       return $localize`:@@split.chooseWallet:Choose the wallet you paid from.`;
     }
 
@@ -118,8 +133,36 @@ export class SplitDialog {
   });
 
   protected readonly canSave = computed(
-    () => (this.total() ?? 0) > 0 && !!this.description().trim() && this.problem() === null,
+    () =>
+      (this.total() ?? 0) > 0 &&
+      !!this.description().trim() &&
+      this.problem() === null &&
+      (!this.edit || !!this.reason().trim()),
   );
+
+  constructor() {
+    const edit = this.edit;
+    if (!edit) return;
+
+    // Percentages are not stored: a percent split is shown with the resulting amounts.
+    const method: SplitMethod = edit.method === 'Equal' ? 'Equal' : 'Custom';
+
+    this.description.set(edit.description ?? '');
+    this.total.set(edit.total);
+    this.chosenCurrency.set(edit.currency);
+    this.method.set(method);
+    this.categoryId.set(edit.categoryId ?? '');
+    this.occurredAt.set(edit.occurredAt);
+    this.payers.set(
+      edit.payers.map((p) => ({ personId: p.personId, amount: p.amount, walletId: p.walletId ?? '' })),
+    );
+    this.participants.set(
+      this.data.people.map((person) => {
+        const share = edit.shares.find((s) => s.personId === person.personId);
+        return { personId: person.personId, selected: !!share, value: method === 'Equal' ? null : (share?.amount ?? null) };
+      }),
+    );
+  }
 
   protected personName(personId: string): string {
     const person = this.data.people.find((p) => p.personId === personId);
@@ -157,7 +200,7 @@ export class SplitDialog {
       payers: this.effectivePayers().map((p) => ({
         personId: p.personId,
         amount: p.amount!,
-        walletId: p.personId === this.me?.personId ? p.walletId : null,
+        walletId: p.personId === this.me?.personId && this.mine ? p.walletId : null,
       })),
       participants: this.selectedParticipants().map((p) => ({
         personId: p.personId,
@@ -168,7 +211,24 @@ export class SplitDialog {
     this.saving.set(true);
 
     try {
-      await this.tracker.submit(this.api.split(request), $localize`:@@split.saved:Expense split: “${request.description}:description:”.`);
+      if (this.edit) {
+        await this.tracker.submitChange(
+          this.api.reviseOperation(this.edit.id, {
+            reason: this.reason().trim(),
+            occurredAt: request.occurredAt!,
+            description: request.description,
+            amount: request.total,
+            currency: request.currency,
+            method: request.method,
+            payers: request.payers,
+            participants: request.participants,
+            categoryId: request.categoryId,
+          }),
+          $localize`:@@change.applied:Change applied.`,
+        );
+      } else {
+        await this.tracker.submit(this.api.split(request), $localize`:@@split.saved:Expense split: “${request.description}:description:”.`);
+      }
       this.ref.close(true);
     } catch {
       this.saving.set(false);

@@ -36,6 +36,29 @@ const byCode: Record<string, () => string> = {
     $localize`:@@error.noDifference:The wallet already has that balance: there is nothing to adjust.`,
   'group.member_has_activity': () =>
     $localize`:@@error.memberHasActivity:This member already took part in group expenses and cannot be removed.`,
+  'books.locked': () =>
+    $localize`:@@error.booksLocked:Your books are closed for that date. Move the lock date back in Settings to change it.`,
+  'books.locked_for_other': () =>
+    $localize`:@@error.booksLockedForOther:Someone involved closed their books for that date, so it cannot change.`,
+  'debt.settled': () =>
+    $localize`:@@error.debtSettled:It was already settled. Undo (delete) the settlement first, then change it.`,
+  'operation.change_pending': () =>
+    $localize`:@@error.changePending:A change is waiting for confirmation. Try again once it is answered.`,
+  'operation.not_current': () => $localize`:@@error.notCurrent:Only the current version can be changed.`,
+  'operation.not_latest': () => $localize`:@@error.notLatest:Only the latest version can be restored.`,
+  'operation.not_restorable': () =>
+    $localize`:@@error.settlementNotRestorable:A deleted settlement cannot be restored: settle the debts again instead.`,
+  'operation.initiator_only': () =>
+    $localize`:@@error.initiatorOnly:Only the person who recorded it can change the currency.`,
+  'transaction.not_current': () => $localize`:@@error.notCurrent:Only the current version can be changed.`,
+  'transaction.not_editable': () =>
+    $localize`:@@error.notEditable:This transaction cannot be edited here. Loans, splits and settlements are changed in Debts & splits.`,
+  'transaction.not_deletable': () =>
+    $localize`:@@error.notDeletable:This transaction cannot be deleted here. Loans, splits and settlements are changed in Debts & splits.`,
+  'change.already_answered': () => $localize`:@@error.alreadyAnswered:You already answered this change.`,
+  'change.not_pending': () => $localize`:@@error.changeNotPending:This change is no longer waiting for an answer.`,
+  'settlement.wallet_required': () =>
+    $localize`:@@error.settlementWallet:Choose the wallet the money comes from or goes to.`,
 };
 
 export function errorMessage(error: unknown): string {

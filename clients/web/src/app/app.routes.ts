@@ -19,5 +19,8 @@ export const routes: Routes = [
     loadComponent: () => import('./features/categories/categories-page').then((m) => m.CategoriesPage),
   },
   { path: 'pending', loadComponent: () => import('./features/pending/pending-page').then((m) => m.PendingPage) },
+  { path: 'changes', loadComponent: () => import('./features/changes/changes-page').then((m) => m.ChangesPage) },
+  { path: 'activity', loadComponent: () => import('./features/activity/activity-page').then((m) => m.ActivityPage) },
+  { path: 'settings', loadComponent: () => import('./features/settings/settings-page').then((m) => m.SettingsPage) },
   { path: '**', redirectTo: '' },
 ];

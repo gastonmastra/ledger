@@ -40,6 +40,9 @@ export class Shell {
     { path: '/contacts', label: $localize`:@@nav.contacts:Contacts`, icon: 'user' },
     { path: '/categories', label: $localize`:@@nav.categories:Categories`, icon: 'tag' },
     { path: '/pending', label: $localize`:@@nav.pending:Pending`, icon: 'inbox' },
+    { path: '/changes', label: $localize`:@@nav.changes:Changes to review`, icon: 'review' },
+    { path: '/activity', label: $localize`:@@nav.activity:Activity`, icon: 'bell' },
+    { path: '/settings', label: $localize`:@@nav.settings:Settings`, icon: 'cog' },
   ];
 
   /** Items shown in the mobile bottom bar; the rest are in the menu. */
@@ -51,6 +54,14 @@ export class Shell {
   });
 
   protected readonly pendingCount = computed(() => this.pending.value()?.length ?? 0);
+
+  /** Changes of shared operations waiting for my answer. */
+  private readonly toReview = rxResource({
+    params: () => this.changes.version(),
+    stream: () => this.api.changes(),
+  });
+
+  protected readonly toReviewCount = computed(() => this.toReview.value()?.length ?? 0);
 
   protected readonly themeIcon = computed<IconName>(() =>
     this.theme.mode() === 'system' ? 'computer' : this.theme.mode() === 'dark' ? 'moon' : 'sun',
