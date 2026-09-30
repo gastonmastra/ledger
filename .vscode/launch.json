@@ -1,10 +1,97 @@
 {
-    "configurations": [
+  "version": "0.2.0",
+  "configurations": [
     {
-        "name": "C#: Ledger Api Debug",
-        "type": "dotnet",
-        "request": "launch",
-        "projectPath": "${workspaceFolder}/src/Ledger.Api/Ledger.Api.csproj"
+      "name": "API",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "prepare-debug",
+      "program": "${workspaceFolder}/src/Ledger.Api/bin/Debug/net10.0/Ledger.Api.dll",
+      "cwd": "${workspaceFolder}/src/Ledger.Api",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5209"
+      },
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "Now listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/scalar"
+      }
+    },
+    {
+      "name": "Console",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/Ledger.Console/bin/Debug/net10.0/Ledger.Console.dll",
+      "cwd": "${workspaceFolder}/src/Ledger.Console",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Migrator",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/Ledger.Migrator/bin/Debug/net10.0/Ledger.Migrator.dll",
+      "cwd": "${workspaceFolder}/src/Ledger.Migrator",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Docker: attach to API",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "1",
+      "pipeTransport": {
+        "pipeProgram": "docker",
+        "pipeArgs": [
+          "exec",
+          "-i",
+          "ledger-api"
+        ],
+        "debuggerPath": "/vsdbg/vsdbg",
+        "pipeCwd": "${workspaceFolder}",
+        "quoteArgs": false
+      },
+      "sourceFileMap": {
+        "/source": "${workspaceFolder}"
+      },
+      "justMyCode": false
+    },
+    {
+      "name": "API (compound)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/Ledger.Api/bin/Debug/net10.0/Ledger.Api.dll",
+      "cwd": "${workspaceFolder}/src/Ledger.Api",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5209"
+      },
+      "presentation": {
+        "hidden": true
+      }
+    },
+    {
+      "name": "Console (compound)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/Ledger.Console/bin/Debug/net10.0/Ledger.Console.dll",
+      "cwd": "${workspaceFolder}/src/Ledger.Console",
+      "console": "integratedTerminal",
+      "presentation": {
+        "hidden": true
+      }
     }
-    ]
+  ],
+  "compounds": [
+    {
+      "name": "API + Console",
+      "configurations": [
+        "API (compound)",
+        "Console (compound)"
+      ],
+      "preLaunchTask": "prepare-debug",
+      "stopAll": true
+    }
+  ]
 }
