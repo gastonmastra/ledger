@@ -12,10 +12,14 @@ public sealed record GetOpeningBalanceQuery(Guid UserId, Guid WalletId) : IQuery
 
 /// <summary>
 /// Replaces the opening balance of a wallet (amount and date). The ledger is append-only: the
-/// current opening entry is reversed and a new one is recorded.
+/// current opening entry is reversed and a new revision is recorded.
 /// </summary>
-public sealed record ChangeOpeningBalanceCommand(Guid UserId, Guid WalletId, decimal Amount, DateTimeOffset OccurredAt)
-    : ICommand;
+public sealed record ChangeOpeningBalanceCommand(
+    Guid UserId,
+    Guid WalletId,
+    decimal Amount,
+    DateTimeOffset OccurredAt,
+    string Reason) : ICommand;
 
 /// <summary>Reconciles a wallet with its real balance; the difference goes to "Balance adjustments".</summary>
 public sealed record AdjustBalanceCommand(
@@ -31,6 +35,7 @@ internal sealed class ChangeOpeningBalanceValidator : AbstractValidator<ChangeOp
     {
         RuleFor(x => x.Amount).GreaterThanOrEqualTo(0).PrecisionScale(19, Money.Decimals, true);
         RuleFor(x => x.OccurredAt).NotInFuture();
+        RuleFor(x => x.Reason).NotEmpty().MaximumLength(Transaction.ReasonMaxLength);
     }
 }
 
@@ -55,7 +60,7 @@ internal sealed class WalletBalanceHandlers(
     public async Task<OpeningBalanceDto> Handle(GetOpeningBalanceQuery query, CancellationToken cancellationToken)
     {
         var wallet = await accounts.WalletAsync(query.UserId, query.WalletId, cancellationToken);
-        var opening = await ActiveOpeningAsync(query.WalletId, cancellationToken);
+        var opening = await ActiveOpeningAsync(query.WalletId, tracked: false, cancellationToken);
 
         return opening is null
             ? new OpeningBalanceDto(0, null)
@@ -71,37 +76,30 @@ internal sealed class WalletBalanceHandlers(
 
         await dbContext.InTransactionAsync(async () =>
         {
-            var current = await ActiveOpeningAsync(command.WalletId, cancellationToken);
+            var current = await ActiveOpeningAsync(command.WalletId, tracked: true, cancellationToken);
             var transactions = new List<Transaction>();
 
-            // The new entry goes first: the overdraft check then only fails if the final balance is negative.
+            if (current is not null)
+                transactions.Add(Transaction.ReversalOf(current, command.UserId, ChangeAction.Edit, command.Reason));
+
             if (command.Amount > 0)
             {
                 var openingBalances = await accounts.SystemAsync(
                     command.UserId, LedgerAccountPurpose.OpeningBalances, cancellationToken);
 
-                transactions.Add(TransactionBuilder
+                var opening = TransactionBuilder
                     .Create(command.UserId, command.OccurredAt, TransactionKind.OpeningBalance, "Opening balance", command.WalletId)
                     .Add(wallet.Id, command.Amount, currency)
                     .Add(openingBalances.Id, -command.Amount, currency)
-                    .Build());
+                    .Build();
+
+                if (current is not null)
+                    opening.BecomeRevisionOf(current, current.Revision + 1, command.UserId, ChangeAction.Edit, command.Reason);
+
+                transactions.Add(opening);
             }
 
-            if (current is not null)
-            {
-                var reversal = TransactionBuilder.Create(
-                    command.UserId,
-                    current.OccurredAt,
-                    TransactionKind.OpeningBalanceReversal,
-                    "Opening balance replaced",
-                    current.Id.Value);
-
-                foreach (var posting in current.Postings)
-                    reversal.Add(posting.AccountId, -posting.Amount, posting.Currency, posting.CounterpartyId);
-
-                transactions.Add(reversal.Build());
-            }
-
+            // The balance check applies to the final result of the whole batch.
             if (transactions.Count != 0)
                 await writer.WriteAsync(transactions, cancellationToken);
 
@@ -145,28 +143,17 @@ internal sealed class WalletBalanceHandlers(
     }
 
     /// <summary>The opening entry of the wallet that has not been replaced.</summary>
-    private async Task<Transaction?> ActiveOpeningAsync(Guid walletId, CancellationToken cancellationToken)
+    private async Task<Transaction?> ActiveOpeningAsync(Guid walletId, bool tracked, CancellationToken cancellationToken)
     {
-        var openings = await dbContext.Transactions
-            .AsNoTracking()
+        var query = dbContext.Transactions
             .Include(t => t.Postings)
-            .Where(t => t.Kind == TransactionKind.OpeningBalance && t.CorrelationId == walletId)
-            .ToListAsync(cancellationToken);
+            .Where(t => t.Kind == TransactionKind.OpeningBalance && t.CorrelationId == walletId && t.ReversedById == null);
 
-        if (openings.Count == 0)
-            return null;
+        if (!tracked)
+            query = query.AsNoTracking();
 
-        var ids = openings.Select(o => (Guid?)o.Id.Value).ToList();
-
-        var reversed = await dbContext.Transactions
-            .AsNoTracking()
-            .Where(t => t.Kind == TransactionKind.OpeningBalanceReversal && ids.Contains(t.CorrelationId))
-            .Select(t => t.CorrelationId)
-            .ToListAsync(cancellationToken);
-
-        return openings
-            .Where(o => !reversed.Contains(o.Id.Value))
-            .OrderByDescending(o => o.CreatedAt)
-            .FirstOrDefault();
+        return await query
+            .OrderByDescending(t => t.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }

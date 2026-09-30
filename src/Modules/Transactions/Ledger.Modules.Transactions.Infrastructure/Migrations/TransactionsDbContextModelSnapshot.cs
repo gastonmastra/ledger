@@ -76,6 +76,23 @@ namespace Ledger.Modules.Transactions.Infrastructure.Migrations
                     b.ToTable("integration_outbox", "transactions");
                 });
 
+            modelBuilder.Entity("Ledger.Modules.Transactions.Domain.BooksLock", b =>
+                {
+                    b.Property<Guid>("OwnerId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("LockedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("OwnerId");
+
+                    b.ToTable("books_locks", "transactions");
+                });
+
             modelBuilder.Entity("Ledger.Modules.Transactions.Domain.Counterparty", b =>
                 {
                     b.Property<Guid>("OwnerId")
@@ -244,6 +261,17 @@ namespace Ledger.Modules.Transactions.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ChangeAction")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ChangeReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("ChangedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("CorrelationId")
                         .HasColumnType("uuid");
 
@@ -253,6 +281,9 @@ namespace Ledger.Modules.Transactions.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("EntryId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Kind")
                         .IsRequired()
@@ -265,9 +296,22 @@ namespace Ledger.Modules.Transactions.Infrastructure.Migrations
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ReversalOfId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReversedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CorrelationId");
+
+                    b.HasIndex("EntryId");
+
+                    b.HasIndex("ReversedById");
 
                     b.HasIndex("OwnerId", "OccurredAt");
 

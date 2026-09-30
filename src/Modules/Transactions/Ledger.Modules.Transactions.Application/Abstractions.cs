@@ -11,6 +11,7 @@ public interface ITransactionsDbContext
     DbSet<LedgerAccount> LedgerAccounts { get; }
     DbSet<PendingWalletAssignment> PendingWalletAssignments { get; }
     DbSet<Counterparty> Counterparties { get; }
+    DbSet<BooksLock> BooksLocks { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 

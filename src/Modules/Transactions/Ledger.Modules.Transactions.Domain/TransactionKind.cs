@@ -15,5 +15,7 @@ public enum TransactionKind
     /// <summary>Reconciles a wallet with its real balance.</summary>
     BalanceAdjustment,
     /// <summary>A debt that already existed before using Ledger.</summary>
-    InitialDebt
+    InitialDebt,
+    /// <summary>Cancels another transaction (edit, delete or shared change).</summary>
+    Reversal
 }

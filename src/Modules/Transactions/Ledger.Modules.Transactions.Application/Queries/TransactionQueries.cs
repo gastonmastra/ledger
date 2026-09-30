@@ -15,14 +15,23 @@ public sealed record PostingDto(
     Guid? CounterpartyId,
     string? CounterpartyName);
 
+/// <param name="Editable">Income, expense or transfer that is current: it can be edited here.</param>
+/// <param name="Deletable">Current and of a kind the user deletes here (also balance adjustments).</param>
 public sealed record TransactionDto(
     Guid Id,
+    Guid EntryId,
+    int Revision,
     DateTimeOffset OccurredAt,
     string? Description,
     TransactionKind Kind,
+    TransactionStatus Status,
     Guid? CorrelationId,
+    string? ChangeReason,
+    bool Editable,
+    bool Deletable,
     IReadOnlyList<PostingDto> Postings);
 
+/// <param name="IncludeHistory">Also list changed and deleted versions and their reversals.</param>
 public sealed record GetTransactionsQuery(
     Guid UserId,
     int Page = 1,
@@ -31,11 +40,12 @@ public sealed record GetTransactionsQuery(
     DateTimeOffset? From = null,
     DateTimeOffset? To = null,
     Guid? ContactId = null,
-    Guid? CategoryId = null) : IQuery<PagedResult<TransactionDto>>;
+    Guid? CategoryId = null,
+    bool IncludeHistory = false) : IQuery<PagedResult<TransactionDto>>;
 
 public sealed record GetTransactionQuery(Guid UserId, Guid TransactionId) : IQuery<TransactionDto>;
 
-internal sealed class TransactionQueryHandlers(ITransactionsDbContext dbContext)
+internal sealed class TransactionQueryHandlers(ITransactionsDbContext dbContext, TransactionMapper mapper)
     : IQueryHandler<GetTransactionsQuery, PagedResult<TransactionDto>>,
       IQueryHandler<GetTransactionQuery, TransactionDto>
 {
@@ -49,6 +59,14 @@ internal sealed class TransactionQueryHandlers(ITransactionsDbContext dbContext)
         var transactions = dbContext.Transactions
             .AsNoTracking()
             .Where(t => t.OwnerId == query.UserId);
+
+        if (!query.IncludeHistory)
+        {
+            transactions = transactions.Where(t =>
+                t.ReversedById == null
+                && t.Kind != TransactionKind.Reversal
+                && t.Kind != TransactionKind.OpeningBalanceReversal);
+        }
 
         if (query.From is { } from)
             transactions = transactions.Where(t => t.OccurredAt >= from);
@@ -95,7 +113,7 @@ internal sealed class TransactionQueryHandlers(ITransactionsDbContext dbContext)
             .ToListAsync(cancellationToken);
 
         return new PagedResult<TransactionDto>(
-            await ToDtosAsync(query.UserId, items, cancellationToken),
+            await mapper.ToDtosAsync(query.UserId, items, cancellationToken),
             page,
             pageSize,
             total);
@@ -113,10 +131,14 @@ internal sealed class TransactionQueryHandlers(ITransactionsDbContext dbContext)
         if (transaction is null || transaction.OwnerId != query.UserId)
             throw new NotFoundException("Transaction", query.TransactionId);
 
-        return (await ToDtosAsync(query.UserId, [transaction], cancellationToken))[0];
+        return (await mapper.ToDtosAsync(query.UserId, [transaction], cancellationToken))[0];
     }
+}
 
-    private async Task<IReadOnlyList<TransactionDto>> ToDtosAsync(
+/// <summary>Maps transactions to DTOs with account and counterparty names and their status.</summary>
+internal sealed class TransactionMapper(ITransactionsDbContext dbContext)
+{
+    public async Task<IReadOnlyList<TransactionDto>> ToDtosAsync(
         Guid userId,
         IReadOnlyList<Transaction> transactions,
         CancellationToken cancellationToken)
@@ -133,13 +155,26 @@ internal sealed class TransactionQueryHandlers(ITransactionsDbContext dbContext)
             .Where(c => c.OwnerId == userId)
             .ToDictionaryAsync(c => c.PersonId, c => c.Name, cancellationToken);
 
+        // A reversed transaction was "changed" when its reversal came with a new revision, else "deleted".
+        var reversalIds = transactions.Where(t => t.ReversedById != null).Select(t => t.ReversedById!.Value).ToList();
+        var reversalActions = await dbContext.Transactions
+            .AsNoTracking()
+            .Where(t => reversalIds.Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id, t => t.ChangeAction, cancellationToken);
+
         return transactions
             .Select(t => new TransactionDto(
                 t.Id.Value,
+                t.EntryId.Value,
+                t.Revision,
                 t.OccurredAt,
                 t.Description,
                 t.Kind,
+                StatusOf(t, reversalActions),
                 t.CorrelationId,
+                t.ChangeReason,
+                t.IsCurrent && Ledger.RevisionHandlers.Editable.Contains(t.Kind),
+                t.IsCurrent && Ledger.RevisionHandlers.Deletable.Contains(t.Kind),
                 t.Postings
                     .OrderByDescending(p => p.Amount)
                     .Select(p =>
@@ -162,5 +197,18 @@ internal sealed class TransactionQueryHandlers(ITransactionsDbContext dbContext)
                     })
                     .ToList()))
             .ToList();
+    }
+
+    private static TransactionStatus StatusOf(Transaction transaction, IReadOnlyDictionary<TransactionId, ChangeAction?> reversalActions)
+    {
+        if (transaction.IsReversal)
+            return TransactionStatus.Reversal;
+
+        if (transaction.ReversedById is not { } reversal)
+            return TransactionStatus.Current;
+
+        return reversalActions.GetValueOrDefault(reversal) == ChangeAction.Delete
+            ? TransactionStatus.Deleted
+            : TransactionStatus.Changed;
     }
 }

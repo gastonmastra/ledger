@@ -92,7 +92,16 @@ internal sealed class GetReportHandler(ITransactionsDbContext dbContext) : IQuer
                 join t in dbContext.Transactions on p.TransactionId equals t.Id
                 where p.Currency == currency && t.OccurredAt <= query.To
                 orderby t.OccurredAt
-                select new { p.AccountId, p.Amount, t.OccurredAt })
+                select new
+                {
+                    p.AccountId,
+                    p.Amount,
+                    t.OccurredAt,
+                    // Changed or deleted versions and their reversals cancel out: they never count as income or spending.
+                    Current = t.ReversedById == null
+                              && t.Kind != TransactionKind.Reversal
+                              && t.Kind != TransactionKind.OpeningBalanceReversal
+                })
             .ToListAsync(cancellationToken);
 
         var granularity = (query.To - query.From).TotalDays <= MaxDailyDays ? ReportGranularity.Day : ReportGranularity.Month;
@@ -115,8 +124,8 @@ internal sealed class GetReportHandler(ITransactionsDbContext dbContext) : IQuer
                 if (NetWorthPurposes.Contains(account.Purpose))
                     netWorth += row.Amount;
 
-                if (row.OccurredAt < start)
-                    continue; // before the period: only affects the starting net worth
+                if (row.OccurredAt < start || !row.Current)
+                    continue; // before the period, or not the current version: only affects net worth
 
                 if (account.Type == LedgerAccountType.Income)
                     income -= row.Amount;
@@ -130,7 +139,7 @@ internal sealed class GetReportHandler(ITransactionsDbContext dbContext) : IQuer
         var inPeriod = rows.Where(r => r.OccurredAt >= query.From).ToList();
 
         var spending = inPeriod
-            .Where(r => accounts[r.AccountId].Type == LedgerAccountType.Expense)
+            .Where(r => r.Current && accounts[r.AccountId].Type == LedgerAccountType.Expense)
             .GroupBy(r => r.AccountId)
             .Select(g => new CategoryAmountDto(
                 g.Key.Value, accounts[g.Key].Name, accounts[g.Key].Purpose.ToString(), g.Sum(r => r.Amount)))

@@ -9,6 +9,8 @@ public static class DependencyInjection
     {
         services.AddScoped<AccountResolver>();
         services.AddScoped<LedgerWriter>();
+        services.AddScoped<MovementFactory>();
+        services.AddScoped<Queries.TransactionMapper>();
 
         return services;
     }

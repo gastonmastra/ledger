@@ -89,8 +89,11 @@ public sealed class LedgerAccount
             throw new DomainException("ledger.account_archived", $"Account '{Name}' is archived.");
     }
 
-    /// <summary>Applies the postings of one transaction that touch this wallet account.</summary>
-    public void ApplyToWallet(decimal amount, Currency currency)
+    /// <summary>
+    /// Applies the net movement of a batch of transactions (e.g. a reversal and its replacement)
+    /// to this wallet. Only the resulting balance must not be negative.
+    /// </summary>
+    public void ApplyToWallet(decimal amount, Currency currency, int transactions = 1)
     {
         if (!IsWallet)
             throw new InvalidOperationException("Only wallet balances are tracked.");
@@ -109,7 +112,7 @@ public sealed class LedgerAccount
                     $"Wallet '{Name}' does not have enough money (balance {Balance:0.00} {Currency}, needed {-amount:0.00} {Currency})."));
 
         Balance = newBalance;
-        TransactionCount++;
+        TransactionCount += transactions;
         Version++;
     }
 }

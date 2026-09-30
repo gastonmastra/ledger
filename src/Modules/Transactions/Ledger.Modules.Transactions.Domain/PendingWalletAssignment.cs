@@ -5,7 +5,9 @@ namespace Ledger.Modules.Transactions.Domain;
 public enum PendingWalletAssignmentStatus
 {
     Pending,
-    Assigned
+    Assigned,
+    /// <summary>The operation it came from changed or was deleted before a wallet was chosen.</summary>
+    Cancelled
 }
 
 /// <summary>
@@ -55,10 +57,16 @@ public sealed class PendingWalletAssignment
             Status = PendingWalletAssignmentStatus.Pending
         };
 
+    public void Cancel()
+    {
+        if (Status == PendingWalletAssignmentStatus.Pending)
+            Status = PendingWalletAssignmentStatus.Cancelled;
+    }
+
     public void Assign(Guid walletId)
     {
-        if (Status == PendingWalletAssignmentStatus.Assigned)
-            throw new DomainException("assignment.already_assigned", "The wallet was already assigned.");
+        if (Status != PendingWalletAssignmentStatus.Pending)
+            throw new DomainException("assignment.not_pending", "This item is no longer waiting for a wallet.");
 
         Status = PendingWalletAssignmentStatus.Assigned;
         WalletId = walletId;

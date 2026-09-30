@@ -16,6 +16,7 @@ public sealed class TransactionsDbContext(DbContextOptions<TransactionsDbContext
     public DbSet<LedgerAccount> LedgerAccounts => Set<LedgerAccount>();
     public DbSet<PendingWalletAssignment> PendingWalletAssignments => Set<PendingWalletAssignment>();
     public DbSet<Counterparty> Counterparties => Set<Counterparty>();
+    public DbSet<BooksLock> BooksLocks => Set<BooksLock>();
 
     public Task<T> InTransactionAsync<T>(Func<Task<T>> work, CancellationToken cancellationToken)
         => PersistenceExtensions.InTransactionAsync(this, work, cancellationToken);

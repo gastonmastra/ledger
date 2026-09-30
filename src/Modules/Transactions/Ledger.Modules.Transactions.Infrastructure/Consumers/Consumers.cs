@@ -150,3 +150,21 @@ internal sealed class LedgerPostingRequestedConsumer(
         await eventBus.PublishAsync(reply, context.CancellationToken);
     }
 }
+
+internal sealed class LedgerRevisionRequestedConsumer(
+    ISender sender,
+    ITransactionsEventBus eventBus,
+    TransactionsDbContext dbContext)
+    : ModuleConsumer<LedgerRevisionRequested, TransactionsDbContext>(dbContext)
+{
+    protected override async Task Handle(ConsumeContext<LedgerRevisionRequested> context)
+    {
+        var result = await sender.Send(new ReviseDebtOperationCommand(context.Message), context.CancellationToken);
+
+        object reply = result.Succeeded
+            ? new LedgerRevisionCompleted(context.Message.ChangeId)
+            : new LedgerRevisionRejected(context.Message.ChangeId, result.RejectionReason!);
+
+        await eventBus.PublishAsync(reply, context.CancellationToken);
+    }
+}

@@ -35,6 +35,7 @@ public static class TransactionsModule
         services.AddModuleApplication(typeof(ITransactionsDbContext).Assembly);
         services.AddTransactionsApplicationServices();
         services.AddScoped<ITransactionsEventBus, TransactionsEventBus>();
+        services.AddHostedService<ExistingDebtsMigrationRunner>();
         services.AddModuleMessaging<TransactionsDbContext>(
             Name,
             typeof(AccountCreatedConsumer),
@@ -45,7 +46,8 @@ public static class TransactionsModule
             typeof(ContactLinkedConsumer),
             typeof(GroupCreatedConsumer),
             typeof(GroupMemberAddedConsumer),
-            typeof(LedgerPostingRequestedConsumer));
+            typeof(LedgerPostingRequestedConsumer),
+            typeof(LedgerRevisionRequestedConsumer));
 
         return services;
     }
