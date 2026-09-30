@@ -1,25 +1,32 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>62d20e4a-612f-4209-9241-aa9b5ab17125</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.4" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.4" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Microsoft.OpenApi" />
   </ItemGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\Modules\Wallets\Ledger.Modules.Wallets.csproj" />
-    <ProjectReference Include="..\Modules\Identity\Ledger.Modules.Identity.csproj" />
-    <ProjectReference Include="..\Modules\Transactions\Ledger.Modules.Transactions.csproj" />
-    <ProjectReference Include="..\Modules\Accounts\Ledger.Modules.Accounts.csproj" />
+    <ProjectReference Include="..\BuildingBlocks\Ledger.BuildingBlocks.Presentation\Ledger.BuildingBlocks.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\Identity\Ledger.Modules.Identity.Infrastructure\Ledger.Modules.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Identity\Ledger.Modules.Identity.Presentation\Ledger.Modules.Identity.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\Accounts\Ledger.Modules.Accounts.Infrastructure\Ledger.Modules.Accounts.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Accounts\Ledger.Modules.Accounts.Presentation\Ledger.Modules.Accounts.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\Wallets\Ledger.Modules.Wallets.Infrastructure\Ledger.Modules.Wallets.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Wallets\Ledger.Modules.Wallets.Presentation\Ledger.Modules.Wallets.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\Transactions\Ledger.Modules.Transactions.Infrastructure\Ledger.Modules.Transactions.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Transactions\Ledger.Modules.Transactions.Presentation\Ledger.Modules.Transactions.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\Contacts\Ledger.Modules.Contacts.Infrastructure\Ledger.Modules.Contacts.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Contacts\Ledger.Modules.Contacts.Presentation\Ledger.Modules.Contacts.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\Groups\Ledger.Modules.Groups.Infrastructure\Ledger.Modules.Groups.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Groups\Ledger.Modules.Groups.Presentation\Ledger.Modules.Groups.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\Debts\Ledger.Modules.Debts.Infrastructure\Ledger.Modules.Debts.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Debts\Ledger.Modules.Debts.Presentation\Ledger.Modules.Debts.Presentation.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Ledger.Modules.Groups.Infrastructure" />
+    <InternalsVisibleTo Include="Ledger.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ledger.Modules.Groups.Domain\Ledger.Modules.Groups.Domain.csproj" />
+    <ProjectReference Include="..\Ledger.Modules.Groups.Contracts\Ledger.Modules.Groups.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Ledger.BuildingBlocks.Application\Ledger.BuildingBlocks.Application.csproj" />
+  </ItemGroup>
+
+</Project>
