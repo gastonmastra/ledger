@@ -203,6 +203,39 @@ public class LedgerScenarioTests(LedgerApiFactory factory)
         Assert.Equal(0, (await alice.TotalsAsync("EUR")).GetProperty("owedToMe").GetDecimal());
     }
 
+    [Fact]
+    public async Task Requests_without_a_token_are_rejected_with_401()
+    {
+        var anonymous = factory.CreateClient();
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/wallets")).StatusCode);
+    }
+
+    [Fact]
+    public async Task A_wallet_not_known_yet_by_the_debts_module_is_retryable()
+    {
+        var alice = factory.ClientFor(NewUser("alice"));
+        await alice.GetJsonAsync("/api/me");
+        var carl = await alice.PostJsonAsync("/api/contacts", new { name = "Carl" });
+
+        // Wait until Debts knows the contact, so the only unknown thing is the wallet.
+        var response = await EventuallyAsync(async () =>
+        {
+            var attempt = await alice.PostAsync("/api/debts/loans", JsonContent(new
+            {
+                contactId = carl.GetProperty("id").GetGuid(),
+                walletId = Guid.NewGuid(),
+                amount = 10
+            }));
+            var body = await attempt.Content.ReadAsStringAsync();
+            return body.Contains("Wallet") ? attempt : null;
+        }, "the contact to reach the Debts module");
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.True(response.Headers.Contains("Retry-After"));
+    }
+
     private static StringContent JsonContent(object body)
         => new(JsonSerializer.Serialize(body, Json), System.Text.Encoding.UTF8, "application/json");
 }

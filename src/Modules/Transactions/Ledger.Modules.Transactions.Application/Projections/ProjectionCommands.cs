@@ -13,7 +13,8 @@ public sealed record ProjectAccountCommand(
     string Type,
     string Purpose,
     string? Currency,
-    Guid? ReferenceId) : ICommand;
+    Guid? ReferenceId,
+    decimal OpeningBalance = 0) : ICommand;
 
 public sealed record RenameAccountProjectionCommand(Guid AccountId, string Name) : ICommand;
 
@@ -56,9 +57,10 @@ internal sealed class ProjectionHandlers(
 
         dbContext.LedgerAccounts.Add(account);
 
-        if (account.IsWallet)
+        // Tells the Wallets module that the wallet can be used. With an opening balance, the
+        // opening-balance posting (same message) announces it instead, already with its balance.
+        if (account.IsWallet && command.OpeningBalance <= 0)
         {
-            // Tells the Wallets module that the wallet can be used for transactions.
             await eventBus.PublishAsync(
                 new WalletBalanceChanged(account.ReferenceId!.Value, account.Balance, account.TransactionCount, account.Version),
                 cancellationToken);

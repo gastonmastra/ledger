@@ -22,8 +22,14 @@ internal sealed class PeopleDirectory(IDebtsDbContext dbContext)
     public async Task<PersonInfo> ContactAsync(Guid userId, Guid contactId, CancellationToken cancellationToken)
     {
         var contact = await dbContext.Contacts.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.ContactId == contactId && x.OwnerId == userId, cancellationToken)
-            ?? throw new NotFoundException("Contact", contactId);
+            .SingleOrDefaultAsync(x => x.ContactId == contactId, cancellationToken);
+
+        // A contact created a moment ago may not have reached this module yet: let the client retry.
+        if (contact is null)
+            throw new NotYetAvailableException($"Contact '{contactId}' is not available yet. Try again in a moment.");
+
+        if (contact.OwnerId != userId)
+            throw new NotFoundException("Contact", contactId);
 
         return new PersonInfo(contact.PersonId, contact.Name, contact.LinkedUserId);
     }

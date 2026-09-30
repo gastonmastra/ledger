@@ -28,7 +28,8 @@ internal sealed class AccountCreatedConsumer(ISender sender, TransactionsDbConte
                 account.Type,
                 account.Purpose,
                 account.Currency,
-                account.ReferenceId),
+                account.ReferenceId,
+                account.Purpose == AccountPurposes.Wallet ? account.OpeningBalance : 0),
             context.CancellationToken);
 
         if (account.Purpose == AccountPurposes.Wallet && account.OpeningBalance > 0)

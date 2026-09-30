@@ -512,7 +512,11 @@ internal sealed class OperationHandlers(
         var wallet = await dbContext.Wallets.AsNoTracking()
             .SingleOrDefaultAsync(w => w.WalletId == walletId, cancellationToken);
 
-        if (wallet is null || wallet.UserId != userId)
+        // A wallet created a moment ago may not have reached this module yet: let the client retry.
+        if (wallet is null)
+            throw new NotYetAvailableException($"Wallet '{walletId}' is not available yet. Try again in a moment.");
+
+        if (wallet.UserId != userId)
             throw new NotFoundException("Wallet", walletId);
 
         return wallet;

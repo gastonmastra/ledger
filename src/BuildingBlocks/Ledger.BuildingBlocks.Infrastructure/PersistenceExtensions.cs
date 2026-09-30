@@ -21,9 +21,10 @@ public static class PersistenceExtensions
         services.AddDbContext<TContext>(options =>
             options.UseNpgsql(
                 configuration.GetConnectionString(ConnectionStringName),
-                npgsql => npgsql.MigrationsHistoryTable(
-                    "__EFMigrationsHistory",
-                    schema)));
+                npgsql => npgsql
+                    .MigrationsHistoryTable("__EFMigrationsHistory", schema)
+                    // Aggregates with several owned collections (e.g. debt operations) load them in separate queries.
+                    .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
         return services;
     }
