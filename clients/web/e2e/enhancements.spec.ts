@@ -30,6 +30,8 @@ test.describe('Ledger web: dates, balances and existing debts', () => {
     await dialog.getByRole('button', { name: 'Save' }).click();
 
     await expect(page.getByText('Expense recorded.')).toBeVisible();
+    // Newest first: an expense dated in January is further down, so filter by its wallet.
+    await selectOptionContaining(page.getByLabel('Wallet'), walletName);
     const item = page.locator('li', { hasText: 'E2E coffee in January' }).first();
     await expect(item).toContainText('Jan 15, 2026');
   });
