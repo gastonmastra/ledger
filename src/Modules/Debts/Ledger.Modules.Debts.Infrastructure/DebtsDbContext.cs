@@ -19,6 +19,9 @@ public sealed class DebtsDbContext(DbContextOptions<DebtsDbContext> options)
     public DbSet<DebtGroupMember> GroupMembers => Set<DebtGroupMember>();
     public DbSet<DebtWallet> Wallets => Set<DebtWallet>();
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        => configurationBuilder.UseUtcDateTimeOffsets();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);

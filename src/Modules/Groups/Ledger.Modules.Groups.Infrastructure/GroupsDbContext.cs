@@ -16,6 +16,9 @@ public sealed class GroupsDbContext(DbContextOptions<GroupsDbContext> options)
     public DbSet<KnownContact> KnownContacts => Set<KnownContact>();
     public DbSet<KnownUser> KnownUsers => Set<KnownUser>();
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        => configurationBuilder.UseUtcDateTimeOffsets();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);

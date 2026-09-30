@@ -15,6 +15,9 @@ public sealed class ContactsDbContext(DbContextOptions<ContactsDbContext> option
     public DbSet<Contact> Contacts => Set<Contact>();
     public DbSet<RegisteredUser> RegisteredUsers => Set<RegisteredUser>();
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        => configurationBuilder.UseUtcDateTimeOffsets();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);

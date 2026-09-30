@@ -13,6 +13,9 @@ public sealed class WalletsDbContext(DbContextOptions<WalletsDbContext> options)
 
     public DbSet<Wallet> Wallets => Set<Wallet>();
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        => configurationBuilder.UseUtcDateTimeOffsets();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);

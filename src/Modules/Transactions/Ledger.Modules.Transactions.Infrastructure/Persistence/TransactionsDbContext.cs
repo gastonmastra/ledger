@@ -56,6 +56,9 @@ public sealed class TransactionsDbContext(DbContextOptions<TransactionsDbContext
             entry.State = EntityState.Detached;
     }
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        => configurationBuilder.UseUtcDateTimeOffsets();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);

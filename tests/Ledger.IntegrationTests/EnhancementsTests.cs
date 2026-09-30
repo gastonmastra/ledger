@@ -189,6 +189,24 @@ public class EnhancementsTests(LedgerApiFactory factory)
         Assert.Equal("EUR", year.GetProperty("currency").GetString());
     }
 
+    [Fact]
+    public async Task Dates_with_any_offset_are_accepted_and_stored_as_the_same_instant()
+    {
+        var alice = factory.ClientFor(NewUser("alice"));
+        await alice.GetJsonAsync("/api/me");
+        var bank = await alice.CreateReadyWalletAsync("Bank", "EUR", 100);
+        var madrid = new DateTimeOffset(2026, 9, 1, 10, 0, 0, TimeSpan.FromHours(2));
+
+        var created = await alice.PostJsonAsync("/api/transactions/expense", new { walletId = bank, amount = 5, occurredAt = madrid });
+        var transaction = await alice.GetJsonAsync($"/api/transactions/{created.GetProperty("id").GetGuid()}");
+        Assert.Equal(madrid.UtcDateTime, transaction.GetProperty("occurredAt").GetDateTimeOffset().UtcDateTime);
+
+        var from = Uri.EscapeDataString(new DateTimeOffset(2026, 9, 1, 0, 0, 0, TimeSpan.FromHours(2)).ToString("O"));
+        var to = Uri.EscapeDataString(new DateTimeOffset(2026, 9, 30, 23, 59, 59, TimeSpan.FromHours(2)).ToString("O"));
+        var report = await alice.GetJsonAsync($"/api/reports?from={from}&to={to}&timeZone=Europe/Madrid");
+        Assert.Equal(5, report.GetProperty("totalExpenses").GetDecimal());
+    }
+
     private static Task WaitReadyAsync(HttpClient client, Guid walletId, decimal balance)
         => EventuallyAsync(async () =>
         {
