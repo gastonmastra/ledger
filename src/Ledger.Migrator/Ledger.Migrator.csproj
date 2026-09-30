@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\Identity\Ledger.Modules.Identity.Infrastructure\Ledger.Modules.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Accounts\Ledger.Modules.Accounts.Infrastructure\Ledger.Modules.Accounts.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Wallets\Ledger.Modules.Wallets.Infrastructure\Ledger.Modules.Wallets.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Transactions\Ledger.Modules.Transactions.Infrastructure\Ledger.Modules.Transactions.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Contacts\Ledger.Modules.Contacts.Infrastructure\Ledger.Modules.Contacts.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Groups\Ledger.Modules.Groups.Infrastructure\Ledger.Modules.Groups.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Debts\Ledger.Modules.Debts.Infrastructure\Ledger.Modules.Debts.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

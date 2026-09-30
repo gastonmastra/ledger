@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ledger.Modules.Transactions.Application\Ledger.Modules.Transactions.Application.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Ledger.BuildingBlocks.Infrastructure\Ledger.BuildingBlocks.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Accounts\Ledger.Modules.Accounts.Contracts\Ledger.Modules.Accounts.Contracts.csproj" />
+    <ProjectReference Include="..\..\Contacts\Ledger.Modules.Contacts.Contracts\Ledger.Modules.Contacts.Contracts.csproj" />
+    <ProjectReference Include="..\..\Groups\Ledger.Modules.Groups.Contracts\Ledger.Modules.Groups.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
