@@ -8,11 +8,14 @@ import {
   Currency,
   Group,
   GroupBalances,
+  InitialDebtRequest,
   Me,
   MyDebts,
   Operation,
+  OpeningBalance,
   PagedResult,
   PendingAssignment,
+  Report,
   SettleRequest,
   SplitRequest,
   Summary,
@@ -40,8 +43,20 @@ export class LedgerApi {
     return this.http.get<Wallet[]>(`${this.base}/wallets`, { params: { includeArchived } });
   }
 
-  createWallet(name: string, currency: Currency, openingBalance: number): Observable<Wallet> {
-    return this.http.post<Wallet>(`${this.base}/wallets`, { name, currency, openingBalance });
+  createWallet(name: string, currency: Currency, openingBalance: number, openingBalanceAt?: string | null): Observable<Wallet> {
+    return this.http.post<Wallet>(`${this.base}/wallets`, { name, currency, openingBalance, openingBalanceAt });
+  }
+
+  openingBalance(walletId: string): Observable<OpeningBalance> {
+    return this.http.get<OpeningBalance>(`${this.base}/transactions/opening-balance/${walletId}`);
+  }
+
+  changeOpeningBalance(walletId: string, amount: number, occurredAt: string): Observable<void> {
+    return this.http.put<void>(`${this.base}/transactions/opening-balance`, { walletId, amount, occurredAt });
+  }
+
+  adjustBalance(body: { walletId: string; actualBalance: number; occurredAt: string; description?: string | null }) {
+    return this.http.post<{ id: string }>(`${this.base}/transactions/balance-adjustment`, body);
   }
 
   renameWallet(id: string, name: string): Observable<void> {
@@ -85,11 +100,11 @@ export class LedgerApi {
     return this.http.get<PagedResult<Transaction>>(`${this.base}/transactions`, { params });
   }
 
-  recordIncome(body: { walletId: string; amount: number; categoryId?: string | null; description?: string | null }) {
+  recordIncome(body: MovementBody) {
     return this.http.post<{ id: string }>(`${this.base}/transactions/income`, body);
   }
 
-  recordExpense(body: { walletId: string; amount: number; categoryId?: string | null; description?: string | null }) {
+  recordExpense(body: MovementBody) {
     return this.http.post<{ id: string }>(`${this.base}/transactions/expense`, body);
   }
 
@@ -99,6 +114,7 @@ export class LedgerApi {
     amount: number;
     receivedAmount?: number | null;
     description?: string | null;
+    occurredAt?: string | null;
   }) {
     return this.http.post<{ id: string }>(`${this.base}/transactions/transfer`, body);
   }
@@ -108,8 +124,11 @@ export class LedgerApi {
     return this.http.get<PendingAssignment[]>(`${this.base}/pending-assignments`);
   }
 
-  assignWallet(id: string, walletId: string) {
-    return this.http.post<{ transactionId: string }>(`${this.base}/pending-assignments/${id}/assign`, { walletId });
+  assignWallet(id: string, walletId: string, occurredAt?: string | null) {
+    return this.http.post<{ transactionId: string }>(`${this.base}/pending-assignments/${id}/assign`, {
+      walletId,
+      occurredAt,
+    });
   }
 
   // Contacts
@@ -155,8 +174,18 @@ export class LedgerApi {
     return this.http.get<MyDebts>(`${this.base}/debts`, { params: { includeSettled } });
   }
 
-  lend(body: { contactId: string; walletId: string; amount: number; description?: string | null }) {
+  lend(body: {
+    contactId: string;
+    walletId: string;
+    amount: number;
+    description?: string | null;
+    occurredAt?: string | null;
+  }) {
     return this.http.post<Operation>(`${this.base}/debts/loans`, body);
+  }
+
+  recordInitialDebt(body: InitialDebtRequest): Observable<Operation> {
+    return this.http.post<Operation>(`${this.base}/debts/initial`, body);
   }
 
   split(body: SplitRequest): Observable<Operation> {
@@ -170,4 +199,20 @@ export class LedgerApi {
   operation(id: string): Observable<Operation> {
     return this.http.get<Operation>(`${this.base}/debts/operations/${id}`);
   }
+
+  // Reports
+  report(from: string, to: string, currency: Currency | null, timeZone: string): Observable<Report> {
+    let params = new HttpParams().set('from', from).set('to', to).set('timeZone', timeZone);
+    if (currency) params = params.set('currency', currency);
+
+    return this.http.get<Report>(`${this.base}/reports`, { params });
+  }
+}
+
+export interface MovementBody {
+  walletId: string;
+  amount: number;
+  categoryId?: string | null;
+  description?: string | null;
+  occurredAt?: string | null;
 }

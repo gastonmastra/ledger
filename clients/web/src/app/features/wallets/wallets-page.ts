@@ -20,6 +20,7 @@ import {
   Table,
 } from '../../ui';
 import { NameDialog, NameDialogData } from '../shared/name-dialog';
+import { AdjustBalanceDialog, OpeningBalanceDialog } from './balance-dialogs';
 import { WalletDialog } from './wallet-dialog';
 
 @Component({
@@ -70,6 +71,20 @@ export class WalletsPage {
 
     if (name && name !== wallet.name) {
       await firstValueFrom(this.api.renameWallet(wallet.id, name));
+      this.changes.notify();
+    }
+  }
+
+  protected async openingBalance(wallet: Wallet): Promise<void> {
+    if (await this.dialogs.open<boolean, Wallet>(OpeningBalanceDialog, wallet)) {
+      this.toasts.success($localize`:@@opening.saved:Opening balance updated.`);
+      this.changes.notify();
+    }
+  }
+
+  protected async adjust(wallet: Wallet): Promise<void> {
+    if (await this.dialogs.open<boolean, Wallet>(AdjustBalanceDialog, wallet)) {
+      this.toasts.success($localize`:@@adjust.saved:Balance adjusted.`);
       this.changes.notify();
     }
   }

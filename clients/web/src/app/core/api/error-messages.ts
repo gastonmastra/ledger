@@ -32,6 +32,8 @@ const byCode: Record<string, () => string> = {
     $localize`:@@error.unknownPerson:One of the people is not available yet. Try again in a moment.`,
   'settlement.not_suggested': () =>
     $localize`:@@error.notSuggested:That payment is no longer suggested. Refresh the group balances.`,
+  'adjustment.no_difference': () =>
+    $localize`:@@error.noDifference:The wallet already has that balance: there is nothing to adjust.`,
   'group.member_has_activity': () =>
     $localize`:@@error.memberHasActivity:This member already took part in group expenses and cannot be removed.`,
 };

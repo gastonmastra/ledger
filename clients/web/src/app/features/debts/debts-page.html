@@ -1,5 +1,6 @@
 <ui-page-header i18n-heading="@@debts.title" heading="Debts & splits"
                 i18n-subtitle="@@debts.subtitle" subtitle="What people owe you and what you owe them.">
+  <button uiButton variant="secondary" type="button" (click)="openDialog('initial')" i18n="@@debts.initial">Add existing debt</button>
   <button uiButton variant="secondary" type="button" (click)="openDialog('friend')" i18n="@@debts.friendPaid">A friend paid for me</button>
   <button uiButton variant="secondary" type="button" (click)="openDialog('lend')" i18n="@@debts.lend">Lend money</button>
   <button uiButton type="button" (click)="splitWithContacts()">

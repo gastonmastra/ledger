@@ -5,10 +5,11 @@ import { LedgerApi } from '../../core/api/ledger-api';
 import { DataChanges } from '../../core/data-changes';
 import { Badge, Button, Card, EmptyState, MoneyPipe, PageHeader, Spinner, Stat, Table } from '../../ui';
 import { amountClass, amountTone } from '../shared/amount';
+import { ReportPanel } from './report-panel';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [RouterLink, PageHeader, Card, Stat, Table, Badge, Button, EmptyState, Spinner, MoneyPipe],
+  imports: [RouterLink, PageHeader, Card, Stat, Table, Badge, Button, EmptyState, Spinner, MoneyPipe, ReportPanel],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dashboard-page.html',
 })

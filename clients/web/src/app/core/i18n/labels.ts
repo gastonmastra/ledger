@@ -20,6 +20,9 @@ export function transactionKindLabel(kind: TransactionKind): string {
     Split: () => $localize`:@@kind.split:Split`,
     Settlement: () => $localize`:@@kind.settlement:Settlement`,
     WalletAssignment: () => $localize`:@@kind.walletAssignment:Wallet assigned`,
+    OpeningBalanceReversal: () => $localize`:@@kind.openingBalanceReversal:Opening balance replaced`,
+    BalanceAdjustment: () => $localize`:@@kind.balanceAdjustment:Balance adjustment`,
+    InitialDebt: () => $localize`:@@kind.initialDebt:Existing debt`,
   };
 
   return labels[kind]?.() ?? kind;
@@ -35,6 +38,7 @@ export function accountLabel(posting: Pick<Posting, 'accountName' | 'accountPurp
     Uncategorized: () => $localize`:@@account.uncategorized:Uncategorized`,
     UncategorizedIncome: () => $localize`:@@account.uncategorizedIncome:Uncategorized income`,
     PendingSettlements: () => $localize`:@@account.pendingSettlements:Pending settlements`,
+    BalanceAdjustments: () => $localize`:@@account.balanceAdjustments:Balance adjustments`,
   };
 
   const label = posting.accountPurpose ? labels[posting.accountPurpose as AccountPurpose] : undefined;

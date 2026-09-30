@@ -32,6 +32,15 @@
   --warning-soft: var(--palette-warning-50);
 
   --overlay: rgb(15 23 42 / 0.45);
+
+  --chart-1: var(--palette-chart-1);
+  --chart-2: var(--palette-chart-2);
+  --chart-3: var(--palette-chart-3);
+  --chart-4: var(--palette-chart-4);
+  --chart-5: var(--palette-chart-5);
+  --chart-6: var(--palette-chart-6);
+  --chart-7: var(--palette-chart-7);
+  --chart-8: var(--palette-chart-8);
 }
 
 :root.dark {

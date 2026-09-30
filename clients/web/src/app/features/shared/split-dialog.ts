@@ -6,7 +6,7 @@ import { LedgerApi } from '../../core/api/ledger-api';
 import { CURRENCIES, Currency, SplitMethod, SplitRequest } from '../../core/api/models';
 import { splitMethodLabel } from '../../core/i18n/labels';
 import { OperationTracker } from '../../core/operations/operation-tracker';
-import { Button, DialogLayout, FormField, Icon, Input, MoneyPipe } from '../../ui';
+import { Button, DateTimeInput, DialogLayout, FormField, Icon, Input, MoneyPipe, nowIso } from '../../ui';
 
 export interface SplitPerson {
   personId: string;
@@ -34,7 +34,7 @@ interface ParticipantRow {
 /** Splits an expense among people (me, my contacts or a group's members), with any number of payers. */
 @Component({
   selector: 'app-split-dialog',
-  imports: [FormsModule, DialogLayout, FormField, Input, Button, Icon, MoneyPipe],
+  imports: [FormsModule, DialogLayout, FormField, Input, Button, Icon, MoneyPipe, DateTimeInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './split-dialog.html',
 })
@@ -58,6 +58,7 @@ export class SplitDialog {
   protected readonly chosenCurrency = signal<Currency>('EUR');
   protected readonly method = signal<SplitMethod>('Equal');
   protected readonly categoryId = signal('');
+  protected readonly occurredAt = signal(nowIso());
   protected readonly saving = signal(false);
 
   protected readonly payers = signal<PayerRow[]>([
@@ -151,6 +152,7 @@ export class SplitDialog {
       currency: this.currency(),
       method: this.method(),
       description: this.description().trim(),
+      occurredAt: this.occurredAt(),
       categoryId: this.iParticipate() ? this.categoryId() || null : null,
       payers: this.effectivePayers().map((p) => ({
         personId: p.personId,

@@ -4,12 +4,12 @@ import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { LedgerApi } from '../../core/api/ledger-api';
-import { Button, DialogLayout, FormField, Input, MoneyPipe } from '../../ui';
+import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, nowIso } from '../../ui';
 
 /** Moves money between two of my wallets; across currencies it asks for the amount received. */
 @Component({
   selector: 'app-transfer-dialog',
-  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, MoneyPipe],
+  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, MoneyPipe, DateTimeInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="save()">
@@ -49,6 +49,9 @@ import { Button, DialogLayout, FormField, Input, MoneyPipe } from '../../ui';
           <ui-form-field i18n-label="@@movement.description" label="Description">
             <input uiInput formControlName="description" maxlength="500" />
           </ui-form-field>
+          <ui-form-field i18n-label="@@ui.when" label="When">
+            <ui-datetime-input formControlName="occurredAt" />
+          </ui-form-field>
         </div>
         <div dialog-actions class="contents">
           <button uiButton variant="secondary" type="button" (click)="ref.close()" i18n="@@ui.cancel">Cancel</button>
@@ -70,6 +73,7 @@ export class TransferDialog {
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
     receivedAmount: [null as number | null],
     description: [''],
+    occurredAt: [nowIso(), Validators.required],
   });
 
   private readonly value = toSignal(this.form.valueChanges, { initialValue: this.form.value });
@@ -107,6 +111,7 @@ export class TransferDialog {
           amount: value.amount!,
           receivedAmount: this.crossCurrency() ? value.receivedAmount : null,
           description: value.description.trim() || null,
+          occurredAt: value.occurredAt,
         }),
       );
       this.ref.close(true);

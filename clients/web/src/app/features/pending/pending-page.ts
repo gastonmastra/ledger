@@ -7,7 +7,7 @@ import { PendingAssignment } from '../../core/api/models';
 import { DataChanges } from '../../core/data-changes';
 import { ToastService } from '../../core/notifications/toast.service';
 import { Button, Card, DialogService, EmptyState, MoneyPipe, PageHeader, Spinner, Table } from '../../ui';
-import { WalletPickerDialog, WalletPickerData } from '../shared/wallet-picker-dialog';
+import { WalletPickerDialog, WalletPickerData, WalletPickerResult } from '../shared/wallet-picker-dialog';
 
 /** Money that other users recorded on my behalf: I choose the wallet it came from or went to. */
 @Component({
@@ -70,8 +70,9 @@ export class PendingPage {
   });
 
   protected async assign(item: PendingAssignment): Promise<void> {
-    const walletId = await this.dialogs.open<string, WalletPickerData>(WalletPickerDialog, {
+    const choice = await this.dialogs.open<WalletPickerResult, WalletPickerData>(WalletPickerDialog, {
       currency: item.currency,
+      occurredAt: item.occurredAt,
       title: $localize`:@@pending.chooseWallet:Choose wallet`,
       message:
         item.amount > 0
@@ -80,8 +81,8 @@ export class PendingPage {
       confirmLabel: $localize`:@@ui.save:Save`,
     });
 
-    if (walletId) {
-      await firstValueFrom(this.api.assignWallet(item.id, walletId));
+    if (choice?.walletId) {
+      await firstValueFrom(this.api.assignWallet(item.id, choice.walletId, choice.occurredAt));
       this.toasts.success($localize`:@@pending.assigned:Recorded in your wallet.`);
       this.changes.notify();
     }

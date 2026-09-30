@@ -4,14 +4,14 @@ import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { LedgerApi } from '../../core/api/ledger-api';
-import { Button, DialogLayout, FormField, Input, MoneyPipe } from '../../ui';
+import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, nowIso } from '../../ui';
 
 export type MovementKind = 'income' | 'expense';
 
 /** Records money coming into (income) or going out of (expense) a wallet. */
 @Component({
   selector: 'app-movement-dialog',
-  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, MoneyPipe],
+  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, MoneyPipe, DateTimeInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="save()">
@@ -39,6 +39,9 @@ export type MovementKind = 'income' | 'expense';
           </ui-form-field>
           <ui-form-field i18n-label="@@movement.description" label="Description">
             <input uiInput formControlName="description" maxlength="500" />
+          </ui-form-field>
+          <ui-form-field i18n-label="@@ui.when" label="When">
+            <ui-datetime-input formControlName="occurredAt" />
           </ui-form-field>
         </div>
         <div dialog-actions class="contents">
@@ -72,6 +75,7 @@ export class MovementDialog {
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
     categoryId: [''],
     description: [''],
+    occurredAt: [nowIso(), Validators.required],
   });
 
   private readonly walletId = toSignal(this.form.controls.walletId.valueChanges, { initialValue: '' });
@@ -90,6 +94,7 @@ export class MovementDialog {
       amount: value.amount!,
       categoryId: value.categoryId || null,
       description: value.description.trim() || null,
+      occurredAt: value.occurredAt,
     };
 
     this.saving.set(true);

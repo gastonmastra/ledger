@@ -146,12 +146,20 @@
           <context context-type="linenumber">34</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="error.noDifference" datatype="html">
+        <source>The wallet already has that balance: there is nothing to adjust.</source>
+        <target state="translated">La billetera ya tiene ese saldo: no hay nada que ajustar.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">36</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="error.memberHasActivity" datatype="html">
         <source>This member already took part in group expenses and cannot be removed.</source>
         <target state="translated">Este miembro ya participó en gastos del grupo y no se puede quitar.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">36</context>
+          <context context-type="linenumber">38</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.unexpected" datatype="html">
@@ -159,11 +167,11 @@
         <target state="translated">Algo salió mal. Intenta de nuevo.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">41</context>
+          <context context-type="linenumber">43</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">69</context>
+          <context context-type="linenumber">71</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.apiUnreachable" datatype="html">
@@ -171,7 +179,7 @@
         <target state="translated">No se puede conectar con la API de Ledger. ¿Está en ejecución?</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">45</context>
+          <context context-type="linenumber">47</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.unauthorized" datatype="html">
@@ -179,7 +187,7 @@
         <target state="translated">Tu sesión expiró. Vuelve a iniciar sesión.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">60</context>
+          <context context-type="linenumber">62</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.notFound" datatype="html">
@@ -187,7 +195,7 @@
         <target state="translated">No se encontró. Si lo acabas de crear, intenta de nuevo en un momento.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">62</context>
+          <context context-type="linenumber">64</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.conflict" datatype="html">
@@ -195,7 +203,7 @@
         <target state="translated">Entra en conflicto con datos existentes.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">64</context>
+          <context context-type="linenumber">66</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.notYetAvailable" datatype="html">
@@ -203,7 +211,7 @@
         <target state="translated">Todavía se está preparando. Intenta de nuevo en un momento.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">66</context>
+          <context context-type="linenumber">68</context>
         </context-group>
       </trans-unit>
       <trans-unit id="kind.openingBalance" datatype="html">
@@ -270,12 +278,36 @@
           <context context-type="linenumber">22</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="kind.openingBalanceReversal" datatype="html">
+        <source>Opening balance replaced</source>
+        <target state="translated">Saldo inicial reemplazado</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
+          <context context-type="linenumber">23</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="kind.balanceAdjustment" datatype="html">
+        <source>Balance adjustment</source>
+        <target state="translated">Ajuste de saldo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
+          <context context-type="linenumber">24</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="kind.initialDebt" datatype="html">
+        <source>Existing debt</source>
+        <target state="translated">Deuda existente</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
+          <context context-type="linenumber">25</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="account.receivables" datatype="html">
         <source>Owed to me</source>
         <target state="translated">Me deben</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">31</context>
+          <context context-type="linenumber">34</context>
         </context-group>
       </trans-unit>
       <trans-unit id="account.payables" datatype="html">
@@ -283,7 +315,7 @@
         <target state="translated">Debo</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">32</context>
+          <context context-type="linenumber">35</context>
         </context-group>
       </trans-unit>
       <trans-unit id="account.openingBalances" datatype="html">
@@ -291,7 +323,7 @@
         <target state="translated">Saldos iniciales</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">33</context>
+          <context context-type="linenumber">36</context>
         </context-group>
       </trans-unit>
       <trans-unit id="account.currencyExchange" datatype="html">
@@ -299,7 +331,7 @@
         <target state="translated">Cambio de moneda</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">34</context>
+          <context context-type="linenumber">37</context>
         </context-group>
       </trans-unit>
       <trans-unit id="account.uncategorized" datatype="html">
@@ -307,7 +339,7 @@
         <target state="translated">Sin categoría</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">35</context>
+          <context context-type="linenumber">38</context>
         </context-group>
       </trans-unit>
       <trans-unit id="account.uncategorizedIncome" datatype="html">
@@ -315,7 +347,7 @@
         <target state="translated">Ingresos sin categoría</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">36</context>
+          <context context-type="linenumber">39</context>
         </context-group>
       </trans-unit>
       <trans-unit id="account.pendingSettlements" datatype="html">
@@ -323,7 +355,15 @@
         <target state="translated">Liquidaciones pendientes</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">37</context>
+          <context context-type="linenumber">40</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="account.balanceAdjustments" datatype="html">
+        <source>Balance adjustments</source>
+        <target state="translated">Ajustes de saldo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
+          <context context-type="linenumber">41</context>
         </context-group>
       </trans-unit>
       <trans-unit id="categoryType.income" datatype="html">
@@ -331,7 +371,7 @@
         <target state="translated">Ingreso</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">46</context>
+          <context context-type="linenumber">50</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/categories/category-dialog.ts</context>
@@ -343,7 +383,7 @@
         <target state="translated">Gasto</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">47</context>
+          <context context-type="linenumber">51</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/categories/category-dialog.ts</context>
@@ -355,7 +395,7 @@
         <target state="translated">Activa</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">52</context>
+          <context context-type="linenumber">56</context>
         </context-group>
       </trans-unit>
       <trans-unit id="walletStatus.archived" datatype="html">
@@ -363,7 +403,7 @@
         <target state="translated">Archivada</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">53</context>
+          <context context-type="linenumber">57</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debtStatus.settling" datatype="html">
@@ -371,7 +411,7 @@
         <target state="translated">Liquidando</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">57</context>
+          <context context-type="linenumber">61</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debtStatus.pending" datatype="html">
@@ -379,7 +419,7 @@
         <target state="translated">Pendiente</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">60</context>
+          <context context-type="linenumber">64</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debtStatus.open" datatype="html">
@@ -387,7 +427,7 @@
         <target state="translated">Abierta</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">61</context>
+          <context context-type="linenumber">65</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debtStatus.settled" datatype="html">
@@ -395,7 +435,7 @@
         <target state="translated">Liquidada</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">62</context>
+          <context context-type="linenumber">66</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debtStatus.rejected" datatype="html">
@@ -403,7 +443,7 @@
         <target state="translated">Rechazada</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">63</context>
+          <context context-type="linenumber">67</context>
         </context-group>
       </trans-unit>
       <trans-unit id="splitMethod.equal" datatype="html">
@@ -411,7 +451,7 @@
         <target state="translated">En partes iguales</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">71</context>
+          <context context-type="linenumber">75</context>
         </context-group>
       </trans-unit>
       <trans-unit id="splitMethod.custom" datatype="html">
@@ -419,7 +459,7 @@
         <target state="translated">Por monto</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">72</context>
+          <context context-type="linenumber">76</context>
         </context-group>
       </trans-unit>
       <trans-unit id="splitMethod.percent" datatype="html">
@@ -427,7 +467,7 @@
         <target state="translated">Por porcentaje</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">73</context>
+          <context context-type="linenumber">77</context>
         </context-group>
       </trans-unit>
       <trans-unit id="person.me" datatype="html">
@@ -435,11 +475,11 @@
         <target state="translated">Yo</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
-          <context context-type="linenumber">80</context>
+          <context context-type="linenumber">84</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/split-dialog.ts</context>
-          <context context-type="linenumber">125</context>
+          <context context-type="linenumber">126</context>
         </context-group>
       </trans-unit>
       <trans-unit id="operation.processing" datatype="html">
@@ -543,11 +583,11 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">26,27</context>
+          <context context-type="linenumber">27,28</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">57,58</context>
+          <context context-type="linenumber">58,59</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/pending/pending-page.ts</context>
@@ -567,7 +607,7 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.html</context>
-          <context context-type="linenumber">48,49</context>
+          <context context-type="linenumber">52,53</context>
         </context-group>
       </trans-unit>
       <trans-unit id="categories.archive" datatype="html">
@@ -639,11 +679,15 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">44,45</context>
+          <context context-type="linenumber">47,48</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">132,133</context>
+          <context context-type="linenumber">140,141</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">69,70</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/groups/group-dialogs.ts</context>
@@ -659,23 +703,31 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/split-dialog.html</context>
-          <context context-type="linenumber">110,111</context>
+          <context context-type="linenumber">114,115</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/wallet-picker-dialog.ts</context>
-          <context context-type="linenumber">36,37</context>
+          <context context-type="linenumber">55,56</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/transactions/movement-dialog.ts</context>
-          <context context-type="linenumber">45,46</context>
+          <context context-type="linenumber">48,49</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/transactions/transfer-dialog.ts</context>
-          <context context-type="linenumber">54,55</context>
+          <context context-type="linenumber">57,58</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">31,32</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">100,101</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallet-dialog.ts</context>
-          <context context-type="linenumber">35,36</context>
+          <context context-type="linenumber">40,41</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/ui/confirm-dialog.ts</context>
@@ -699,7 +751,7 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallet-dialog.ts</context>
-          <context context-type="linenumber">36,37</context>
+          <context context-type="linenumber">41,42</context>
         </context-group>
       </trans-unit>
       <trans-unit id="contacts.new" datatype="html">
@@ -950,12 +1002,20 @@
           <context context-type="linenumber">40</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="summary.adjustments" datatype="html">
+        <source>Adjustments</source>
+        <target state="translated">Ajustes</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/dashboard-page.html</context>
+          <context context-type="linenumber">43</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="dashboard.wallets" datatype="html">
         <source>Wallets</source>
         <target state="translated">Billeteras</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/dashboard/dashboard-page.html</context>
-          <context context-type="linenumber">48,49</context>
+          <context context-type="linenumber">53,54</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ui.manage" datatype="html">
@@ -963,11 +1023,11 @@
         <target state="translated">Administrar</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/dashboard/dashboard-page.html</context>
-          <context context-type="linenumber">49,51</context>
+          <context context-type="linenumber">54,56</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/dashboard/dashboard-page.html</context>
-          <context context-type="linenumber">63,64</context>
+          <context context-type="linenumber">68,69</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.people" datatype="html">
@@ -975,7 +1035,7 @@
         <target state="translated">Personas y grupos</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/dashboard/dashboard-page.html</context>
-          <context context-type="linenumber">62,63</context>
+          <context context-type="linenumber">67,68</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.noDebts" datatype="html">
@@ -983,7 +1043,7 @@
         <target state="translated">Nadie te debe nada y no debes nada.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/dashboard/dashboard-page.html</context>
-          <context context-type="linenumber">65,67</context>
+          <context context-type="linenumber">70,72</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.group" datatype="html">
@@ -991,7 +1051,7 @@
         <target state="translated">grupo</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/dashboard/dashboard-page.html</context>
-          <context context-type="linenumber">74,75</context>
+          <context context-type="linenumber">79,80</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.owesYou" datatype="html">
@@ -999,7 +1059,7 @@
         <target state="translated">te debe <x id="INTERPOLATION" equiv-text="{{ item.net | money: item.currency }}"/></target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/dashboard/dashboard-page.html</context>
-          <context context-type="linenumber">79,80</context>
+          <context context-type="linenumber">84,85</context>
         </context-group>
       </trans-unit>
       <trans-unit id="dashboard.youOwe" datatype="html">
@@ -1007,7 +1067,207 @@
         <target state="translated">le debes <x id="INTERPOLATION" equiv-text="{{ -item.net | money: item.currency }}"/></target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/dashboard/dashboard-page.html</context>
-          <context context-type="linenumber">81,82</context>
+          <context context-type="linenumber">86,87</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.previous" datatype="html">
+        <source>Previous period</source>
+        <target state="translated">Período anterior</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">5,7</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.next" datatype="html">
+        <source>Next period</source>
+        <target state="translated">Período siguiente</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">9,11</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.period" datatype="html">
+        <source>Period</source>
+        <target state="translated">Período</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">15</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.currency" datatype="html">
+        <source>Currency</source>
+        <target state="translated">Moneda</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">26,27</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="transactions.filterFrom" datatype="html">
+        <source>From</source>
+        <target state="translated">Desde</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">40,41</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/transactions-page.html</context>
+          <context context-type="linenumber">41</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="transactions.filterTo" datatype="html">
+        <source>To</source>
+        <target state="translated">Hasta</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">45,46</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/transactions-page.html</context>
+          <context context-type="linenumber">44</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.income" datatype="html">
+        <source>Income</source>
+        <target state="translated">Ingresos</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">57</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.ts</context>
+          <context context-type="linenumber">132</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.expenses" datatype="html">
+        <source>Expenses</source>
+        <target state="translated">Gastos</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">58</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.ts</context>
+          <context context-type="linenumber">138</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.result" datatype="html">
+        <source>Result</source>
+        <target state="translated">Resultado</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">59</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.incomeVsExpenses" datatype="html">
+        <source>Income vs expenses</source>
+        <target state="translated">Ingresos vs gastos</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">64,65</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">66,68</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.noMovements" datatype="html">
+        <source>No income or expenses in this period.</source>
+        <target state="translated">No hay ingresos ni gastos en este período.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">68,72</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.spendingByCategory" datatype="html">
+        <source>Spending by category</source>
+        <target state="translated">Gastos por categoría</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">72,73</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">74,76</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.noExpenses" datatype="html">
+        <source>No expenses in this period.</source>
+        <target state="translated">No hay gastos en este período.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">76,79</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.netWorthOverTime" datatype="html">
+        <source>Net worth over time</source>
+        <target state="translated">Patrimonio en el tiempo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">80,81</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">82,86</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.walletBalances" datatype="html">
+        <source>Balance per wallet</source>
+        <target state="translated">Saldo por billetera</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">86,87</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">88,90</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.noWallets" datatype="html">
+        <source>No wallets with money in this currency.</source>
+        <target state="translated">No hay billeteras con dinero en esta moneda.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.html</context>
+          <context context-type="linenumber">90,92</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.month" datatype="html">
+        <source>Month</source>
+        <target state="translated">Mes</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.ts</context>
+          <context context-type="linenumber">41</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.year" datatype="html">
+        <source>Year</source>
+        <target state="translated">Año</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.ts</context>
+          <context context-type="linenumber">42</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.custom" datatype="html">
+        <source>Custom</source>
+        <target state="translated">Personalizado</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.ts</context>
+          <context context-type="linenumber">43</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.netWorth" datatype="html">
+        <source>Net worth</source>
+        <target state="translated">Patrimonio</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.ts</context>
+          <context context-type="linenumber">169</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.balance" datatype="html">
+        <source>Balance</source>
+        <target state="translated">Saldo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.ts</context>
+          <context context-type="linenumber">203</context>
         </context-group>
       </trans-unit>
       <trans-unit id="lend.title" datatype="html">
@@ -1039,7 +1299,11 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">101,102</context>
+          <context context-type="linenumber">106,107</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">35,36</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/groups/group-dialogs.ts</context>
@@ -1051,7 +1315,7 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/wallet-picker-dialog.ts</context>
-          <context context-type="linenumber">28,29</context>
+          <context context-type="linenumber">42,43</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/transactions/movement-dialog.ts</context>
@@ -1083,11 +1347,15 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">112</context>
+          <context context-type="linenumber">117</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">43</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/transactions/movement-dialog.ts</context>
-          <context context-type="linenumber">81</context>
+          <context context-type="linenumber">85</context>
         </context-group>
       </trans-unit>
       <trans-unit id="movement.description" datatype="html">
@@ -1098,6 +1366,10 @@
           <context context-type="linenumber">39,40</context>
         </context-group>
         <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">61,62</context>
+        </context-group>
+        <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/transactions/movement-dialog.ts</context>
           <context context-type="linenumber">40,41</context>
         </context-group>
@@ -1105,13 +1377,49 @@
           <context context-type="sourcefile">src/app/features/transactions/transfer-dialog.ts</context>
           <context context-type="linenumber">49,50</context>
         </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">92,93</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ui.when" datatype="html">
+        <source>When</source>
+        <target state="translated">Cuándo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
+          <context context-type="linenumber">43</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
+          <context context-type="linenumber">136</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/shared/split-dialog.html</context>
+          <context context-type="linenumber">105</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/shared/wallet-picker-dialog.ts</context>
+          <context context-type="linenumber">51</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/movement-dialog.ts</context>
+          <context context-type="linenumber">44</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/transfer-dialog.ts</context>
+          <context context-type="linenumber">53</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">96</context>
+        </context-group>
       </trans-unit>
       <trans-unit id="lend.submit" datatype="html">
         <source>Lend</source>
         <target state="translated">Prestar</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">45,47</context>
+          <context context-type="linenumber">48,50</context>
         </context-group>
       </trans-unit>
       <trans-unit id="lend.saved" datatype="html">
@@ -1119,7 +1427,7 @@
         <target state="translated">Préstamo a <x id="name" equiv-text="name"/> registrado.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">81</context>
+          <context context-type="linenumber">86</context>
         </context-group>
       </trans-unit>
       <trans-unit id="friendPaid.title" datatype="html">
@@ -1127,7 +1435,7 @@
         <target state="translated">Un amigo pagó por mí</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">97,98</context>
+          <context context-type="linenumber">102,103</context>
         </context-group>
       </trans-unit>
       <trans-unit id="friendPaid.who" datatype="html">
@@ -1135,7 +1443,7 @@
         <target state="translated">¿Quién pagó?</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">99,100</context>
+          <context context-type="linenumber">104,105</context>
         </context-group>
       </trans-unit>
       <trans-unit id="split.what" datatype="html">
@@ -1143,7 +1451,7 @@
         <target state="translated">¿Qué fue?</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">107,108</context>
+          <context context-type="linenumber">112,113</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/split-dialog.html</context>
@@ -1155,7 +1463,11 @@
         <target state="translated">Moneda</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">114,115</context>
+          <context context-type="linenumber">119,120</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">45,46</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/split-dialog.html</context>
@@ -1167,7 +1479,11 @@
         <target state="translated">Categoría</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">122,123</context>
+          <context context-type="linenumber">127,128</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">53,54</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/transactions/movement-dialog.ts</context>
@@ -1179,7 +1495,11 @@
         <target state="translated">Sin categoría</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">124,125</context>
+          <context context-type="linenumber">129,130</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">55,56</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/split-dialog.html</context>
@@ -1195,11 +1515,15 @@
         <target state="translated">Guardar</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">133,134</context>
+          <context context-type="linenumber">141,142</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">70,71</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/pending/pending-page.ts</context>
-          <context context-type="linenumber">80</context>
+          <context context-type="linenumber">81</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/name-dialog.ts</context>
@@ -1207,7 +1531,11 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/transactions/movement-dialog.ts</context>
-          <context context-type="linenumber">46,47</context>
+          <context context-type="linenumber">49,50</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">32,33</context>
         </context-group>
       </trans-unit>
       <trans-unit id="friendPaid.saved" datatype="html">
@@ -1215,7 +1543,7 @@
         <target state="translated">Registrado: se lo debes a tu amigo.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debt-dialogs.ts</context>
-          <context context-type="linenumber">176</context>
+          <context context-type="linenumber">186</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.title" datatype="html">
@@ -1234,12 +1562,20 @@
           <context context-type="linenumber">2,3</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="debts.initial" datatype="html">
+        <source>Add existing debt</source>
+        <target state="translated">Agregar deuda existente</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
+          <context context-type="linenumber">3,4</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="debts.friendPaid" datatype="html">
         <source>A friend paid for me</source>
         <target state="translated">Un amigo pagó por mí</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">3,4</context>
+          <context context-type="linenumber">4,5</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.lend" datatype="html">
@@ -1247,7 +1583,7 @@
         <target state="translated">Prestar dinero</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">4,5</context>
+          <context context-type="linenumber">5,6</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.split" datatype="html">
@@ -1255,7 +1591,7 @@
         <target state="translated">Dividir un gasto</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">6,7</context>
+          <context context-type="linenumber">7,8</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.byPerson" datatype="html">
@@ -1263,7 +1599,7 @@
         <target state="translated">Por persona</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">15,16</context>
+          <context context-type="linenumber">16,17</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.noBalances" datatype="html">
@@ -1271,7 +1607,7 @@
         <target state="translated">Estás a mano con todos (los gastos de grupo están en Grupos).</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">17,19</context>
+          <context context-type="linenumber">18,20</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.person" datatype="html">
@@ -1279,7 +1615,7 @@
         <target state="translated">Persona</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">22,23</context>
+          <context context-type="linenumber">23,24</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.owesMe" datatype="html">
@@ -1287,7 +1623,7 @@
         <target state="translated">Me debe</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">23,24</context>
+          <context context-type="linenumber">24,25</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.iOwe" datatype="html">
@@ -1295,7 +1631,7 @@
         <target state="translated">Le debo</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">24,25</context>
+          <context context-type="linenumber">25,26</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.net" datatype="html">
@@ -1303,7 +1639,7 @@
         <target state="translated">Neto</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">26</context>
+          <context context-type="linenumber">27</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.settleUp" datatype="html">
@@ -1311,7 +1647,7 @@
         <target state="translated">Saldar todo</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">37,38</context>
+          <context context-type="linenumber">38,39</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.open" datatype="html">
@@ -1319,7 +1655,7 @@
         <target state="translated">Deudas abiertas</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">46,47</context>
+          <context context-type="linenumber">47,48</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.none" datatype="html">
@@ -1327,7 +1663,7 @@
         <target state="translated">No hay deudas abiertas.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">48,50</context>
+          <context context-type="linenumber">49,51</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.with" datatype="html">
@@ -1335,7 +1671,7 @@
         <target state="translated">Con</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">53,54</context>
+          <context context-type="linenumber">54,55</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.for" datatype="html">
@@ -1343,7 +1679,7 @@
         <target state="translated">Por</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">55</context>
+          <context context-type="linenumber">56</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.amount" datatype="html">
@@ -1351,7 +1687,7 @@
         <target state="translated">Monto</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">55,56</context>
+          <context context-type="linenumber">56,57</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.status" datatype="html">
@@ -1359,7 +1695,7 @@
         <target state="translated">Estado</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">56,57</context>
+          <context context-type="linenumber">57,58</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.owesYouAmount" datatype="html">
@@ -1367,7 +1703,7 @@
         <target state="translated">te debe <x id="INTERPOLATION" equiv-text="{{ debt.amount | money: debt.currency }}"/></target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">72,73</context>
+          <context context-type="linenumber">73,74</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.youOweAmount" datatype="html">
@@ -1375,7 +1711,7 @@
         <target state="translated">le debes <x id="INTERPOLATION" equiv-text="{{ debt.amount | money: debt.currency }}"/></target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">74,75</context>
+          <context context-type="linenumber">75,76</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.settle" datatype="html">
@@ -1383,11 +1719,11 @@
         <target state="translated">Saldar</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">80,81</context>
+          <context context-type="linenumber">81,82</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">102</context>
+          <context context-type="linenumber">108</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.settled" datatype="html">
@@ -1395,7 +1731,7 @@
         <target state="translated">Deuda con <x id="name" equiv-text="debt.counterpartyName"/> saldada.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">70</context>
+          <context context-type="linenumber">72</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.settledUp" datatype="html">
@@ -1403,7 +1739,7 @@
         <target state="translated">Todo saldado con <x id="name" equiv-text="balance.name"/>.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">89</context>
+          <context context-type="linenumber">94</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.settleTitle" datatype="html">
@@ -1411,7 +1747,7 @@
         <target state="translated">Saldar con <x id="name" equiv-text="name"/></target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">98</context>
+          <context context-type="linenumber">104</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.settleReceive" datatype="html">
@@ -1419,7 +1755,7 @@
         <target state="translated"><x id="name" equiv-text="name"/> te paga <x id="amount" equiv-text="formatted"/>. ¿A dónde fue el dinero?</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">100</context>
+          <context context-type="linenumber">106</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.settlePay" datatype="html">
@@ -1427,7 +1763,63 @@
         <target state="translated">Le pagas <x id="amount" equiv-text="formatted"/> a <x id="name" equiv-text="name"/>. ¿De dónde sale el dinero?</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">101</context>
+          <context context-type="linenumber">107</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="initialDebt.title" datatype="html">
+        <source>Add an existing debt</source>
+        <target state="translated">Agregar una deuda existente</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">20,21</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="initialDebt.description" datatype="html">
+        <source>A debt from before you used Ledger. No money moves now; settle it when it is paid.</source>
+        <target state="translated">Una deuda de antes de usar Ledger. Ahora no se mueve dinero; sáldala cuando se pague.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">21,23</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="initialDebt.contact" datatype="html">
+        <source>Contact</source>
+        <target state="translated">Contacto</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">33,34</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="initialDebt.when" datatype="html">
+        <source>When did it start?</source>
+        <target state="translated">¿Cuándo empezó?</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">64,65</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="initialDebt.iOwe" datatype="html">
+        <source>I owed them</source>
+        <target state="translated">Yo le debía</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">84</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="initialDebt.theyOweMe" datatype="html">
+        <source>They owed me</source>
+        <target state="translated">Me debía</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">85</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="initialDebt.saved" datatype="html">
+        <source>Existing debt recorded.</source>
+        <target state="translated">Deuda existente registrada.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/initial-debt-dialog.ts</context>
+          <context context-type="linenumber">131</context>
         </context-group>
       </trans-unit>
       <trans-unit id="groups.detailSubtitle" datatype="html">
@@ -1615,11 +2007,7 @@
         <target state="translated">Registrar pago</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/groups/group-detail-page.ts</context>
-          <context context-type="linenumber">111</context>
-        </context-group>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/groups/group-detail-page.ts</context>
-          <context context-type="linenumber">121</context>
+          <context context-type="linenumber">109</context>
         </context-group>
       </trans-unit>
       <trans-unit id="groups.settlePay" datatype="html">
@@ -1627,12 +2015,20 @@
         <target state="translated">¿Con qué billetera pagaste?</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/groups/group-detail-page.ts</context>
-          <context context-type="linenumber">113</context>
+          <context context-type="linenumber">111</context>
         </context-group>
       </trans-unit>
       <trans-unit id="groups.settleReceive" datatype="html">
         <source>Which wallet received the money?</source>
         <target state="translated">¿Qué billetera recibió el dinero?</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/groups/group-detail-page.ts</context>
+          <context context-type="linenumber">113</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="groups.settleOthers" datatype="html">
+        <source>Record that <x id="from" equiv-text="this.name(payment.fromPersonId)"/> paid <x id="to" equiv-text="this.name(payment.toPersonId)"/>?</source>
+        <target state="translated">¿Registrar que <x id="from" equiv-text="this.name(payment.fromPersonId)"/> le pagó a <x id="to" equiv-text="this.name(payment.toPersonId)"/>?</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/groups/group-detail-page.ts</context>
           <context context-type="linenumber">114</context>
@@ -1645,25 +2041,13 @@
           <context context-type="sourcefile">src/app/features/groups/group-detail-page.ts</context>
           <context context-type="linenumber">115</context>
         </context-group>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/groups/group-detail-page.ts</context>
-          <context context-type="linenumber">123</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="groups.settleOthers" datatype="html">
-        <source>Record that <x id="from" equiv-text="this.name(payment.fromPersonId)"/> paid <x id="to" equiv-text="this.name(payment.toPersonId)"/>?</source>
-        <target state="translated">¿Registrar que <x id="from" equiv-text="this.name(payment.fromPersonId)"/> le pagó a <x id="to" equiv-text="this.name(payment.toPersonId)"/>?</target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/groups/group-detail-page.ts</context>
-          <context context-type="linenumber">122</context>
-        </context-group>
       </trans-unit>
       <trans-unit id="groups.settled" datatype="html">
         <source>Payment recorded.</source>
         <target state="translated">Pago registrado.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/groups/group-detail-page.ts</context>
-          <context context-type="linenumber">138</context>
+          <context context-type="linenumber">130</context>
         </context-group>
       </trans-unit>
       <trans-unit id="groups.new" datatype="html">
@@ -1847,7 +2231,7 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/pending/pending-page.ts</context>
-          <context context-type="linenumber">75</context>
+          <context context-type="linenumber">76</context>
         </context-group>
       </trans-unit>
       <trans-unit id="pending.whereReceived" datatype="html">
@@ -1855,7 +2239,7 @@
         <target state="translated">¿Qué billetera recibió el dinero?</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/pending/pending-page.ts</context>
-          <context context-type="linenumber">78</context>
+          <context context-type="linenumber">79</context>
         </context-group>
       </trans-unit>
       <trans-unit id="pending.wherePaid" datatype="html">
@@ -1863,7 +2247,7 @@
         <target state="translated">¿Con qué billetera pagaste?</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/pending/pending-page.ts</context>
-          <context context-type="linenumber">79</context>
+          <context context-type="linenumber">80</context>
         </context-group>
       </trans-unit>
       <trans-unit id="pending.assigned" datatype="html">
@@ -1871,7 +2255,7 @@
         <target state="translated">Registrado en tu billetera.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/pending/pending-page.ts</context>
-          <context context-type="linenumber">85</context>
+          <context context-type="linenumber">86</context>
         </context-group>
       </trans-unit>
       <trans-unit id="split.title" datatype="html">
@@ -1967,7 +2351,7 @@
         <target state="translated">Dividir</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/split-dialog.html</context>
-          <context context-type="linenumber">111,113</context>
+          <context context-type="linenumber">115,117</context>
         </context-group>
       </trans-unit>
       <trans-unit id="split.payersMismatch" datatype="html">
@@ -1975,7 +2359,7 @@
         <target state="translated">Los pagadores suman <x id="paid" equiv-text="paid"/>, no <x id="total" equiv-text="total"/>.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/split-dialog.ts</context>
-          <context context-type="linenumber">98</context>
+          <context context-type="linenumber">99</context>
         </context-group>
       </trans-unit>
       <trans-unit id="split.chooseWallet" datatype="html">
@@ -1983,7 +2367,7 @@
         <target state="translated">Elige la billetera con la que pagaste.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/split-dialog.ts</context>
-          <context context-type="linenumber">102</context>
+          <context context-type="linenumber">103</context>
         </context-group>
       </trans-unit>
       <trans-unit id="split.noParticipants" datatype="html">
@@ -1991,7 +2375,7 @@
         <target state="translated">Selecciona quién participó.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/split-dialog.ts</context>
-          <context context-type="linenumber">106</context>
+          <context context-type="linenumber">107</context>
         </context-group>
       </trans-unit>
       <trans-unit id="split.sharesMismatch" datatype="html">
@@ -1999,7 +2383,7 @@
         <target state="translated">Las partes suman <x id="values" equiv-text="values"/>, no <x id="total" equiv-text="total"/>.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/split-dialog.ts</context>
-          <context context-type="linenumber">110</context>
+          <context context-type="linenumber">111</context>
         </context-group>
       </trans-unit>
       <trans-unit id="split.percentMismatch" datatype="html">
@@ -2007,7 +2391,7 @@
         <target state="translated">Los porcentajes suman <x id="values" equiv-text="values"/>, no 100.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/split-dialog.ts</context>
-          <context context-type="linenumber">113</context>
+          <context context-type="linenumber">114</context>
         </context-group>
       </trans-unit>
       <trans-unit id="split.saved" datatype="html">
@@ -2015,7 +2399,7 @@
         <target state="translated">Gasto dividido: “<x id="description" equiv-text="request.description"/>”.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/split-dialog.ts</context>
-          <context context-type="linenumber">169</context>
+          <context context-type="linenumber">171</context>
         </context-group>
       </trans-unit>
       <trans-unit id="picker.noWallets" datatype="html">
@@ -2023,7 +2407,7 @@
         <target state="translated">No tienes una billetera en <x id="INTERPOLATION" equiv-text="{{ data.currency }}"/>. Crea una primero.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/wallet-picker-dialog.ts</context>
-          <context context-type="linenumber">24,25</context>
+          <context context-type="linenumber">38,39</context>
         </context-group>
       </trans-unit>
       <trans-unit id="picker.wallet" datatype="html">
@@ -2031,7 +2415,7 @@
         <target state="translated">Billetera</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/wallet-picker-dialog.ts</context>
-          <context context-type="linenumber">27</context>
+          <context context-type="linenumber">41</context>
         </context-group>
       </trans-unit>
       <trans-unit id="movement.wallet" datatype="html">
@@ -2055,7 +2439,7 @@
         <target state="translated">Registrar ingreso</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/transactions/movement-dialog.ts</context>
-          <context context-type="linenumber">60</context>
+          <context context-type="linenumber">63</context>
         </context-group>
       </trans-unit>
       <trans-unit id="movement.expenseTitle" datatype="html">
@@ -2063,7 +2447,7 @@
         <target state="translated">Registrar gasto</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/transactions/movement-dialog.ts</context>
-          <context context-type="linenumber">61</context>
+          <context context-type="linenumber">64</context>
         </context-group>
       </trans-unit>
       <trans-unit id="movement.amountIn" datatype="html">
@@ -2071,7 +2455,7 @@
         <target state="translated">Monto (<x id="currency" equiv-text="currency"/>)</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/transactions/movement-dialog.ts</context>
-          <context context-type="linenumber">81</context>
+          <context context-type="linenumber">85</context>
         </context-group>
       </trans-unit>
       <trans-unit id="transactions.title" datatype="html">
@@ -2152,22 +2536,6 @@
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/transactions/transactions-page.html</context>
           <context context-type="linenumber">32,33</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="transactions.filterFrom" datatype="html">
-        <source>From</source>
-        <target state="translated">Desde</target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/transactions/transactions-page.html</context>
-          <context context-type="linenumber">41</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="transactions.filterTo" datatype="html">
-        <source>To</source>
-        <target state="translated">Hasta</target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/transactions/transactions-page.html</context>
-          <context context-type="linenumber">44</context>
         </context-group>
       </trans-unit>
       <trans-unit id="transactions.clearFilters" datatype="html">
@@ -2263,7 +2631,83 @@
         <target state="translated">Transferir</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/transactions/transfer-dialog.ts</context>
-          <context context-type="linenumber">55,57</context>
+          <context context-type="linenumber">58,60</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="opening.title" datatype="html">
+        <source>Opening balance</source>
+        <target state="translated">Saldo inicial</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">16,17</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="opening.description" datatype="html">
+        <source>What the wallet had when you started using Ledger. The previous value is kept in the history as replaced.</source>
+        <target state="translated">Lo que tenía la billetera cuando empezaste a usar Ledger. El valor anterior queda en el historial como reemplazado.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">17,19</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="wallets.openingDate" datatype="html">
+        <source>Date of the opening balance</source>
+        <target state="translated">Fecha del saldo inicial</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">25,26</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/wallet-dialog.ts</context>
+          <context context-type="linenumber">34,35</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="opening.amount" datatype="html">
+        <source>Amount (<x id="currency" equiv-text="this.wallet.currency"/>)</source>
+        <target state="translated">Monto (<x id="currency" equiv-text="this.wallet.currency"/>)</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">44</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="adjust.title" datatype="html">
+        <source>Adjust balance</source>
+        <target state="translated">Ajustar saldo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">82,83</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="adjust.description" datatype="html">
+        <source>Enter what the wallet really has (e.g. your bank balance). The difference is recorded as a balance adjustment.</source>
+        <target state="translated">Ingresa lo que realmente tiene la billetera (p. ej. el saldo del banco). La diferencia se registra como un ajuste de saldo.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">83,84</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="adjust.current" datatype="html">
+        <source>Balance in Ledger:</source>
+        <target state="translated">Saldo en Ledger:</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">86,87</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="adjust.actual" datatype="html">
+        <source>Real balance</source>
+        <target state="translated">Saldo real</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">89,90</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="adjust.submit" datatype="html">
+        <source>Adjust</source>
+        <target state="translated">Ajustar</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/balance-dialogs.ts</context>
+          <context context-type="linenumber">101,103</context>
         </context-group>
       </trans-unit>
       <trans-unit id="wallets.new" datatype="html">
@@ -2299,7 +2743,7 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.ts</context>
-          <context context-type="linenumber">66</context>
+          <context context-type="linenumber">67</context>
         </context-group>
       </trans-unit>
       <trans-unit id="wallets.namePlaceholder" datatype="html">
@@ -2390,16 +2834,32 @@
           <context context-type="linenumber">40,41</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="wallets.openingAction" datatype="html">
+        <source>Opening balance</source>
+        <target state="translated">Saldo inicial</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/wallets-page.html</context>
+          <context context-type="linenumber">49,50</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="wallets.adjustAction" datatype="html">
+        <source>Adjust balance</source>
+        <target state="translated">Ajustar saldo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/wallets-page.html</context>
+          <context context-type="linenumber">50,52</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="wallets.archive" datatype="html">
         <source>Archive</source>
         <target state="translated">Archivar</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.html</context>
-          <context context-type="linenumber">49,50</context>
+          <context context-type="linenumber">53,54</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.ts</context>
-          <context context-type="linenumber">81</context>
+          <context context-type="linenumber">96</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ui.delete" datatype="html">
@@ -2407,11 +2867,11 @@
         <target state="translated">Eliminar</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.html</context>
-          <context context-type="linenumber">50,51</context>
+          <context context-type="linenumber">54,55</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.ts</context>
-          <context context-type="linenumber">95</context>
+          <context context-type="linenumber">110</context>
         </context-group>
       </trans-unit>
       <trans-unit id="wallets.created" datatype="html">
@@ -2419,7 +2879,7 @@
         <target state="translated">Billetera creada.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.ts</context>
-          <context context-type="linenumber">58</context>
+          <context context-type="linenumber">59</context>
         </context-group>
       </trans-unit>
       <trans-unit id="wallets.rename" datatype="html">
@@ -2427,7 +2887,23 @@
         <target state="translated">Renombrar billetera</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.ts</context>
-          <context context-type="linenumber">65</context>
+          <context context-type="linenumber">66</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="opening.saved" datatype="html">
+        <source>Opening balance updated.</source>
+        <target state="translated">Saldo inicial actualizado.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/wallets-page.ts</context>
+          <context context-type="linenumber">80</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="adjust.saved" datatype="html">
+        <source>Balance adjusted.</source>
+        <target state="translated">Saldo ajustado.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/wallets/wallets-page.ts</context>
+          <context context-type="linenumber">87</context>
         </context-group>
       </trans-unit>
       <trans-unit id="wallets.archiveTitle" datatype="html">
@@ -2435,7 +2911,7 @@
         <target state="translated">Archivar billetera</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.ts</context>
-          <context context-type="linenumber">79</context>
+          <context context-type="linenumber">94</context>
         </context-group>
       </trans-unit>
       <trans-unit id="wallets.archiveMessage" datatype="html">
@@ -2443,7 +2919,7 @@
         <target state="translated">&quot;<x id="name" equiv-text="wallet.name"/>&quot; quedará oculta. Su historial se conserva. Solo se pueden archivar billeteras con saldo cero.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.ts</context>
-          <context context-type="linenumber">80</context>
+          <context context-type="linenumber">95</context>
         </context-group>
       </trans-unit>
       <trans-unit id="wallets.archived" datatype="html">
@@ -2451,7 +2927,7 @@
         <target state="translated">Billetera archivada.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.ts</context>
-          <context context-type="linenumber">86</context>
+          <context context-type="linenumber">101</context>
         </context-group>
       </trans-unit>
       <trans-unit id="wallets.deleteTitle" datatype="html">
@@ -2459,7 +2935,7 @@
         <target state="translated">Eliminar billetera</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.ts</context>
-          <context context-type="linenumber">93</context>
+          <context context-type="linenumber">108</context>
         </context-group>
       </trans-unit>
       <trans-unit id="wallets.deleteMessage" datatype="html">
@@ -2467,7 +2943,7 @@
         <target state="translated">&quot;<x id="name" equiv-text="wallet.name"/>&quot; será eliminada. Solo se pueden eliminar billeteras sin movimientos.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.ts</context>
-          <context context-type="linenumber">94</context>
+          <context context-type="linenumber">109</context>
         </context-group>
       </trans-unit>
       <trans-unit id="wallets.deleted" datatype="html">
@@ -2475,7 +2951,7 @@
         <target state="translated">Billetera eliminada.</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/wallets/wallets-page.ts</context>
-          <context context-type="linenumber">101</context>
+          <context context-type="linenumber">116</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ui.closeMenu" datatype="html">
@@ -2607,7 +3083,7 @@
         <target state="translated">Cerrar</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/ui/dialog.ts</context>
-          <context context-type="linenumber">47,48</context>
+          <context context-type="linenumber">64,65</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ui.pageOf" datatype="html">

@@ -101,6 +101,10 @@
       </ui-form-field>
     }
 
+    <ui-form-field i18n-label="@@ui.when" label="When">
+      <ui-datetime-input [ngModel]="occurredAt()" (ngModelChange)="occurredAt.set($event)" />
+    </ui-form-field>
+
     @if (problem()) {
       <p class="rounded-ui bg-warning-soft px-3 py-2 text-sm text-warning" role="alert">{{ problem() }}</p>
     }

@@ -68,7 +68,10 @@ export type TransactionKind =
   | 'Loan'
   | 'Split'
   | 'Settlement'
-  | 'WalletAssignment';
+  | 'WalletAssignment'
+  | 'OpeningBalanceReversal'
+  | 'BalanceAdjustment'
+  | 'InitialDebt';
 
 export type AccountPurpose =
   | 'Wallet'
@@ -79,7 +82,8 @@ export type AccountPurpose =
   | 'CurrencyExchange'
   | 'Uncategorized'
   | 'UncategorizedIncome'
-  | 'PendingSettlements';
+  | 'PendingSettlements'
+  | 'BalanceAdjustments';
 
 export interface Posting {
   accountId: string;
@@ -126,6 +130,8 @@ export interface CurrencySummary {
   iOwe: number;
   pending: number;
   net: number;
+  /** Net effect of balance adjustments on the wallets (already included in `wallets`). */
+  adjustments: number;
 }
 
 export interface WalletBalance {
@@ -163,7 +169,7 @@ export interface PendingAssignment {
   occurredAt: string;
 }
 
-export type OperationKind = 'Loan' | 'Split' | 'Settlement';
+export type OperationKind = 'Loan' | 'Split' | 'Settlement' | 'InitialDebt';
 export type OperationStatus = 'Pending' | 'Completed' | 'Rejected';
 
 export interface Operation {
@@ -245,6 +251,56 @@ export interface SplitParticipant {
   value?: number | null;
 }
 
+export interface OpeningBalance {
+  amount: number;
+  occurredAt: string | null;
+}
+
+export type InitialDebtDirection = 'IOwe' | 'TheyOweMe';
+
+export interface InitialDebtRequest {
+  contactId: string;
+  direction: InitialDebtDirection;
+  amount: number;
+  currency: Currency;
+  categoryId?: string | null;
+  occurredAt?: string | null;
+  description?: string | null;
+}
+
+export type ReportGranularity = 'Day' | 'Month';
+
+export interface ReportBucket {
+  start: string;
+  income: number;
+  expenses: number;
+  netWorth: number;
+}
+
+export interface CategoryAmount {
+  accountId: string;
+  name: string;
+  purpose: AccountPurpose;
+  amount: number;
+}
+
+export interface ReportWallet {
+  walletId: string;
+  name: string;
+  balance: number;
+}
+
+export interface Report {
+  currency: Currency;
+  currencies: Currency[];
+  granularity: ReportGranularity;
+  totalIncome: number;
+  totalExpenses: number;
+  buckets: ReportBucket[];
+  spendingByCategory: CategoryAmount[];
+  walletBalances: ReportWallet[];
+}
+
 export interface SplitRequest {
   groupId?: string | null;
   total: number;
@@ -254,11 +310,12 @@ export interface SplitRequest {
   participants: SplitParticipant[];
   categoryId?: string | null;
   description?: string | null;
+  occurredAt?: string | null;
 }
 
 export type SettleRequest =
-  | { scope: 'Debt'; debtId: string; walletId: string }
-  | { scope: 'Contact'; contactId: string; currency: Currency; walletId: string | null }
+  | { scope: 'Debt'; debtId: string; walletId: string; occurredAt?: string | null }
+  | { scope: 'Contact'; contactId: string; currency: Currency; walletId: string | null; occurredAt?: string | null }
   | {
       scope: 'GroupPair';
       groupId: string;
@@ -266,6 +323,7 @@ export type SettleRequest =
       toPersonId: string;
       currency: Currency;
       walletId: string | null;
+      occurredAt?: string | null;
     };
 
 /** RFC 7807 problem details returned by the API. */

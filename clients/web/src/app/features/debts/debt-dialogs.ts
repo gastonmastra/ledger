@@ -6,12 +6,12 @@ import { LedgerApi } from '../../core/api/ledger-api';
 import { CURRENCIES, Currency } from '../../core/api/models';
 import { CurrentUser } from '../../core/current-user';
 import { OperationTracker } from '../../core/operations/operation-tracker';
-import { Button, DialogLayout, FormField, Input, MoneyPipe } from '../../ui';
+import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, nowIso } from '../../ui';
 
 /** Lend money from one of my wallets to a contact. */
 @Component({
   selector: 'app-lend-dialog',
-  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, MoneyPipe],
+  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, MoneyPipe, DateTimeInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="save()">
@@ -39,6 +39,9 @@ import { Button, DialogLayout, FormField, Input, MoneyPipe } from '../../ui';
           <ui-form-field i18n-label="@@movement.description" label="Description">
             <input uiInput formControlName="description" maxlength="500" />
           </ui-form-field>
+          <ui-form-field i18n-label="@@ui.when" label="When">
+            <ui-datetime-input formControlName="occurredAt" />
+          </ui-form-field>
         </div>
         <div dialog-actions class="contents">
           <button uiButton variant="secondary" type="button" (click)="ref.close()" i18n="@@ui.cancel">Cancel</button>
@@ -61,6 +64,7 @@ export class LendDialog {
     walletId: ['', Validators.required],
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
     description: [''],
+    occurredAt: [nowIso(), Validators.required],
   });
 
   protected async save(): Promise<void> {
@@ -77,6 +81,7 @@ export class LendDialog {
           walletId: value.walletId,
           amount: value.amount!,
           description: value.description.trim() || null,
+          occurredAt: value.occurredAt,
         }),
         $localize`:@@lend.saved:Loan to ${name}:name: recorded.`,
       );
@@ -90,7 +95,7 @@ export class LendDialog {
 /** A friend paid something for me: I owe them the amount. */
 @Component({
   selector: 'app-friend-paid-dialog',
-  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button],
+  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, DateTimeInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="save()">
@@ -127,6 +132,9 @@ export class LendDialog {
               }
             </select>
           </ui-form-field>
+          <ui-form-field i18n-label="@@ui.when" label="When">
+            <ui-datetime-input formControlName="occurredAt" />
+          </ui-form-field>
         </div>
         <div dialog-actions class="contents">
           <button uiButton variant="secondary" type="button" (click)="ref.close()" i18n="@@ui.cancel">Cancel</button>
@@ -153,6 +161,7 @@ export class FriendPaidDialog {
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
     currency: ['EUR' as Currency, Validators.required],
     categoryId: [''],
+    occurredAt: [nowIso(), Validators.required],
   });
 
   protected async save(): Promise<void> {
@@ -172,6 +181,7 @@ export class FriendPaidDialog {
           categoryId: value.categoryId || null,
           payers: [{ personId: value.contactId, amount: value.amount! }],
           participants: [{ personId: me.personId, value: value.amount! }],
+          occurredAt: value.occurredAt,
         }),
         $localize`:@@friendPaid.saved:Recorded: you owe it to your friend.`,
       );

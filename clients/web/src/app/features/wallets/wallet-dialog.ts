@@ -4,11 +4,11 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { firstValueFrom } from 'rxjs';
 import { LedgerApi } from '../../core/api/ledger-api';
 import { CURRENCIES, Currency } from '../../core/api/models';
-import { Button, DialogLayout, FormField, Input } from '../../ui';
+import { Button, DateTimeInput, DialogLayout, FormField, Input, nowIso } from '../../ui';
 
 @Component({
   selector: 'app-wallet-dialog',
-  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button],
+  imports: [ReactiveFormsModule, DialogLayout, FormField, Input, Button, DateTimeInput],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="save()">
@@ -30,6 +30,11 @@ import { Button, DialogLayout, FormField, Input } from '../../ui';
               <input uiInput type="number" min="0" step="0.01" formControlName="openingBalance" />
             </ui-form-field>
           </div>
+          @if (form.controls.openingBalance.value) {
+            <ui-form-field i18n-label="@@wallets.openingDate" label="Date of the opening balance">
+              <ui-datetime-input formControlName="openingBalanceAt" />
+            </ui-form-field>
+          }
         </div>
         <div dialog-actions class="contents">
           <button uiButton variant="secondary" type="button" (click)="ref.close()" i18n="@@ui.cancel">Cancel</button>
@@ -49,16 +54,17 @@ export class WalletDialog {
     name: ['', [Validators.required, Validators.maxLength(100)]],
     currency: ['EUR' as Currency, Validators.required],
     openingBalance: [0, [Validators.required, Validators.min(0)]],
+    openingBalanceAt: [nowIso()],
   });
 
   protected async save(): Promise<void> {
     if (this.form.invalid) return;
 
-    const { name, currency, openingBalance } = this.form.getRawValue();
+    const { name, currency, openingBalance, openingBalanceAt } = this.form.getRawValue();
     this.saving.set(true);
 
     try {
-      await firstValueFrom(this.api.createWallet(name.trim(), currency, openingBalance ?? 0));
+      await firstValueFrom(this.api.createWallet(name.trim(), currency, openingBalance ?? 0, openingBalanceAt || null));
       this.ref.close(true);
     } catch {
       this.saving.set(false);

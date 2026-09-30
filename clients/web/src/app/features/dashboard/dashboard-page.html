@@ -39,10 +39,15 @@
           @if (total.pending) {
             <ui-stat i18n-label="@@summary.pending" label="Pending" [value]="total.pending | money: total.currency" tone="muted" />
           }
+          @if (total.adjustments) {
+            <ui-stat i18n-label="@@summary.adjustments" label="Adjustments" [value]="total.adjustments | money: total.currency: true" tone="muted" />
+          }
         </div>
       </ui-card>
     }
   </section>
+
+  <app-report-panel />
 
   <section class="mt-6 grid gap-4 lg:grid-cols-2">
     <ui-card i18n-heading="@@dashboard.wallets" heading="Wallets" [padded]="false">

@@ -9,8 +9,9 @@ import { OperationTracker } from '../../core/operations/operation-tracker';
 import { Badge, Button, Card, DialogService, EmptyState, Icon, MoneyPipe, PageHeader, Spinner, Table } from '../../ui';
 import { amountClass } from '../shared/amount';
 import { SplitDialog, SplitDialogData } from '../shared/split-dialog';
-import { WalletPickerDialog, WalletPickerData } from '../shared/wallet-picker-dialog';
+import { WalletPickerDialog, WalletPickerData, WalletPickerResult } from '../shared/wallet-picker-dialog';
 import { FriendPaidDialog, LendDialog } from './debt-dialogs';
+import { InitialDebtDialog } from './initial-debt-dialog';
 
 @Component({
   selector: 'app-debts-page',
@@ -43,8 +44,9 @@ export class DebtsPage {
     (this.debts.value()?.debts ?? []).filter((d) => d.groupId === null && d.status === 'Open' && !d.isSettling),
   );
 
-  protected openDialog(kind: 'lend' | 'friend'): void {
-    void this.dialogs.open(kind === 'lend' ? LendDialog : FriendPaidDialog);
+  protected openDialog(kind: 'lend' | 'friend' | 'initial'): void {
+    const dialogs = { lend: LendDialog, friend: FriendPaidDialog, initial: InitialDebtDialog };
+    void this.dialogs.open(dialogs[kind]);
   }
 
   protected splitWithContacts(): void {
@@ -62,11 +64,11 @@ export class DebtsPage {
 
   protected async settleDebt(debt: Debt): Promise<void> {
     const receiving = debt.direction === 'OwedToMe';
-    const walletId = await this.pickWallet(debt.currency, receiving, debt.counterpartyName, debt.amount);
+    const choice = await this.pickWallet(debt.currency, receiving, debt.counterpartyName, debt.amount, true);
 
-    if (walletId) {
+    if (choice?.walletId) {
       await this.tracker.submit(
-        this.api.settle({ scope: 'Debt', debtId: debt.id, walletId }),
+        this.api.settle({ scope: 'Debt', debtId: debt.id, walletId: choice.walletId, occurredAt: choice.occurredAt }),
         $localize`:@@debts.settled:Debt with ${debt.counterpartyName}:name: settled.`,
       );
     }
@@ -76,25 +78,29 @@ export class DebtsPage {
     const contact = this.contacts.value()?.find((c) => c.personId === balance.personId);
     if (!contact) return;
 
-    let walletId: string | null = null;
-
-    if (balance.net !== 0) {
-      walletId =
-        (await this.pickWallet(balance.currency, balance.net > 0, balance.name, Math.abs(balance.net))) ?? null;
-      if (!walletId) return;
-    }
+    // When the net is zero no money moves: only the date is asked.
+    const choice = await this.pickWallet(
+      balance.currency, balance.net > 0, balance.name, Math.abs(balance.net), balance.net !== 0);
+    if (!choice) return;
 
     await this.tracker.submit(
-      this.api.settle({ scope: 'Contact', contactId: contact.id, currency: balance.currency, walletId }),
+      this.api.settle({
+        scope: 'Contact',
+        contactId: contact.id,
+        currency: balance.currency,
+        walletId: choice.walletId,
+        occurredAt: choice.occurredAt,
+      }),
       $localize`:@@debts.settledUp:All settled with ${balance.name}:name:.`,
     );
   }
 
-  private pickWallet(currency: Debt['currency'], receiving: boolean, name: string, amount: number) {
+  private pickWallet(currency: Debt['currency'], receiving: boolean, name: string, amount: number, walletRequired: boolean) {
     const formatted = new Intl.NumberFormat(this.locale, { style: 'currency', currency }).format(amount);
 
-    return this.dialogs.open<string, WalletPickerData>(WalletPickerDialog, {
+    return this.dialogs.open<WalletPickerResult, WalletPickerData>(WalletPickerDialog, {
       currency,
+      walletRequired,
       title: $localize`:@@debts.settleTitle:Settle with ${name}:name:`,
       message: receiving
         ? $localize`:@@debts.settleReceive:${name}:name: pays you ${formatted}:amount:. Where did the money go?`

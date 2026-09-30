@@ -48,6 +48,16 @@
   --palette-warning-600: #d97706;
   --palette-warning-950: #451a03;
 
+  /* Chart series (categories, wallets…). Change them to restyle every chart. */
+  --palette-chart-1: #6366f1;
+  --palette-chart-2: #14b8a6;
+  --palette-chart-3: #f59e0b;
+  --palette-chart-4: #ec4899;
+  --palette-chart-5: #0ea5e9;
+  --palette-chart-6: #84cc16;
+  --palette-chart-7: #a855f7;
+  --palette-chart-8: #f97316;
+
   /* Shape and type */
   --radius-base: 0.625rem;
   --font-family-base: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

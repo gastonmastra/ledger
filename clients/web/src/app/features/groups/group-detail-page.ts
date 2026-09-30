@@ -23,7 +23,7 @@ import {
 } from '../../ui';
 import { amountClass } from '../shared/amount';
 import { SplitDialog, SplitDialogData } from '../shared/split-dialog';
-import { WalletPickerDialog, WalletPickerData } from '../shared/wallet-picker-dialog';
+import { WalletPickerDialog, WalletPickerData, WalletPickerResult } from '../shared/wallet-picker-dialog';
 import { AddMemberDialog } from './group-dialogs';
 
 @Component({
@@ -102,29 +102,20 @@ export class GroupDetailPage {
     const me = this.me()?.personId;
     const iPay = payment.fromPersonId === me;
     const iReceive = payment.toPersonId === me;
-    let walletId: string | null = null;
+    // If I pay or receive, ask for the wallet; otherwise only the date.
+    const choice = await this.dialogs.open<WalletPickerResult, WalletPickerData>(WalletPickerDialog, {
+      currency: payment.currency,
+      walletRequired: iPay || iReceive,
+      title: $localize`:@@groups.settleTitle:Record payment`,
+      message: iPay
+        ? $localize`:@@groups.settlePay:Which wallet did you pay from?`
+        : iReceive
+          ? $localize`:@@groups.settleReceive:Which wallet received the money?`
+          : $localize`:@@groups.settleOthers:Record that ${this.name(payment.fromPersonId)}:from: paid ${this.name(payment.toPersonId)}:to:?`,
+      confirmLabel: $localize`:@@groups.settleConfirm:Record payment`,
+    });
 
-    if (iPay || iReceive) {
-      walletId =
-        (await this.dialogs.open<string, WalletPickerData>(WalletPickerDialog, {
-          currency: payment.currency,
-          title: $localize`:@@groups.settleTitle:Record payment`,
-          message: iPay
-            ? $localize`:@@groups.settlePay:Which wallet did you pay from?`
-            : $localize`:@@groups.settleReceive:Which wallet received the money?`,
-          confirmLabel: $localize`:@@groups.settleConfirm:Record payment`,
-        })) ?? null;
-
-      if (!walletId) return;
-    } else {
-      const confirmed = await this.confirm.confirm({
-        title: $localize`:@@groups.settleTitle:Record payment`,
-        message: $localize`:@@groups.settleOthers:Record that ${this.name(payment.fromPersonId)}:from: paid ${this.name(payment.toPersonId)}:to:?`,
-        confirmLabel: $localize`:@@groups.settleConfirm:Record payment`,
-      });
-
-      if (!confirmed) return;
-    }
+    if (!choice) return;
 
     await this.tracker.submit(
       this.api.settle({
@@ -133,7 +124,8 @@ export class GroupDetailPage {
         fromPersonId: payment.fromPersonId,
         toPersonId: payment.toPersonId,
         currency: payment.currency,
-        walletId,
+        walletId: choice.walletId,
+        occurredAt: choice.occurredAt,
       }),
       $localize`:@@groups.settled:Payment recorded.`,
     );
