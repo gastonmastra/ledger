@@ -13,7 +13,8 @@ public sealed record PostingDto(
     decimal Amount,
     string Currency,
     Guid? CounterpartyId,
-    string? CounterpartyName);
+    string? CounterpartyName,
+    Guid? CategoryId = null);
 
 /// <param name="Editable">Income, expense or transfer that is current: it can be edited here.</param>
 /// <param name="Deletable">Current and of a kind the user deletes here (also balance adjustments).</param>
@@ -193,7 +194,8 @@ internal sealed class TransactionMapper(ITransactionsDbContext dbContext)
                             p.Amount,
                             p.Currency.ToString(),
                             p.CounterpartyId,
-                            counterpartyName);
+                            counterpartyName,
+                            account?.Purpose == LedgerAccountPurpose.Category ? account.ReferenceId : null);
                     })
                     .ToList()))
             .ToList();
