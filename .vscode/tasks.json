@@ -73,14 +73,16 @@
       "path": "clients/web",
       "isBackground": true,
       "problemMatcher": {
-        "owner": "angular",
-        "pattern": {
-          "regexp": "^(ERROR|✘).*$"
-        },
+        "owner": "typescript",
+        "pattern": "$tsc",
         "background": {
           "activatesByDefault": true,
-          "beginsPattern": "Building|Changes detected",
-          "endsPattern": "Local:|bundle generation (complete|failed)|Watch mode enabled"
+          "beginsPattern": {
+            "regexp": "(Changes detected|Building)"
+          },
+          "endsPattern": {
+            "regexp": "bundle generation (complete|failed)"
+          }
         }
       }
     },
@@ -91,14 +93,16 @@
       "path": "clients/web",
       "isBackground": true,
       "problemMatcher": {
-        "owner": "angular",
-        "pattern": {
-          "regexp": "^(ERROR|✘).*$"
-        },
+        "owner": "typescript",
+        "pattern": "$tsc",
         "background": {
           "activatesByDefault": true,
-          "beginsPattern": "Building|Changes detected",
-          "endsPattern": "Local:|bundle generation (complete|failed)|Watch mode enabled"
+          "beginsPattern": {
+            "regexp": "(Changes detected|Building)"
+          },
+          "endsPattern": {
+            "regexp": "bundle generation (complete|failed)"
+          }
         }
       }
     },
