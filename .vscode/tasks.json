@@ -68,9 +68,11 @@
     {
       "label": "web: start",
       "detail": "Angular dev server on http://localhost:4200 (English); proxies /api to the API on :5209",
-      "type": "npm",
-      "script": "start",
-      "path": "clients/web",
+      "type": "shell",
+      "command": "npm start",
+      "options": {
+        "cwd": "${workspaceFolder}/clients/web"
+      },
       "isBackground": true,
       "problemMatcher": {
         "owner": "typescript",
@@ -88,9 +90,12 @@
     },
     {
       "label": "web: start (es)",
-      "type": "npm",
-      "script": "start:es",
-      "path": "clients/web",
+      "detail": "Angular dev server on http://localhost:4200 (Spanish)",
+      "type": "shell",
+      "command": "npm run start:es",
+      "options": {
+        "cwd": "${workspaceFolder}/clients/web"
+      },
       "isBackground": true,
       "problemMatcher": {
         "owner": "typescript",
@@ -108,16 +113,20 @@
     },
     {
       "label": "web: test",
-      "type": "npm",
-      "script": "test",
-      "path": "clients/web",
+      "type": "shell",
+      "command": "npm test",
+      "options": {
+        "cwd": "${workspaceFolder}/clients/web"
+      },
       "problemMatcher": []
     },
     {
       "label": "web: e2e",
-      "type": "npm",
-      "script": "e2e",
-      "path": "clients/web",
+      "type": "shell",
+      "command": "npm run e2e",
+      "options": {
+        "cwd": "${workspaceFolder}/clients/web"
+      },
       "problemMatcher": []
     }
   ]
