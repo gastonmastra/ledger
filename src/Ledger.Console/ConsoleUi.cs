@@ -129,6 +129,31 @@ public static class ConsoleUi
         }
     }
 
+    /// <summary>Why something is edited, deleted or restored: required and kept in the history.</summary>
+    public static string ReadReason(string prompt = "Why? (kept in the history): ")
+    {
+        while (true)
+        {
+            var reason = ReadText(prompt);
+
+            if (reason.Length <= 500)
+                return reason;
+
+            Error("Use at most 500 characters.");
+        }
+    }
+
+    /// <summary>Text with a current value: ENTER keeps it, "-" clears it.</summary>
+    public static string? ReadTextOrKeep(string label, string? current)
+    {
+        var input = ReadText($"{label} [{current ?? ""}] (ENTER = keep, - = clear): ", optional: true);
+        return input.Length == 0 ? current : input == "-" ? null : input;
+    }
+
+    /// <summary>Amount with a current value: ENTER keeps it.</summary>
+    public static decimal ReadDecimalOrKeep(string label, decimal current)
+        => ReadOptionalDecimal($"{label} [{Amount(current)}] (ENTER = keep): ") ?? current;
+
     public static bool Confirm(string prompt)
         => ReadText($"{prompt} (y/n): ").Equals("y", StringComparison.OrdinalIgnoreCase);
 

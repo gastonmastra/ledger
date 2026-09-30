@@ -67,7 +67,9 @@ public sealed class WalletsMenu(LedgerApiClient api) : Menu
         var amount = ConsoleUi.ReadOptionalDecimal($"New amount (ENTER = {ConsoleUi.Amount(current.Amount)}): ") ?? current.Amount;
         var when = ConsoleUi.ReadWhen("Date (yyyy-MM-dd HH:mm, ENTER = keep): ", current.OccurredAt ?? wallet.CreatedAt);
 
-        await api.ChangeOpeningBalanceAsync(wallet.Id, amount, when, ct);
+        var reason = ConsoleUi.ReadReason();
+
+        await api.ChangeOpeningBalanceAsync(wallet.Id, amount, when, reason, ct);
         ConsoleUi.Success("Opening balance updated. The previous one stays in the history as replaced.");
     }
 

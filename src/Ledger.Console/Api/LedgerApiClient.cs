@@ -74,8 +74,8 @@ public sealed class LedgerApiClient(HttpClient http)
     public Task<OpeningBalance> OpeningBalanceAsync(Guid walletId, CancellationToken ct)
         => GetAsync<OpeningBalance>($"api/transactions/opening-balance/{walletId}", ct);
 
-    public Task ChangeOpeningBalanceAsync(Guid walletId, decimal amount, DateTimeOffset? occurredAt, CancellationToken ct)
-        => SendAsync<object>(HttpMethod.Put, "api/transactions/opening-balance", new { walletId, amount, occurredAt }, ct);
+    public Task ChangeOpeningBalanceAsync(Guid walletId, decimal amount, DateTimeOffset? occurredAt, string reason, CancellationToken ct)
+        => SendAsync<object>(HttpMethod.Put, "api/transactions/opening-balance", new { walletId, amount, occurredAt, reason }, ct);
 
     public Task AdjustBalanceAsync(
         Guid walletId, decimal actualBalance, DateTimeOffset? occurredAt, string? description, CancellationToken ct)
@@ -113,6 +113,7 @@ public sealed class LedgerApiClient(HttpClient http)
         if (filter.ContactId is { } contactId) query.Add($"contactId={contactId}");
         if (filter.From is { } from) query.Add($"from={Uri.EscapeDataString(from.ToString("O"))}");
         if (filter.To is { } to) query.Add($"to={Uri.EscapeDataString(to.ToString("O"))}");
+        if (filter.IncludeHistory) query.Add("includeHistory=true");
 
         return GetAsync<PagedList<Transaction>>($"api/transactions?{string.Join('&', query)}", ct);
     }
@@ -132,6 +133,31 @@ public sealed class LedgerApiClient(HttpClient http)
         DateTimeOffset? occurredAt, CancellationToken ct)
         => SendAsync<object>(HttpMethod.Post, "api/transactions/transfer",
             new { fromWalletId, toWalletId, amount, receivedAmount, description, occurredAt }, ct);
+
+    /// <summary>Records a corrected version (the current one is reversed). For a transfer, walletId is the source.</summary>
+    public Task ReviseTransactionAsync(
+        Guid id, Guid walletId, Guid? toWalletId, decimal amount, decimal? receivedAmount, Guid? categoryId,
+        string? description, DateTimeOffset occurredAt, string reason, CancellationToken ct)
+        => SendAsync<object>(HttpMethod.Put, $"api/transactions/{id}",
+            new { walletId, toWalletId, amount, receivedAmount, categoryId, description, occurredAt, reason }, ct);
+
+    public Task DeleteTransactionAsync(Guid id, string reason, CancellationToken ct)
+        => SendAsync<object>(HttpMethod.Delete, $"api/transactions/{id}", new { reason }, ct);
+
+    public Task RestoreTransactionAsync(Guid id, string reason, CancellationToken ct)
+        => SendAsync<object>(HttpMethod.Post, $"api/transactions/{id}/restore", new { reason }, ct);
+
+    public Task<List<TransactionHistoryItem>> TransactionHistoryAsync(Guid id, CancellationToken ct)
+        => GetAsync<List<TransactionHistoryItem>>($"api/transactions/{id}/history", ct);
+
+    public Task<PagedList<TransactionActivity>> TransactionActivityAsync(int pageSize, CancellationToken ct)
+        => GetAsync<PagedList<TransactionActivity>>($"api/transactions/activity?pageSize={pageSize}", ct);
+
+    // Settings
+    public Task<BooksLock> BooksLockAsync(CancellationToken ct) => GetAsync<BooksLock>("api/settings/books-lock", ct);
+
+    public Task<BooksLock> SetBooksLockAsync(DateTimeOffset? lockedUntil, CancellationToken ct)
+        => SendAsync<BooksLock>(HttpMethod.Put, "api/settings/books-lock", new { lockedUntil }, ct);
 
     // Pending assignments
     public Task<List<PendingAssignment>> PendingAssignmentsAsync(CancellationToken ct)
@@ -174,10 +200,10 @@ public sealed class LedgerApiClient(HttpClient http)
             new { contactId, walletId, amount, description, occurredAt }, ct);
 
     public Task<Operation> RecordInitialDebtAsync(
-        Guid contactId, string direction, decimal amount, string currency, Guid? categoryId, string? description,
+        Guid contactId, string direction, decimal amount, string currency, string? description,
         DateTimeOffset? occurredAt, CancellationToken ct)
         => SendAsync<Operation>(HttpMethod.Post, "api/debts/initial",
-            new { contactId, direction, amount, currency, categoryId, description, occurredAt }, ct);
+            new { contactId, direction, amount, currency, description, occurredAt }, ct);
 
     public Task<Operation> SplitAsync(
         Guid? groupId, decimal total, string currency, string method, IReadOnlyList<SplitPayer> payers,
@@ -191,6 +217,57 @@ public sealed class LedgerApiClient(HttpClient http)
 
     public Task<Operation> OperationAsync(Guid id, CancellationToken ct)
         => GetAsync<Operation>($"api/debts/operations/{id}", ct);
+
+    public Task<PagedList<OperationDetails>> OperationsAsync(Guid? groupId, bool includeHistory, int page, CancellationToken ct)
+    {
+        var query = $"page={page}&pageSize=10&includeHistory={includeHistory}";
+        if (groupId is { } id) query += $"&groupId={id}";
+
+        return GetAsync<PagedList<OperationDetails>>($"api/debts/operations?{query}", ct);
+    }
+
+    public Task<OperationDetails> OperationDetailsAsync(Guid id, CancellationToken ct)
+        => GetAsync<OperationDetails>($"api/debts/operations/{id}", ct);
+
+    public Task<OperationHistory> OperationHistoryAsync(Guid id, CancellationToken ct)
+        => GetAsync<OperationHistory>($"api/debts/operations/{id}/history", ct);
+
+    /// <summary>New values of an operation (every field of its kind) and why. Linked users confirm it first.</summary>
+    public Task<ChangeResult> ReviseOperationAsync(Guid id, object request, CancellationToken ct)
+        => SendAsync<ChangeResult>(HttpMethod.Put, $"api/debts/operations/{id}", request, ct);
+
+    public Task<ChangeResult> DeleteOperationAsync(Guid id, string reason, CancellationToken ct)
+        => SendAsync<ChangeResult>(HttpMethod.Delete, $"api/debts/operations/{id}", new { reason }, ct);
+
+    public Task<ChangeResult> RestoreOperationAsync(Guid id, string reason, CancellationToken ct)
+        => SendAsync<ChangeResult>(HttpMethod.Post, $"api/debts/operations/{id}/restore", new { reason }, ct);
+
+    /// <param name="all">False: only the changes waiting for my answer.</param>
+    public Task<List<OperationChange>> ChangesAsync(bool all, CancellationToken ct)
+        => GetAsync<List<OperationChange>>($"api/debts/changes?filter={(all ? "All" : "ToReview")}", ct);
+
+    public Task<ChangeResult> RespondToChangeAsync(Guid id, bool accept, string? reason, CancellationToken ct)
+        => SendAsync<ChangeResult>(HttpMethod.Post, $"api/debts/changes/{id}/{(accept ? "accept" : "reject")}", new { reason }, ct);
+
+    public Task<PagedList<OperationChange>> DebtActivityAsync(int pageSize, CancellationToken ct)
+        => GetAsync<PagedList<OperationChange>>($"api/debts/activity?pageSize={pageSize}", ct);
+
+    /// <summary>A change being applied updates the books asynchronously: wait for the outcome.</summary>
+    public async Task<(string Status, string? Failure)> WaitForChangeAsync(ChangeResult result, CancellationToken ct)
+    {
+        var status = result.Status;
+        string? failure = null;
+
+        for (var attempt = 0; attempt < 40 && status == "Applying"; attempt++)
+        {
+            await Task.Delay(250, ct);
+            var change = (await OperationHistoryAsync(result.OperationId, ct)).Changes.FirstOrDefault(c => c.Id == result.ChangeId);
+            status = change?.Status ?? status;
+            failure = change?.FailureReason;
+        }
+
+        return (status, failure);
+    }
 
     /// <summary>Loans, splits and settlements are recorded asynchronously: wait for the outcome.</summary>
     public async Task<Operation> WaitForOperationAsync(Operation operation, CancellationToken ct)

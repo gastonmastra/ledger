@@ -3,7 +3,7 @@ using SystemConsole = System.Console;
 
 namespace Ledger.Console.Menus;
 
-public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard) : Menu
+public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard, OperationsScreen operations) : Menu
 {
     protected override string Title => "DEBTS & SPLITS";
 
@@ -15,7 +15,8 @@ public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard) : Me
         ("A friend paid for me", FriendPaidAsync),
         ("Add an existing debt", InitialDebtAsync),
         ("Settle one debt", SettleDebtAsync),
-        ("Settle up with a contact", SettleContactAsync)
+        ("Settle up with a contact", SettleContactAsync),
+        ("Loans, splits and settlements (edit, delete, restore, history)", ct => operations.RunAsync(null, ct))
     ];
 
     private async Task OverviewAsync(CancellationToken ct)
@@ -35,7 +36,9 @@ public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard) : Me
             ("Direction", d => d.Direction == "OwedToMe" ? "owes me" : "I owe"),
             ("Amount", d => ConsoleUi.Money(d.Amount, d.Currency)),
             ("For", d => d.Description),
-            ("Status", d => d.IsSettling ? "Settling" : d.Status));
+            ("Status", d => (d.IsSettling ? "Settling" : d.Status)
+                            + (d.PendingChange ? " · change pending" : "")
+                            + (d.Disputed ? " · disputed" : "")));
 
         ConsoleUi.Pause();
     }
@@ -112,15 +115,11 @@ public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard) : Me
 
         var amount = ConsoleUi.ReadDecimal("Amount: ");
         var currency = ConsoleUi.Choose("Currency", ["EUR", "USD", "ARS"], c => c)!;
-        var categories = (await api.CategoriesAsync(ct)).Where(c => c.Type == (iOwe ? "Expense" : "Income")).ToList();
-        var category = categories.Count == 0
-            ? null
-            : ConsoleUi.Choose("Category (0 = uncategorized)", categories, c => c.Name, allowNone: true);
         var description = ConsoleUi.ReadText("Description (optional): ", optional: true);
         var when = ConsoleUi.ReadWhen("When did it start? (yyyy-MM-dd HH:mm, ENTER = now): ");
 
         var operation = await api.RecordInitialDebtAsync(
-            contact.Id, iOwe ? "IOwe" : "TheyOweMe", amount, currency, category?.Id,
+            contact.Id, iOwe ? "IOwe" : "TheyOweMe", amount, currency,
             description.Length == 0 ? null : description, when, ct);
 
         ShowOperation(await api.WaitForOperationAsync(operation, ct),
@@ -131,7 +130,7 @@ public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard) : Me
     private async Task SettleDebtAsync(CancellationToken ct)
     {
         var debts = (await api.DebtsAsync(false, ct)).Debts
-            .Where(d => d.GroupId is null && d.Status == "Open" && !d.IsSettling)
+            .Where(d => d.GroupId is null && d.Status == "Open" && !d.IsSettling && !d.PendingChange)
             .ToList();
 
         if (ConsoleUi.Choose("Debt", debts,

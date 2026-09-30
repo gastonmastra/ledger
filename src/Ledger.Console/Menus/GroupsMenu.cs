@@ -3,7 +3,7 @@ using SystemConsole = System.Console;
 
 namespace Ledger.Console.Menus;
 
-public sealed class GroupsMenu(LedgerApiClient api, SplitWizard splitWizard) : Menu
+public sealed class GroupsMenu(LedgerApiClient api, SplitWizard splitWizard, OperationsScreen operations) : Menu
 {
     protected override string Title => "GROUPS";
 
@@ -15,7 +15,8 @@ public sealed class GroupsMenu(LedgerApiClient api, SplitWizard splitWizard) : M
         ("Remove member", RemoveMemberAsync),
         ("Record group expense", ExpenseAsync),
         ("Balances and suggested payments", BalancesAsync),
-        ("Settle a suggested payment", SettleAsync)
+        ("Settle a suggested payment", SettleAsync),
+        ("Expenses and payments (edit, delete, restore, history)", OperationsAsync)
     ];
 
     private async Task ListAsync(CancellationToken ct)
@@ -152,6 +153,12 @@ public sealed class GroupsMenu(LedgerApiClient api, SplitWizard splitWizard) : M
         }, ct);
 
         ShowOperation(await api.WaitForOperationAsync(operation, ct), "Payment recorded.");
+    }
+
+    private async Task OperationsAsync(CancellationToken ct)
+    {
+        if (await PickGroupAsync(ct) is { } group)
+            await operations.RunAsync(group.Id, ct);
     }
 
     private async Task<Group?> PickGroupAsync(CancellationToken ct)

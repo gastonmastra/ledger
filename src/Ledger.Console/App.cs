@@ -13,7 +13,10 @@ public sealed class App(
     GroupsMenu groups,
     DebtsMenu debts,
     PendingMenu pending,
-    ReportsMenu reports)
+    ReportsMenu reports,
+    ChangesScreen changes,
+    ActivityScreen activity,
+    SettingsMenu settings)
 {
     public async Task RunAsync(CancellationToken cancellationToken)
     {
@@ -24,6 +27,7 @@ public sealed class App(
         while (!cancellationToken.IsCancellationRequested)
         {
             var pendingCount = (await api.PendingAssignmentsAsync(cancellationToken)).Count;
+            var toReview = (await api.ChangesAsync(all: false, cancellationToken)).Count;
 
             var option = ConsoleUi.ShowMenu(
                 "LEDGER",
@@ -37,7 +41,10 @@ public sealed class App(
                     new Option(7, "Debts & splits"),
                     new Option(8, pendingCount == 0 ? "Pending wallet assignments" : $"Pending wallet assignments ({pendingCount})"),
                     new Option(9, "Reports"),
-                    new Option(10, "Exit")
+                    new Option(10, toReview == 0 ? "Changes to review" : $"Changes to review ({toReview})"),
+                    new Option(11, "Activity"),
+                    new Option(12, "Settings"),
+                    new Option(13, "Exit")
                 ],
                 subtitle: $"Logged in as {me.DisplayName} ({me.Email})");
 
@@ -54,7 +61,10 @@ public sealed class App(
                     case 7: await debts.RunAsync(cancellationToken); break;
                     case 8: await pending.RunAsync(cancellationToken); break;
                     case 9: await reports.RunAsync(cancellationToken); break;
-                    case 10: return;
+                    case 10: await changes.RunAsync(cancellationToken); break;
+                    case 11: await activity.ShowAsync(cancellationToken); break;
+                    case 12: await settings.RunAsync(cancellationToken); break;
+                    case 13: return;
                 }
             }
             catch (ApiException ex)
