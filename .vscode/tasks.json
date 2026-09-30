@@ -63,7 +63,20 @@
       "options": {
         "cwd": "${workspaceFolder}/clients/web"
       },
-      "problemMatcher": []
+      "problemMatcher": [],
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}/clients/web",
+          "shell": {
+            "executable": "/bin/zsh",
+            "args": [
+              "-i",
+              "-l",
+              "-c"
+            ]
+          }
+        }
+      }
     },
     {
       "label": "web: start",
@@ -84,6 +97,19 @@
           },
           "endsPattern": {
             "regexp": "bundle generation (complete|failed)"
+          }
+        }
+      },
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}/clients/web",
+          "shell": {
+            "executable": "/bin/zsh",
+            "args": [
+              "-i",
+              "-l",
+              "-c"
+            ]
           }
         }
       }
@@ -109,6 +135,19 @@
             "regexp": "bundle generation (complete|failed)"
           }
         }
+      },
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}/clients/web",
+          "shell": {
+            "executable": "/bin/zsh",
+            "args": [
+              "-i",
+              "-l",
+              "-c"
+            ]
+          }
+        }
       }
     },
     {
@@ -118,7 +157,20 @@
       "options": {
         "cwd": "${workspaceFolder}/clients/web"
       },
-      "problemMatcher": []
+      "problemMatcher": [],
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}/clients/web",
+          "shell": {
+            "executable": "/bin/zsh",
+            "args": [
+              "-i",
+              "-l",
+              "-c"
+            ]
+          }
+        }
+      }
     },
     {
       "label": "web: e2e",
@@ -127,7 +179,20 @@
       "options": {
         "cwd": "${workspaceFolder}/clients/web"
       },
-      "problemMatcher": []
+      "problemMatcher": [],
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}/clients/web",
+          "shell": {
+            "executable": "/bin/zsh",
+            "args": [
+              "-i",
+              "-l",
+              "-c"
+            ]
+          }
+        }
+      }
     }
   ]
 }
