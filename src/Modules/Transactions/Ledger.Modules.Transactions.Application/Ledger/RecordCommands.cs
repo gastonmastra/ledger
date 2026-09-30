@@ -38,6 +38,7 @@ internal sealed class RecordIncomeValidator : AbstractValidator<RecordIncomeComm
     {
         RuleFor(x => x.Amount).GreaterThan(0).PrecisionScale(19, Money.Decimals, true);
         RuleFor(x => x.Description).MaximumLength(Transaction.DescriptionMaxLength);
+        RuleFor(x => x.OccurredAt).NotInFuture();
     }
 }
 
@@ -47,6 +48,7 @@ internal sealed class RecordExpenseValidator : AbstractValidator<RecordExpenseCo
     {
         RuleFor(x => x.Amount).GreaterThan(0).PrecisionScale(19, Money.Decimals, true);
         RuleFor(x => x.Description).MaximumLength(Transaction.DescriptionMaxLength);
+        RuleFor(x => x.OccurredAt).NotInFuture();
     }
 }
 
@@ -59,6 +61,7 @@ internal sealed class TransferValidator : AbstractValidator<TransferCommand>
             .When(x => x.ReceivedAmount is not null);
         RuleFor(x => x.ToWalletId).NotEqual(x => x.FromWalletId).WithMessage("Choose two different wallets.");
         RuleFor(x => x.Description).MaximumLength(Transaction.DescriptionMaxLength);
+        RuleFor(x => x.OccurredAt).NotInFuture();
     }
 }
 

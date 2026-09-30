@@ -28,6 +28,33 @@ internal static class LedgerLegs
     }
 
     /// <summary>
+    /// A debt that already existed: recorded as an expense for the debtor and as income for the
+    /// creditor, with no money moving (it is paid later with a settlement).
+    /// </summary>
+    public static IReadOnlyList<LedgerLeg> ForInitialDebt(DebtOperation debt, PersonInfo creditor, PersonInfo debtor)
+    {
+        var amount = debt.Total;
+        var legs = new List<LedgerLeg>();
+
+        if (debtor.UserId is { } debtorUserId)
+        {
+            legs.Add(new LedgerLeg(
+                debtorUserId, null, debtorUserId == debt.InitiatorUserId ? debt.CategoryId : null, 0, amount,
+                [new LedgerPosition(creditor.PersonId, PositionSides.Payable, -amount)]));
+        }
+
+        if (creditor.UserId is { } creditorUserId)
+        {
+            legs.Add(new LedgerLeg(
+                creditorUserId, null, creditorUserId == debt.InitiatorUserId ? debt.CategoryId : null, 0, 0,
+                [new LedgerPosition(debtor.PersonId, PositionSides.Receivable, amount)],
+                IncomeAmount: amount));
+        }
+
+        return legs;
+    }
+
+    /// <summary>
     /// Split outside groups: each registered user records what they paid, what they consumed and
     /// their debts with every other person.
     /// </summary>

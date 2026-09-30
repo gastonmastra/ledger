@@ -15,7 +15,9 @@ public sealed class Account
             [AccountPurpose.CurrencyExchange] = ("Currency exchange", AccountType.Equity),
             [AccountPurpose.Uncategorized] = ("Uncategorized", AccountType.Expense),
             [AccountPurpose.UncategorizedIncome] = ("Uncategorized income", AccountType.Income),
-            [AccountPurpose.PendingSettlements] = ("Pending settlements", AccountType.Asset)
+            [AccountPurpose.PendingSettlements] = ("Pending settlements", AccountType.Asset),
+            // Equity: reconciliation differences are neither income nor expenses.
+            [AccountPurpose.BalanceAdjustments] = ("Balance adjustments", AccountType.Equity)
         };
 
     public const int NameMaxLength = 200;

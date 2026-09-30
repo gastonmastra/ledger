@@ -4,7 +4,17 @@ public enum OperationKind
 {
     Loan,
     Split,
-    Settlement
+    Settlement,
+    /// <summary>A debt that already existed before using Ledger.</summary>
+    InitialDebt
+}
+
+public enum InitialDebtDirection
+{
+    /// <summary>I already owed the contact.</summary>
+    IOwe,
+    /// <summary>The contact already owed me.</summary>
+    TheyOweMe
 }
 
 public enum OperationStatus

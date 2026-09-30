@@ -16,7 +16,7 @@ public interface IAccountsEventBus : IEventBus;
 
 internal static class AccountEvents
 {
-    public static AccountCreated Created(Account account, decimal openingBalance = 0)
+    public static AccountCreated Created(Account account, decimal openingBalance = 0, DateTimeOffset? openingBalanceAt = null)
         => new(
             account.Id,
             account.OwnerId,
@@ -26,5 +26,6 @@ internal static class AccountEvents
             account.Currency?.ToString(),
             account.ReferenceId,
             openingBalance,
-            account.CreatedAt);
+            account.CreatedAt,
+            openingBalanceAt);
 }

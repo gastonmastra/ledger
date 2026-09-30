@@ -9,5 +9,11 @@ public enum TransactionKind
     Loan,
     Split,
     Settlement,
-    WalletAssignment
+    WalletAssignment,
+    /// <summary>Cancels a previous opening balance that was replaced by a new one.</summary>
+    OpeningBalanceReversal,
+    /// <summary>Reconciles a wallet with its real balance.</summary>
+    BalanceAdjustment,
+    /// <summary>A debt that already existed before using Ledger.</summary>
+    InitialDebt
 }

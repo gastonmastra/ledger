@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\src\Modules\Contacts\Ledger.Modules.Contacts.Domain\Ledger.Modules.Contacts.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Groups\Ledger.Modules.Groups.Domain\Ledger.Modules.Groups.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Debts\Ledger.Modules.Debts.Application\Ledger.Modules.Debts.Application.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Ledger.BuildingBlocks.Application\Ledger.BuildingBlocks.Application.csproj" />
   </ItemGroup>
 
 </Project>

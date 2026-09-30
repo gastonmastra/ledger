@@ -12,7 +12,8 @@ public enum LedgerAccountPurpose
     CurrencyExchange,
     Uncategorized,
     UncategorizedIncome,
-    PendingSettlements
+    PendingSettlements,
+    BalanceAdjustments
 }
 
 public enum LedgerAccountType

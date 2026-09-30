@@ -19,5 +19,6 @@ public enum AccountPurpose
     CurrencyExchange,
     Uncategorized,
     UncategorizedIncome,
-    PendingSettlements
+    PendingSettlements,
+    BalanceAdjustments
 }

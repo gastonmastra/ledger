@@ -74,6 +74,30 @@ public sealed class DebtOperation
         return operation;
     }
 
+    /// <summary>A debt that existed before using Ledger: no money moves when it is recorded.</summary>
+    public static DebtOperation InitialDebt(
+        Guid initiatorUserId,
+        Guid creditorPersonId,
+        Guid debtorPersonId,
+        decimal amount,
+        Currency currency,
+        Guid? categoryId,
+        DateTimeOffset occurredAt,
+        string? description)
+    {
+        Money.EnsurePositive(amount);
+
+        if (creditorPersonId == debtorPersonId)
+            throw new DomainException("debt.self", "A person cannot owe money to themselves.");
+
+        var operation = New(OperationKind.InitialDebt, initiatorUserId, null, currency, amount, occurredAt, description);
+        operation.FromPersonId = debtorPersonId;
+        operation.ToPersonId = creditorPersonId;
+        operation.CategoryId = categoryId;
+
+        return operation;
+    }
+
     public static DebtOperation Split(
         Guid initiatorUserId,
         Guid? groupId,

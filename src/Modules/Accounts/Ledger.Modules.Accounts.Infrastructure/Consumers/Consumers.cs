@@ -23,7 +23,8 @@ internal sealed class WalletCreatedConsumer(ISender sender, AccountsDbContext db
         var wallet = context.Message;
 
         return sender.Send(
-            new OpenWalletAccountCommand(wallet.WalletId, wallet.UserId, wallet.Name, wallet.Currency, wallet.OpeningBalance),
+            new OpenWalletAccountCommand(
+                wallet.WalletId, wallet.UserId, wallet.Name, wallet.Currency, wallet.OpeningBalance, wallet.OpeningBalanceAt),
             context.CancellationToken);
     }
 }

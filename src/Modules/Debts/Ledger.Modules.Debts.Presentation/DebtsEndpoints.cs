@@ -27,6 +27,15 @@ public sealed record RecordSplitRequest(
     DateTimeOffset? OccurredAt = null,
     string? Description = null);
 
+public sealed record RecordInitialDebtRequest(
+    Guid ContactId,
+    InitialDebtDirection Direction,
+    decimal Amount,
+    string Currency,
+    Guid? CategoryId = null,
+    DateTimeOffset? OccurredAt = null,
+    string? Description = null);
+
 public sealed record SettleRequest(
     SettlementScope Scope,
     Guid? DebtId = null,
@@ -59,6 +68,14 @@ public static class DebtsEndpoints
                         request.OccurredAt ?? DateTimeOffset.UtcNow, request.Description),
                     ct)))
             .WithSummary("Lend money from one of my wallets to a contact (asynchronous)");
+
+        debts.MapPost("/initial", async (RecordInitialDebtRequest request, ICurrentUser user, ISender sender, CancellationToken ct) =>
+                Accepted(await sender.Send(
+                    new RecordInitialDebtCommand(
+                        user.UserId, request.ContactId, request.Direction, request.Amount, request.Currency,
+                        request.CategoryId, request.OccurredAt ?? DateTimeOffset.UtcNow, request.Description),
+                    ct)))
+            .WithSummary("Record a debt that already existed before using Ledger (asynchronous)");
 
         debts.MapPost("/splits", async (RecordSplitRequest request, ICurrentUser user, ISender sender, CancellationToken ct) =>
                 Accepted(await sender.Send(

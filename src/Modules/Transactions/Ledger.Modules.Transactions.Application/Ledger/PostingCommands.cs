@@ -142,6 +142,15 @@ internal sealed class PostingHandlers(
             builder.Add(category.Id, leg.ExpenseAmount, currency);
         }
 
+        if (leg.IncomeAmount != 0)
+        {
+            // The leg's category is for the expense when there is one, otherwise for the income.
+            var category = await accounts.CategoryAsync(
+                leg.UserId, leg.ExpenseAmount == 0 ? leg.CategoryId : null, LedgerAccountType.Income, cancellationToken);
+
+            builder.Add(category.Id, -leg.IncomeAmount, currency);
+        }
+
         if (leg.Positions.Count != 0)
         {
             var receivables = await accounts.SystemAsync(leg.UserId, LedgerAccountPurpose.Receivables, cancellationToken);

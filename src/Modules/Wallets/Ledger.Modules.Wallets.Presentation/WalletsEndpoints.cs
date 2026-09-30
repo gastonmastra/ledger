@@ -7,7 +7,11 @@ using Microsoft.AspNetCore.Routing;
 
 namespace Ledger.Modules.Wallets.Presentation;
 
-public sealed record CreateWalletRequest(string Name, string Currency, decimal OpeningBalance = 0);
+public sealed record CreateWalletRequest(
+    string Name,
+    string Currency,
+    decimal OpeningBalance = 0,
+    DateTimeOffset? OpeningBalanceAt = null);
 
 public sealed record RenameWalletRequest(string Name);
 
@@ -31,11 +35,13 @@ public static class WalletsEndpoints
         group.MapPost("/", async (CreateWalletRequest request, ICurrentUser user, ISender sender, CancellationToken ct) =>
             {
                 var wallet = await sender.Send(
-                    new CreateWalletCommand(user.UserId, request.Name, request.Currency, request.OpeningBalance), ct);
+                    new CreateWalletCommand(
+                        user.UserId, request.Name, request.Currency, request.OpeningBalance, request.OpeningBalanceAt),
+                    ct);
 
                 return Results.Created($"/api/wallets/{wallet.Id}", wallet);
             })
-            .WithSummary("Create a wallet, optionally with an opening balance");
+            .WithSummary("Create a wallet, optionally with an opening balance and its date");
 
         group.MapPatch("/{id:guid}", async (Guid id, RenameWalletRequest request, ICurrentUser user, ISender sender, CancellationToken ct) =>
             {

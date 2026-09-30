@@ -61,6 +61,18 @@ public sealed record SettleCommand(
     DateTimeOffset OccurredAt,
     string? Description) : ICommand<OperationDto>;
 
+/// <summary>Records a debt that existed before using Ledger (outside groups).</summary>
+/// <param name="CategoryId">Expense category (I owe) or income category (they owe me); optional.</param>
+public sealed record RecordInitialDebtCommand(
+    Guid UserId,
+    Guid ContactId,
+    InitialDebtDirection Direction,
+    decimal Amount,
+    string Currency,
+    Guid? CategoryId,
+    DateTimeOffset OccurredAt,
+    string? Description) : ICommand<OperationDto>;
+
 /// <summary>Internal: the ledger answered a posting request.</summary>
 public sealed record ApplyLedgerResultCommand(Guid OperationId, bool Succeeded, string? Reason) : ICommand;
 
@@ -70,6 +82,19 @@ internal sealed class RecordLoanValidator : AbstractValidator<RecordLoanCommand>
     {
         RuleFor(x => x.Amount).GreaterThan(0).PrecisionScale(19, Money.Decimals, true);
         RuleFor(x => x.Description).MaximumLength(DebtOperation.DescriptionMaxLength);
+        RuleFor(x => x.OccurredAt).NotInFuture();
+    }
+}
+
+internal sealed class RecordInitialDebtValidator : AbstractValidator<RecordInitialDebtCommand>
+{
+    public RecordInitialDebtValidator()
+    {
+        RuleFor(x => x.Amount).GreaterThan(0).PrecisionScale(19, Money.Decimals, true);
+        RuleFor(x => x.Currency).Must(Currencies.IsSupported).WithMessage("Unsupported currency.");
+        RuleFor(x => x.Direction).IsInEnum();
+        RuleFor(x => x.Description).MaximumLength(DebtOperation.DescriptionMaxLength);
+        RuleFor(x => x.OccurredAt).NotInFuture();
     }
 }
 
@@ -82,6 +107,7 @@ internal sealed class RecordSplitValidator : AbstractValidator<RecordSplitComman
         RuleFor(x => x.Payers).NotEmpty();
         RuleFor(x => x.Participants).NotEmpty();
         RuleFor(x => x.Description).MaximumLength(DebtOperation.DescriptionMaxLength);
+        RuleFor(x => x.OccurredAt).NotInFuture();
     }
 }
 
@@ -97,6 +123,7 @@ internal sealed class SettleValidator : AbstractValidator<SettleCommand>
         RuleFor(x => x.Currency).Must(Currencies.IsSupported).WithMessage("Unsupported currency.")
             .When(x => x.Scope != SettlementScope.Debt);
         RuleFor(x => x.Description).MaximumLength(DebtOperation.DescriptionMaxLength);
+        RuleFor(x => x.OccurredAt).NotInFuture();
     }
 }
 
@@ -107,6 +134,7 @@ internal sealed class OperationHandlers(
     GroupBalances groupBalances)
     : ICommandHandler<RecordLoanCommand, OperationDto>,
       ICommandHandler<RecordSplitCommand, OperationDto>,
+      ICommandHandler<RecordInitialDebtCommand, OperationDto>,
       ICommandHandler<SettleCommand, OperationDto>,
       ICommandHandler<ApplyLedgerResultCommand>
 {
@@ -128,6 +156,34 @@ internal sealed class OperationHandlers(
         await RequestPostingAsync(loan, LedgerLegs.ForLoan(loan, me, borrower), cancellationToken);
 
         return ToDto(loan);
+    }
+
+    public async Task<OperationDto> Handle(RecordInitialDebtCommand command, CancellationToken cancellationToken)
+    {
+        var me = await people.MeAsync(command.UserId, cancellationToken);
+        var contact = await people.ContactAsync(command.UserId, command.ContactId, cancellationToken);
+        var iOwe = command.Direction == InitialDebtDirection.IOwe;
+        var creditor = iOwe ? contact : me;
+        var debtor = iOwe ? me : contact;
+
+        var operation = DebtOperation.InitialDebt(
+            command.UserId,
+            creditor.PersonId,
+            debtor.PersonId,
+            command.Amount,
+            Currencies.Parse(command.Currency),
+            command.CategoryId,
+            command.OccurredAt,
+            // Also shown in a linked contact's books, so the default text is neutral.
+            command.Description ?? "Debt from before Ledger");
+
+        dbContext.Operations.Add(operation);
+        dbContext.Debts.Add(Debt.Create(
+            operation.Id, null, creditor.PersonId, debtor.PersonId, operation.Total, operation.Currency));
+
+        await RequestPostingAsync(operation, LedgerLegs.ForInitialDebt(operation, creditor, debtor), cancellationToken);
+
+        return ToDto(operation);
     }
 
     public async Task<OperationDto> Handle(RecordSplitCommand command, CancellationToken cancellationToken)

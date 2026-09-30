@@ -26,20 +26,22 @@ public sealed record LedgerPosition(
 
 /// <summary>
 /// The effect of a debt operation on the books of one registered user. The amounts must balance:
-/// <c>CashAmount + ExpenseAmount + Σ Positions.Amount = 0</c>.
+/// <c>CashAmount + ExpenseAmount − IncomeAmount + Σ Positions.Amount = 0</c>.
 /// </summary>
 /// <param name="WalletId">Wallet used for the cash movement. Null means the user has to choose it later
 /// (the money waits in the pending settlements account).</param>
 /// <param name="CategoryId">Expense category for <c>ExpenseAmount</c>; null means uncategorized.</param>
 /// <param name="CashAmount">Money into (+) or out of (−) the user's pocket.</param>
-/// <param name="ExpenseAmount">The user's own consumption (split share).</param>
+/// <param name="ExpenseAmount">The user's own consumption (split share), debited to an expense category.</param>
+/// <param name="IncomeAmount">Income for the user (e.g. a debt somebody already owed them), credited to an income category.</param>
 public sealed record LedgerLeg(
     Guid UserId,
     Guid? WalletId,
     Guid? CategoryId,
     decimal CashAmount,
     decimal ExpenseAmount,
-    IReadOnlyList<LedgerPosition> Positions);
+    IReadOnlyList<LedgerPosition> Positions,
+    decimal IncomeAmount = 0);
 
 /// <summary>
 /// Asks the ledger to record a debt operation (loan, split or settlement) for every registered
@@ -60,6 +62,7 @@ public static class LedgerPostingKinds
     public const string Loan = nameof(Loan);
     public const string Split = nameof(Split);
     public const string Settlement = nameof(Settlement);
+    public const string InitialDebt = nameof(InitialDebt);
 }
 
 public sealed record LedgerPostingCompleted(Guid OperationId);

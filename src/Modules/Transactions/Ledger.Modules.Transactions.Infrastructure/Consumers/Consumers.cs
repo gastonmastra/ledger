@@ -35,7 +35,8 @@ internal sealed class AccountCreatedConsumer(ISender sender, TransactionsDbConte
         if (account.Purpose == AccountPurposes.Wallet && account.OpeningBalance > 0)
         {
             await sender.Send(
-                new PostOpeningBalanceCommand(account.AccountId, account.OpeningBalance, account.CreatedAt),
+                new PostOpeningBalanceCommand(
+                    account.AccountId, account.OpeningBalance, account.OpeningBalanceAt ?? account.CreatedAt),
                 context.CancellationToken);
         }
     }
