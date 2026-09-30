@@ -3160,11 +3160,11 @@
       </trans-unit>
       <trans-unit id="error.notEditable" datatype="html">
         <source>This transaction cannot be edited here. Loans, splits and settlements are changed in Debts &amp; splits.</source>
-        <target state="translated">Esta transacción no se puede editar acá. Los préstamos, gastos compartidos y liquidaciones se cambian en Deudas y gastos compartidos.</target>
+        <target state="translated">Esta transacción no se puede editar acá. Los préstamos, gastos compartidos y liquidaciones se cambian en Deudas y divisiones.</target>
       </trans-unit>
       <trans-unit id="error.notDeletable" datatype="html">
         <source>This transaction cannot be deleted here. Loans, splits and settlements are changed in Debts &amp; splits.</source>
-        <target state="translated">Esta transacción no se puede eliminar acá. Los préstamos, gastos compartidos y liquidaciones se cambian en Deudas y gastos compartidos.</target>
+        <target state="translated">Esta transacción no se puede eliminar acá. Los préstamos, gastos compartidos y liquidaciones se cambian en Deudas y divisiones.</target>
       </trans-unit>
       <trans-unit id="error.alreadyAnswered" datatype="html">
         <source>You already answered this change.</source>
@@ -3576,7 +3576,7 @@
       </trans-unit>
       <trans-unit id="transactions.openOperationHint" datatype="html">
         <source>Loans, splits and settlements are changed in Debts &amp; splits.</source>
-        <target state="translated">Los préstamos, gastos compartidos y liquidaciones se cambian en Deudas y gastos compartidos.</target>
+        <target state="translated">Los préstamos, gastos compartidos y liquidaciones se cambian en Deudas y divisiones.</target>
       </trans-unit>
       <trans-unit id="transactions.openOperation" datatype="html">
         <source>Operation</source>
