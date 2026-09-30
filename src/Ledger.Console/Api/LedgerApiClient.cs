@@ -15,6 +15,50 @@ public sealed class LedgerApiClient(HttpClient http)
         Converters = { new JsonStringEnumConverter() }
     };
 
+    /// <summary>
+    /// Waits until the API answers its health check (it may still be starting, e.g. when launched
+    /// together with the console), so the first real call does not fail with "connection refused".
+    /// </summary>
+    public async Task WaitUntilAvailableAsync(CancellationToken ct)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        var announced = false;
+
+        while (true)
+        {
+            string problem;
+
+            try
+            {
+                using var response = await http.GetAsync("health", ct);
+
+                if (response.IsSuccessStatusCode)
+                    return;
+
+                problem = $"{(int)response.StatusCode} {response.ReasonPhrase}";
+            }
+            catch (HttpRequestException ex)
+            {
+                problem = ex.Message;
+            }
+
+            if (DateTime.UtcNow >= deadline)
+            {
+                throw new ApiException(
+                    $"The Ledger API is not reachable at {http.BaseAddress} ({problem}). Start it first: " +
+                    "VS Code 'API' or 'API + Console', or `dotnet run --project src/Ledger.Api --launch-profile http`.");
+            }
+
+            if (!announced)
+            {
+                System.Console.WriteLine($"Waiting for the Ledger API at {http.BaseAddress} ...");
+                announced = true;
+            }
+
+            await Task.Delay(1000, ct);
+        }
+    }
+
     public Task<Me> MeAsync(CancellationToken ct) => GetAsync<Me>("api/me", ct);
 
     public Task<Summary> SummaryAsync(CancellationToken ct) => GetAsync<Summary>("api/summary", ct);

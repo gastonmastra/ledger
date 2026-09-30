@@ -16,6 +16,8 @@ public sealed class App(
 {
     public async Task RunAsync(CancellationToken cancellationToken)
     {
+        await api.WaitUntilAvailableAsync(cancellationToken);
+
         var me = await api.MeAsync(cancellationToken);
 
         while (!cancellationToken.IsCancellationRequested)
