@@ -5,6 +5,7 @@
     <File Path="docker-compose.yml" />
     <File Path="README.md" />
     <File Path="Migrations.md" />
+    <File Path="documentation/README.md" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Ledger.Api/Ledger.Api.csproj" />
