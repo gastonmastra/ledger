@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="NetArchTest.eNhancedEdition" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\Identity\Ledger.Modules.Identity.Infrastructure\Ledger.Modules.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Identity\Ledger.Modules.Identity.Presentation\Ledger.Modules.Identity.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Accounts\Ledger.Modules.Accounts.Infrastructure\Ledger.Modules.Accounts.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Accounts\Ledger.Modules.Accounts.Presentation\Ledger.Modules.Accounts.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Wallets\Ledger.Modules.Wallets.Infrastructure\Ledger.Modules.Wallets.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Wallets\Ledger.Modules.Wallets.Presentation\Ledger.Modules.Wallets.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Transactions\Ledger.Modules.Transactions.Infrastructure\Ledger.Modules.Transactions.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Transactions\Ledger.Modules.Transactions.Presentation\Ledger.Modules.Transactions.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Contacts\Ledger.Modules.Contacts.Infrastructure\Ledger.Modules.Contacts.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Contacts\Ledger.Modules.Contacts.Presentation\Ledger.Modules.Contacts.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Groups\Ledger.Modules.Groups.Infrastructure\Ledger.Modules.Groups.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Groups\Ledger.Modules.Groups.Presentation\Ledger.Modules.Groups.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Debts\Ledger.Modules.Debts.Infrastructure\Ledger.Modules.Debts.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Debts\Ledger.Modules.Debts.Presentation\Ledger.Modules.Debts.Presentation.csproj" />
+  </ItemGroup>
+
+</Project>
