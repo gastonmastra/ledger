@@ -10,16 +10,20 @@ It is a **.NET 10 modular monolith**: one deployable application made of indepen
 
 | Feature | How |
 | --- | --- |
-| Wallets | Create (with an opening balance), rename, archive (only when empty) and delete (only without transactions). EUR, USD and ARS. |
+| Wallets | Create (with an opening balance and its date), rename, archive (only when empty) and delete (only without transactions). EUR, USD and ARS. |
+| Fix balances | **Change the opening balance** (amount and date): the old one is reversed, never edited. **Adjust a wallet to its real balance**: the difference goes to *Balance adjustments*. |
+| Dates | Every operation takes a **date and time** (stored in UTC, any offset accepted); future dates are rejected. |
 | Income and expenses | Record money in or out of a wallet, optionally in a user-defined category. Without a category it goes to *Uncategorized* (expenses) or *Uncategorized income* (income). |
 | Transfers | Between two of my wallets. Across currencies I type the amount received, and the ledger balances each currency through a *Currency exchange* account. A wallet can never go below zero. |
 | Loans | Lend money from a wallet to a contact. The contact now owes me. |
+| Existing debts | Record a debt from before using Ledger ("I already owed Sofi 50", or the other way round). It counts as an expense or income, is mirrored to linked users and is settled like any debt. |
 | Splits | Split an expense among me, my contacts or a group: equally, by amount or by percentage, with **any number of payers**. "A friend paid for me" is a split where the friend pays and I consume. |
 | Groups | Shared with every member who is a registered user. Group balances are **simplified** into the fewest payments. |
 | Settlements | Full settlement of one debt, of everything with a contact, or of one suggested group payment. |
 | Linked contacts | A contact with a registered user's email is linked. Debts are then mirrored into that user's books automatically, with contacts created for them. Money they paid or received waits in *Pending wallet assignments* until they choose the wallet. |
 | Summary | Per currency: wallets, owed to me, I owe, pending and **net**, with a breakdown per wallet and per person or group. |
 | History | Transactions newest first, paginated, filterable by wallet, category, contact and date range. |
+| Reports | Per period (month, year or custom) and currency: income vs expenses, spending by category, net worth over time and balance per wallet. Charts in the web dashboard, tables in the console. |
 
 ## Architecture
 
@@ -134,13 +138,16 @@ All endpoints need a Keycloak access token. Explore them with Scalar at `/scalar
 | GET | `/api/transactions?page&pageSize&walletId&categoryId&contactId&from&to` | History, newest first |
 | GET | `/api/transactions/{id}` | One transaction with its postings |
 | POST | `/api/transactions/income`, `/expense`, `/transfer` | Record money in, out, or between wallets |
+| GET/PUT | `/api/transactions/opening-balance/{walletId}`, `/api/transactions/opening-balance` | Read or replace a wallet's opening balance |
+| POST | `/api/transactions/balance-adjustment` | Set a wallet to its real balance |
 | GET | `/api/summary` | Totals per currency, per wallet and per person or group |
+| GET | `/api/reports?from&to&currency&timeZone` | Figures for charts (daily up to 62 days, monthly above) |
 | GET/POST | `/api/pending-assignments`, `/{id}/assign` | Choose the wallet for money others recorded for me |
 | GET/POST | `/api/contacts`, `/{id}/link` | Contacts |
 | GET/POST/DELETE | `/api/groups`, `/{id}`, `/{id}/members`, `/{id}/members/{personId}` | Groups |
 | GET | `/api/groups/{id}/balances` | Balances, simplified payments and raw debts |
 | GET | `/api/debts` | My debts and the net per contact |
-| POST | `/api/debts/loans`, `/api/debts/splits`, `/api/debts/settlements` | Asynchronous: `202` plus an operation |
+| POST | `/api/debts/loans`, `/api/debts/splits`, `/api/debts/settlements`, `/api/debts/initial` | Asynchronous: `202` plus an operation |
 | GET | `/api/debts/operations/{id}` | `Pending`, `Completed` or `Rejected` (with the reason) |
 
 Errors are RFC 7807 problem details. Business rule violations return `400` with a `code`, for example `ledger.insufficient_funds`.
@@ -151,7 +158,7 @@ Errors are RFC 7807 problem details. Business rule violations return `400` with 
 
 ## Console client
 
-`Ledger.Console` is a client of the HTTP API. On start it opens the browser on the Keycloak login page (authorization code + PKCE) and receives the result on `http://127.0.0.1:7890/callback/`. Then it waits up to 30 seconds for the API (`/health`); if the API is not running it tells you how to start it. Menus: summary, wallets, transactions, categories, contacts, groups, debts and splits, and pending wallet assignments. The API URL and Keycloak settings are in `src/Ledger.Console/appsettings.json` (use `Api__BaseUrl=http://localhost:8081` for the containerised API).
+`Ledger.Console` is a client of the HTTP API. On start it opens the browser on the Keycloak login page (authorization code + PKCE) and receives the result on `http://127.0.0.1:7890/callback/`. Then it waits up to 30 seconds for the API (`/health`); if the API is not running it tells you how to start it. Menus: summary, wallets, transactions, categories, contacts, groups, debts and splits, pending wallet assignments and reports. Every operation asks "When" (ENTER = now). The API URL and Keycloak settings are in `src/Ledger.Console/appsettings.json` (use `Api__BaseUrl=http://localhost:8081` for the containerised API).
 
 ## Tests
 

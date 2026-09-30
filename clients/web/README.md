@@ -1,6 +1,6 @@
 # Ledger Web
 
-Angular client of the Ledger API. It covers every feature of the MVP: summary, wallets, transactions (with filters), categories, contacts, loans, splits, groups with simplified balances, settlements and pending wallet assignments. It is available in **English and Spanish** and has **light and dark** themes, and it works on desktop and on phones.
+Angular client of the Ledger API. It covers every feature: summary with **charts** (month, year or custom period), wallets (opening balance and balance adjustments), transactions (with filters), categories, contacts, loans, **existing debts**, splits, groups with simplified balances, settlements and pending wallet assignments. Every form has a **When** field (date and time; future dates not allowed). It is available in **English and Spanish** and has **light and dark** themes, and it works on desktop and on phones.
 
 | | |
 | --- | --- |
@@ -79,6 +79,7 @@ All colors come from **`src/styles/tokens.css`** (the palette) through **`src/st
 * **Change the brand color:** replace the `--palette-accent-*` values in `tokens.css` (currently Tailwind's *indigo* scale). Nothing else needs to change.
 * **Change the grays or status colors:** edit the `--palette-neutral-*`, `--palette-success-*`, `--palette-danger-*` or `--palette-warning-*` values.
 * **Change the corner radius or the font:** edit `--radius-base` or `--font-family-base`.
+* **Change the chart colors:** edit `--palette-chart-1…8` (series such as categories or wallets). Income and expense bars use the success and danger colors; the net worth line uses the primary color.
 * **Change what a color is used for** (e.g. a darker background in dark mode): edit `theme.css`, which has the light values in `:root` and the dark values in `:root.dark`.
 
 Components never use raw colors: they use semantic Tailwind utilities generated from the theme, such as `bg-surface`, `bg-surface-muted`, `text-foreground`, `text-muted`, `border-border`, `bg-primary`, `text-primary-foreground`, `bg-primary-soft`, `text-success`, `text-danger`, `bg-warning-soft`, `rounded-ui` and `ring-ring`.
@@ -104,6 +105,8 @@ Components never use raw colors: they use semantic Tailwind utilities generated 
 | `ConfirmService` | `await confirm.confirm({ title, message, confirmLabel, danger })` |
 | `ToastService` + `ui-toast-container` | `toasts.success(...)`, `.error(...)`, `.info(...)` |
 | `money` pipe | `amount \| money: currency` (formatted in the app language) or `\| money: currency: true` to show the sign |
+| `ui-datetime-input` | Date and time picker in local time. Its form value is an ISO string in UTC, and it can't pick the future. Works with `formControlName` and `ngModel`. `nowIso()` is the default value. |
+| `ui-chart` | Chart.js wrapper: `[config]` is a factory `(colors) => ChartConfiguration` that receives the theme colors (`--chart-1…8`, success, danger, primary…) and is redrawn when the theme changes. Only the controllers used are registered. |
 
 Feature code imports only from `src/app/ui` (its `index.ts`) and composes these components. Page files only use Tailwind for layout: grids, spacing, widths.
 
@@ -135,7 +138,9 @@ Amounts and dates follow the language (`€1,234.50` / `1234,50 €`). The label
 * **Authentication:** nothing renders until the user is logged in (`provideAppInitializer` → `AuthService.init()`). The OAuth interceptor adds the access token to `/api` requests and refreshes it before it expires. Keycloak client: `ledger-web` (public, PKCE, redirects `http://localhost:4200/*` and `http://localhost:4201/*`).
 * **Errors:** `apiErrorInterceptor` retries `503 Not available yet` (a module still catching up) and shows other errors as a toast in the user's language.
 * **Eventual consistency:** after any change, `DataChanges.notify()` reloads the pages now and once more 1.5 s later, when the other modules have caught up (e.g. wallet balances). New wallets show *Setting up…* until the ledger has them.
-* **Loans, splits and settlements** are asynchronous in the API (*fire and notify*): the dialog closes as soon as the API accepts the operation, a toast says it is processing, and `OperationTracker` polls it and shows the result (recorded, or rejected with the reason).
+* **Dates** are chosen in local time and sent in UTC (`core/dates.ts`). The reports send the browser's IANA time zone, so days and months are cut where the user lives.
+* **Dashboard charts** (`features/dashboard/report-panel`): Month / Year / Custom with previous and next, and a currency selector (default: the currency with the most activity). Balance adjustments are not counted as income or expenses.
+* **Loans, splits, settlements and existing debts** are asynchronous in the API (*fire and notify*): the dialog closes as soon as the API accepts the operation, a toast says it is processing, and `OperationTracker` polls it and shows the result (recorded, or rejected with the reason).
 
 ## Tests
 

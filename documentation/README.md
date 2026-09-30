@@ -19,6 +19,7 @@ For a quick start see the [root README](../README.md). For database migrations s
 11. [Known limitations and next steps](#11-known-limitations-and-next-steps)
 12. [Reference: versions, conventions, commits](#12-reference)
 13. [Web client](#13-web-client)
+14. [Dates, opening balances, adjustments, existing debts and reports](#14-dates-opening-balances-adjustments-existing-debts-and-reports)
 
 ---
 
@@ -592,3 +593,48 @@ Building and testing the web client surfaced these backend issues, fixed on the 
 * **CDK overlay styles:** the CDK injects its overlay CSS at runtime, unlayered, so it overrides Tailwind's layered utilities (e.g. `max-w-*` on the dialog pane). Dialog sizes are therefore passed through the CDK config (`maxWidth`), not classes.
 * **`<select [value]>`** is applied before its options render, so options use `[selected]`.
 * **Eventual consistency in the UI:** after every change the pages reload now and once more 1.5 s later, because projections in other modules (e.g. wallet balances) update a moment after the change.
+
+## 14. Dates, opening balances, adjustments, existing debts and reports
+
+Added on branch `feature/ledger-enhancements`, to the API, the web app and the console.
+
+### 14.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| Dated operations | Income, expense, transfer, loans, splits, settlements, wallet opening balance, pending wallet assignments |
+| Precision | Date **and time**; stored as `DateTimeOffset` in **UTC**; the clients show local time; default now |
+| Future dates | Rejected (`NotInFuture`, 1 minute of clock skew) |
+| Wallet initial amount | **Both**: edit the opening balance (amount and date; append-only) and a balance adjustment to the real balance |
+| Adjustments | New system account **Balance adjustments** (Equity), **excluded** from income and expenses in reports |
+| Existing debts | Both directions, **contacts only**; recorded **as expense (I owed) or income (they owed me)**; **mirrored** to linked users |
+| Charts | Spending by category, income vs expenses, net worth over time, balance per wallet; Month / Year / **Custom**; currency selector; **Chart.js** |
+| Console | Same features, plus a **text Reports menu** |
+
+### 14.2 Accounting
+
+| Operation | Postings |
+| --- | --- |
+| Replace an opening balance of 100 with 250 | New: Wallet +250 · Opening balances −250 (new date). Reversal of the old one (dated like it): Wallet −100 · Opening balances +100. The new entry is written first, so the no-overdraft rule only fails if the **final** balance would be negative. |
+| Adjust a wallet from 100 to 87.50 | Wallet −12.50 · Balance adjustments +12.50 |
+| "I already owed Sofi 50" | Me: Uncategorized (or a chosen expense category) +50 · I owe [Sofi] −50. Sofi, if linked: Owed to me [me] +50 · Uncategorized income −50 |
+| "Sofi already owed me 50" | Me: Owed to me [Sofi] +50 · income category −50. Sofi, if linked: expense +50 · I owe [me] −50 |
+
+* The active opening entry is the `OpeningBalance` transaction of the wallet that no `OpeningBalanceReversal` points to (the reversal's `CorrelationId` is the replaced transaction's id).
+* `LedgerLeg` gained `IncomeAmount` (credited to an income category) so the ledger can post the income side of existing debts.
+* Existing users got the new system account through a startup backfill that runs the idempotent provisioning for every owner.
+
+### 14.3 Reports
+
+`GET /api/reports?from&to&currency&timeZone` is computed in memory from the user's postings in one currency:
+* **Buckets:** days when the range is 62 days or shorter, months when it is longer, cut in the given IANA time zone.
+* **Income and expenses:** only Income and Expense accounts, so opening balances, currency exchange and balance adjustments are excluded.
+* **Net worth:** the cumulative wallets + owed to me − I owe + pending at the end of each bucket, including history before the period.
+* **Spending by category**, and the **balance per wallet** at the end of the period.
+
+### 14.4 Problems found and fixed
+
+| Problem | Fix |
+| --- | --- |
+| A date with a non-UTC offset (e.g. `+02:00`) made PostgreSQL reject the value (500). The console's reports sent local offsets; the web app always sends UTC. | EF convention in every module: `DateTimeOffset` values are converted to UTC (same instant) when written and in queries. No schema change. Integration test added. |
+| While testing, the developer's API from a VS Code debug session ran old code on the same database and queues | Tests ran against an **isolated** copy: database `ledger_enh`, RabbitMQ virtual host `ledger-enh`, API on port 5219 and a temporary dev-server proxy |
