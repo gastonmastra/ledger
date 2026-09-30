@@ -18,6 +18,7 @@ For a quick start see the [root README](../README.md). For database migrations s
 10. [Troubleshooting](#10-troubleshooting)
 11. [Known limitations and next steps](#11-known-limitations-and-next-steps)
 12. [Reference: versions, conventions, commits](#12-reference)
+13. [Web client](#13-web-client)
 
 ---
 
@@ -547,3 +548,47 @@ Package versions are managed centrally in `Directory.Packages.props`.
 | `11e7520` | Unit, architecture and integration tests |
 | `afd511d` | README and Migrations.md |
 | `0b64f45` | Console waits for the API before its first call |
+
+## 13. Web client
+
+An Angular client in `clients/web`. How to run, debug, theme, translate and test it is in [clients/web/README.md](../clients/web/README.md); this section records the decisions and what building it changed in the backend.
+
+### 13.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| Branch | `feature/web-client`, based on `feature/mvp` |
+| Location | `clients/web` |
+| Screens | All of them: dashboard, wallets, transactions, categories, contacts, debts and splits, groups, pending assignments |
+| Languages | English and Spanish; English by default |
+| i18n | **Angular built-in i18n** (one build per language at `/en/` and `/es/`; switching reloads the page; `ng serve` serves one language) |
+| Amounts and dates | Formatted according to the language |
+| Auth | **angular-oauth2-oidc** (authorization code + PKCE) with a new Keycloak client `ledger-web` |
+| API access | **Same-origin proxy** (Angular dev server / nginx) instead of CORS |
+| Styling | Tailwind CSS 4; palette = neutral (slate) + one accent (**indigo**); every color is a token |
+| Theme | Light and dark, **following the OS**, with a manual override |
+| Devices | Desktop and mobile (sidebar ↔ bottom bar and menu) |
+| Components | Own UI kit, with the **Angular CDK** only for behaviour (dialogs) |
+| State | Angular signals + services |
+| Asynchronous operations | **Fire and notify**: the dialog closes right away and a toast reports the outcome |
+| Running | `ng serve` (VS Code launch configurations) **and** an nginx container in the compose `full` profile, on port **4201** |
+| Tests | Vitest (unit) and Playwright (end-to-end) |
+
+### 13.2 Backend changes it required
+
+Building and testing the web client surfaced these backend issues, fixed on the same branch:
+
+| Problem | Fix |
+| --- | --- |
+| `GET /api/me` without a token returned **500** (it was the only endpoint without `RequireAuthorization`) | Requires authorization and returns **401**. There's an integration test. |
+| A wallet created with an opening balance was announced as ready with a **balance of 0**, and the real balance arrived in a second event, so a page could show 0 | The ledger announces a new wallet **once**, already including its opening balance |
+| Debts answered **404** for a wallet or contact created a moment before (not yet projected there) | **503 Not available yet** (clients retry). It is still 404 when the wallet or contact belongs to someone else. There's an integration test. |
+| A consumer that depends on another module's event could run out of retries (about 19 s) on a cold start and be dead-lettered | Exponential retry, about 3 minutes in total |
+| EF warning for aggregates with several owned collections | Split queries for the module DbContexts |
+| The web app needed a Keycloak client | `ledger-web` added to `infra/keycloak/ledger-realm.json` (and to the running Keycloak with `kcadm`) |
+
+### 13.3 UI lessons
+
+* **CDK overlay styles:** the CDK injects its overlay CSS at runtime, unlayered, so it overrides Tailwind's layered utilities (e.g. `max-w-*` on the dialog pane). Dialog sizes are therefore passed through the CDK config (`maxWidth`), not classes.
+* **`<select [value]>`** is applied before its options render, so options use `[selected]`.
+* **Eventual consistency in the UI:** after every change the pages reload now and once more 1.5 s later, because projections in other modules (e.g. wallet balances) update a moment after the change.

@@ -41,6 +41,8 @@ Ledger.slnx
 │   ├── Ledger.Api        Host: composes the modules, JWT (Keycloak), OpenAPI + Scalar
 │   ├── Ledger.Migrator   Applies the migrations of every module, then exits
 │   └── Ledger.Console    Terminal client of the HTTP API (Keycloak login)
+├── clients
+│   └── web               Angular web client (Tailwind, EN/ES, light/dark) — see clients/web/README.md
 ├── tests
 │   ├── Ledger.UnitTests           Domain rules and split math
 │   ├── Ledger.ArchitectureTests   Module boundaries and layer rules (NetArchTest)
@@ -106,18 +108,19 @@ dotnet run --project src/Ledger.Console                       # in another termi
 docker compose --profile full up -d --build
 ```
 
-The migrator container runs once, then the API starts on `http://localhost:8081` (Scalar at `/scalar`). To debug it, use the **Docker: attach to API** launch configuration (the image ships `vsdbg`).
+The migrator container runs once, then the API starts on `http://localhost:8081` (Scalar at `/scalar`) and the web app on `http://localhost:4201`. To debug it, use the **Docker: attach to API** launch configuration (the image ships `vsdbg`).
 
 ### Local services
 
 | Service | URL | Credentials |
 | --- | --- | --- |
 | API (IDE) / API (container) | http://localhost:5209 / http://localhost:8081 | Keycloak login |
+| Web app (`ng serve`) / (container) | http://localhost:4200 / http://localhost:4201 | Keycloak login |
 | Keycloak | http://localhost:8080 | admin / admin |
 | RabbitMQ management | http://localhost:15672 | guest / guest |
 | PostgreSQL | localhost:5432, database `ledger` | postgres / postgres |
 
-The `ledger` realm is imported on Keycloak startup with two users, **alice / alice** and **bob / bob**. Use both to try linked contacts: log in once as each of them, then add the other as a contact using their email (`bob@ledger.local`). Clients: `ledger-api` (the token audience), `ledger-console` (PKCE, loopback redirect on port 7890) and `ledger-scalar`.
+The `ledger` realm is imported on Keycloak startup with two users, **alice / alice** and **bob / bob**. Use both to try linked contacts: log in once as each of them, then add the other as a contact using their email (`bob@ledger.local`). Clients: `ledger-api` (the token audience), `ledger-console` (PKCE, loopback redirect on port 7890), `ledger-web` (PKCE, ports 4200/4201) and `ledger-scalar`.
 
 ## HTTP API
 
@@ -141,6 +144,10 @@ All endpoints need a Keycloak access token. Explore them with Scalar at `/scalar
 | GET | `/api/debts/operations/{id}` | `Pending`, `Completed` or `Rejected` (with the reason) |
 
 Errors are RFC 7807 problem details. Business rule violations return `400` with a `code`, for example `ledger.insufficient_funds`.
+
+## Web client
+
+`clients/web` is an Angular app covering every feature, in English and Spanish, with light and dark themes, on desktop and mobile. How to run, debug, theme, translate and test it: [clients/web/README.md](clients/web/README.md). In VS Code, **API + Web** debugs both.
 
 ## Console client
 
