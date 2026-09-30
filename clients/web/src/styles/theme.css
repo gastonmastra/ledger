@@ -1,0 +1,90 @@
+/*
+ * ────────────────────────────────────────────────────────────────────────────
+ *  THEME — semantic tokens built from the palette (tokens.css).
+ *  Components only use these names (bg-surface, text-muted, bg-primary...).
+ *  Light is the default; the "dark" class on <html> switches to dark
+ *  (ThemeService sets it from the OS preference or the user's choice).
+ * ────────────────────────────────────────────────────────────────────────────
+ */
+:root {
+  color-scheme: light;
+
+  --background: var(--palette-neutral-50);
+  --surface: var(--palette-neutral-0);
+  --surface-muted: var(--palette-neutral-100);
+  --foreground: var(--palette-neutral-900);
+  --muted: var(--palette-neutral-500);
+  --border: var(--palette-neutral-200);
+  --ring: var(--palette-accent-500);
+
+  --primary: var(--palette-accent-600);
+  --primary-hover: var(--palette-accent-700);
+  --primary-foreground: var(--palette-neutral-0);
+  --primary-soft: var(--palette-accent-50);
+  --primary-soft-foreground: var(--palette-accent-700);
+
+  --success: var(--palette-success-600);
+  --success-soft: var(--palette-success-50);
+  --danger: var(--palette-danger-600);
+  --danger-hover: var(--palette-danger-600);
+  --danger-soft: var(--palette-danger-50);
+  --warning: var(--palette-warning-600);
+  --warning-soft: var(--palette-warning-50);
+
+  --overlay: rgb(15 23 42 / 0.45);
+}
+
+:root.dark {
+  color-scheme: dark;
+
+  --background: var(--palette-neutral-950);
+  --surface: var(--palette-neutral-900);
+  --surface-muted: var(--palette-neutral-800);
+  --foreground: var(--palette-neutral-100);
+  --muted: var(--palette-neutral-400);
+  --border: var(--palette-neutral-700);
+  --ring: var(--palette-accent-400);
+
+  --primary: var(--palette-accent-500);
+  --primary-hover: var(--palette-accent-400);
+  --primary-foreground: var(--palette-neutral-0);
+  --primary-soft: var(--palette-accent-950);
+  --primary-soft-foreground: var(--palette-accent-200);
+
+  --success: var(--palette-success-400);
+  --success-soft: var(--palette-success-950);
+  --danger: var(--palette-danger-400);
+  --danger-hover: var(--palette-danger-400);
+  --danger-soft: var(--palette-danger-950);
+  --warning: var(--palette-warning-400);
+  --warning-soft: var(--palette-warning-950);
+
+  --overlay: rgb(2 6 23 / 0.7);
+}
+
+/* Expose the semantic tokens as Tailwind utilities: bg-surface, text-muted, border-border, ring-ring... */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-foreground: var(--primary-soft-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-overlay: var(--overlay);
+
+  --radius-ui: var(--radius-base);
+  --font-sans: var(--font-family-base);
+}

@@ -1,0 +1,89 @@
+<ui-page-header i18n-heading="@@debts.title" heading="Debts & splits"
+                i18n-subtitle="@@debts.subtitle" subtitle="What people owe you and what you owe them.">
+  <button uiButton variant="secondary" type="button" (click)="openDialog('friend')" i18n="@@debts.friendPaid">A friend paid for me</button>
+  <button uiButton variant="secondary" type="button" (click)="openDialog('lend')" i18n="@@debts.lend">Lend money</button>
+  <button uiButton type="button" (click)="splitWithContacts()">
+    <ui-icon name="plus" size="sm" /><ng-container i18n="@@debts.split">Split an expense</ng-container>
+  </button>
+</ui-page-header>
+
+@if (debts.isLoading() && !debts.value()) {
+  <div class="flex justify-center py-16"><ui-spinner /></div>
+} @else {
+  @let data = debts.value();
+
+  <ui-card class="mb-6" i18n-heading="@@debts.byPerson" heading="By person" [padded]="false">
+    @if (!data?.byContact?.length) {
+      <ui-empty-state i18n-message="@@debts.noBalances" message="You are even with everybody (group expenses are in Groups)." />
+    } @else {
+      <ui-table>
+        <thead>
+          <tr>
+            <th i18n="@@debts.person">Person</th>
+            <th class="text-right" i18n="@@debts.owesMe">Owes me</th>
+            <th class="text-right" i18n="@@debts.iOwe">I owe</th>
+            <th class="text-right" i18n="@@debts.net">Net</th>
+            <th><span class="sr-only" i18n="@@ui.actions">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (balance of data!.byContact; track balance.personId + balance.currency) {
+            <tr>
+              <td class="font-medium">{{ balance.name }}</td>
+              <td class="text-right tabular-nums">{{ balance.owedToMe | money: balance.currency }}</td>
+              <td class="text-right tabular-nums">{{ balance.iOwe | money: balance.currency }}</td>
+              <td class="text-right font-medium tabular-nums" [class]="amountClass(balance.net)">{{ balance.net | money: balance.currency: true }}</td>
+              <td class="text-right">
+                <button uiButton variant="secondary" size="sm" type="button" (click)="settleContact(balance)" i18n="@@debts.settleUp">Settle up</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </ui-table>
+    }
+  </ui-card>
+
+  <ui-card i18n-heading="@@debts.open" heading="Open debts" [padded]="false">
+    @if (!data?.debts?.length) {
+      <ui-empty-state i18n-message="@@debts.none" message="No open debts." />
+    } @else {
+      <ui-table>
+        <thead>
+          <tr>
+            <th i18n="@@debts.with">With</th>
+            <th i18n="@@debts.for">For</th>
+            <th class="text-right" i18n="@@debts.amount">Amount</th>
+            <th i18n="@@debts.status">Status</th>
+            <th><span class="sr-only" i18n="@@ui.actions">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (debt of data!.debts; track debt.id) {
+            <tr>
+              <td>
+                <span class="font-medium">{{ debt.counterpartyName }}</span>
+                @if (debt.groupName) {
+                  <ui-badge class="ml-1">{{ debt.groupName }}</ui-badge>
+                }
+              </td>
+              <td class="text-muted">{{ debt.description }}</td>
+              <td class="text-right tabular-nums" [class]="debt.direction === 'OwedToMe' ? 'text-success' : 'text-danger'">
+                @if (debt.direction === 'OwedToMe') {
+                  <span i18n="@@debts.owesYouAmount">owes you {{ debt.amount | money: debt.currency }}</span>
+                } @else {
+                  <span i18n="@@debts.youOweAmount">you owe {{ debt.amount | money: debt.currency }}</span>
+                }
+              </td>
+              <td><ui-badge [tone]="debt.status === 'Open' && !debt.isSettling ? 'primary' : 'neutral'">{{ statusLabel(debt.status, debt.isSettling) }}</ui-badge></td>
+              <td class="text-right">
+                @if (!debt.groupId && debt.status === 'Open' && !debt.isSettling) {
+                  <button uiButton variant="ghost" size="sm" type="button" (click)="settleDebt(debt)" i18n="@@debts.settle">Settle</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </ui-table>
+    }
+  </ui-card>
+}

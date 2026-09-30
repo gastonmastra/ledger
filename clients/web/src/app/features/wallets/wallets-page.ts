@@ -1,0 +1,105 @@
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { firstValueFrom } from 'rxjs';
+import { LedgerApi } from '../../core/api/ledger-api';
+import { Wallet } from '../../core/api/models';
+import { DataChanges } from '../../core/data-changes';
+import { walletStatusLabel } from '../../core/i18n/labels';
+import { ToastService } from '../../core/notifications/toast.service';
+import {
+  Badge,
+  Button,
+  Card,
+  ConfirmService,
+  DialogService,
+  EmptyState,
+  Icon,
+  MoneyPipe,
+  PageHeader,
+  Spinner,
+  Table,
+} from '../../ui';
+import { NameDialog, NameDialogData } from '../shared/name-dialog';
+import { WalletDialog } from './wallet-dialog';
+
+@Component({
+  selector: 'app-wallets-page',
+  imports: [PageHeader, Card, Table, Badge, Button, Icon, EmptyState, Spinner, MoneyPipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  templateUrl: './wallets-page.html',
+})
+export class WalletsPage {
+  private readonly api = inject(LedgerApi);
+  private readonly changes = inject(DataChanges);
+  private readonly dialogs = inject(DialogService);
+  private readonly confirm = inject(ConfirmService);
+  private readonly toasts = inject(ToastService);
+
+  protected readonly showArchived = signal(false);
+  protected readonly statusLabel = walletStatusLabel;
+
+  protected readonly wallets = rxResource({
+    params: () => ({ archived: this.showArchived(), version: this.changes.version() }),
+    stream: ({ params }) => this.api.wallets(params.archived),
+  });
+
+  constructor() {
+    // New wallets are set up asynchronously by the ledger: refresh until they are ready.
+    effect((onCleanup) => {
+      if (this.wallets.value()?.some((w) => !w.isReady)) {
+        const timer = setTimeout(() => this.wallets.reload(), 1000);
+        onCleanup(() => clearTimeout(timer));
+      }
+    });
+  }
+
+  protected async create(): Promise<void> {
+    if (await this.dialogs.open<boolean>(WalletDialog)) {
+      this.toasts.success($localize`:@@wallets.created:Wallet created.`);
+      this.changes.notify();
+    }
+  }
+
+  protected async rename(wallet: Wallet): Promise<void> {
+    const name = await this.dialogs.open<string, NameDialogData>(NameDialog, {
+      title: $localize`:@@wallets.rename:Rename wallet`,
+      label: $localize`:@@wallets.name:Name`,
+      value: wallet.name,
+      maxLength: 100,
+    });
+
+    if (name && name !== wallet.name) {
+      await firstValueFrom(this.api.renameWallet(wallet.id, name));
+      this.changes.notify();
+    }
+  }
+
+  protected async archive(wallet: Wallet): Promise<void> {
+    const confirmed = await this.confirm.confirm({
+      title: $localize`:@@wallets.archiveTitle:Archive wallet`,
+      message: $localize`:@@wallets.archiveMessage:"${wallet.name}:name:" will be hidden. Its history is kept. Only wallets with a zero balance can be archived.`,
+      confirmLabel: $localize`:@@wallets.archive:Archive`,
+    });
+
+    if (confirmed) {
+      await firstValueFrom(this.api.archiveWallet(wallet.id));
+      this.toasts.success($localize`:@@wallets.archived:Wallet archived.`);
+      this.changes.notify();
+    }
+  }
+
+  protected async remove(wallet: Wallet): Promise<void> {
+    const confirmed = await this.confirm.confirm({
+      title: $localize`:@@wallets.deleteTitle:Delete wallet`,
+      message: $localize`:@@wallets.deleteMessage:"${wallet.name}:name:" will be deleted. Only wallets without transactions can be deleted.`,
+      confirmLabel: $localize`:@@ui.delete:Delete`,
+      danger: true,
+    });
+
+    if (confirmed) {
+      await firstValueFrom(this.api.deleteWallet(wallet.id));
+      this.toasts.success($localize`:@@wallets.deleted:Wallet deleted.`);
+      this.changes.notify();
+    }
+  }
+}

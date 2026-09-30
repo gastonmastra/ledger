@@ -81,6 +81,33 @@
       "presentation": {
         "hidden": true
       }
+    },
+    {
+      "name": "Web (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "web: start",
+      "url": "http://localhost:4200/",
+      "webRoot": "${workspaceFolder}/clients/web"
+    },
+    {
+      "name": "Web (Chrome, Spanish)",
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "web: start (es)",
+      "url": "http://localhost:4200/",
+      "webRoot": "${workspaceFolder}/clients/web"
+    },
+    {
+      "name": "Web (compound)",
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "web: start",
+      "url": "http://localhost:4200/",
+      "webRoot": "${workspaceFolder}/clients/web",
+      "presentation": {
+        "hidden": true
+      }
     }
   ],
   "compounds": [
@@ -89,6 +116,15 @@
       "configurations": [
         "API (compound)",
         "Console (compound)"
+      ],
+      "preLaunchTask": "prepare-debug",
+      "stopAll": true
+    },
+    {
+      "name": "API + Web",
+      "configurations": [
+        "API (compound)",
+        "Web (compound)"
       ],
       "preLaunchTask": "prepare-debug",
       "stopAll": true

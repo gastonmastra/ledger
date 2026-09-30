@@ -1,0 +1,82 @@
+@if (group.value(); as g) {
+  <ui-page-header [heading]="g.name" i18n-subtitle="@@groups.detailSubtitle" subtitle="Shared expenses, balances and payments.">
+    <a uiButton variant="ghost" routerLink="/groups" i18n="@@groups.back">All groups</a>
+    <button uiButton variant="secondary" type="button" (click)="addMember()" i18n="@@groups.addMember">Add member</button>
+    <button uiButton type="button" (click)="addExpense()">
+      <ui-icon name="plus" size="sm" /><ng-container i18n="@@groups.addExpense">Add expense</ng-container>
+    </button>
+  </ui-page-header>
+
+  <div class="grid gap-6 lg:grid-cols-3">
+    <ui-card class="lg:col-span-2" i18n-heading="@@groups.balances" heading="Balances" [padded]="false">
+      @if (!balances.value()?.balances?.length) {
+        <ui-empty-state i18n-message="@@groups.noExpenses" message="No expenses yet." />
+      } @else {
+        <ui-table>
+          <thead>
+            <tr>
+              <th i18n="@@groups.member">Member</th>
+              <th class="text-right" i18n="@@groups.balance">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (balance of balances.value()!.balances; track balance.personId + balance.currency) {
+              <tr>
+                <td>{{ name(balance.personId) }}</td>
+                <td class="text-right tabular-nums" [class]="amountClass(balance.balance)">
+                  @if (balance.balance > 0) {
+                    <span i18n="@@groups.isOwed">is owed {{ balance.balance | money: balance.currency }}</span>
+                  } @else if (balance.balance < 0) {
+                    <span i18n="@@groups.owes">owes {{ -balance.balance | money: balance.currency }}</span>
+                  } @else {
+                    <span i18n="@@groups.even">even</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </ui-table>
+      }
+    </ui-card>
+
+    <ui-card i18n-heading="@@groups.members" heading="Members" [padded]="false">
+      <ul class="divide-y divide-border">
+        @for (member of g.members; track member.personId) {
+          <li class="flex items-center justify-between gap-2 px-4 py-2.5 text-sm">
+            <span>
+              {{ memberName(member) }}
+              @if (member.userId && !member.isMe) {
+                <ui-badge class="ml-1" tone="success" i18n="@@groups.user">Ledger user</ui-badge>
+              }
+            </span>
+            @if (!member.isMe && !member.hasActivity) {
+              <button uiButton variant="ghost" size="sm" type="button" (click)="removeMember(member)" i18n="@@groups.remove">Remove</button>
+            }
+          </li>
+        }
+      </ul>
+    </ui-card>
+  </div>
+
+  <ui-card class="mt-6" i18n-heading="@@groups.suggested" heading="Suggested payments" [padded]="false">
+    @if (!balances.value()?.suggestedPayments?.length) {
+      <ui-empty-state i18n-message="@@groups.allEven" message="Everyone is even." />
+    } @else {
+      <ui-table>
+        <tbody>
+          @for (payment of balances.value()!.suggestedPayments; track payment.fromPersonId + payment.toPersonId + payment.currency) {
+            <tr>
+              <td i18n="@@groups.paymentLine">{{ name(payment.fromPersonId) }} pays {{ name(payment.toPersonId) }}</td>
+              <td class="text-right font-medium tabular-nums">{{ payment.amount | money: payment.currency }}</td>
+              <td class="text-right">
+                <button uiButton variant="secondary" size="sm" type="button" (click)="settle(payment)" i18n="@@groups.markPaid">Mark as paid</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </ui-table>
+    }
+  </ui-card>
+} @else if (group.isLoading()) {
+  <div class="flex justify-center py-16"><ui-spinner /></div>
+}
