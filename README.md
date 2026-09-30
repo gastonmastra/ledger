@@ -16,7 +16,11 @@ It is a **.NET 10 modular monolith**: one deployable application made of indepen
 | Income and expenses | Record money in or out of a wallet, optionally in a user-defined category. Without a category it goes to *Uncategorized* (expenses) or *Uncategorized income* (income). |
 | Transfers | Between two of my wallets. Across currencies I type the amount received, and the ledger balances each currency through a *Currency exchange* account. A wallet can never go below zero. |
 | Loans | Lend money from a wallet to a contact. The contact now owes me. |
-| Existing debts | Record a debt from before using Ledger ("I already owed Sofi 50", or the other way round). It counts as an expense or income, is mirrored to linked users and is settled like any debt. |
+| Existing debts | Record a debt from before using Ledger ("I already owed Sofi 50", or the other way round). It is neither income nor expense (it comes from *Opening balances*), is mirrored to linked users and is settled like any debt. |
+| Corrections | **Edit, delete and restore** anything (income, expenses, transfers, loans, existing debts, splits, settlements) with a required reason. Nothing is edited in place: a reversal cancels the old version, so the history keeps everything and charts count only the current one. |
+| Shared changes | Linked users involved **confirm** changes to what they share; whoever rejects keeps the old version and the operation is marked *disputed*. Settled debts change only after undoing the settlement. |
+| Lock date | Close your books up to a date: nothing in that period can be recorded or changed (also by shared changes). Can be moved back. |
+| Activity | Who changed, deleted or restored what, and why. |
 | Splits | Split an expense among me, my contacts or a group: equally, by amount or by percentage, with **any number of payers**. "A friend paid for me" is a split where the friend pays and I consume. |
 | Groups | Shared with every member who is a registered user. Group balances are **simplified** into the fewest payments. |
 | Settlements | Full settlement of one debt, of everything with a contact, or of one suggested group payment. |
@@ -138,7 +142,7 @@ All endpoints need a Keycloak access token. Explore them with Scalar at `/scalar
 | GET | `/api/transactions?page&pageSize&walletId&categoryId&contactId&from&to` | History, newest first |
 | GET | `/api/transactions/{id}` | One transaction with its postings |
 | POST | `/api/transactions/income`, `/expense`, `/transfer` | Record money in, out, or between wallets |
-| GET/PUT | `/api/transactions/opening-balance/{walletId}`, `/api/transactions/opening-balance` | Read or replace a wallet's opening balance |
+| GET/PUT | `/api/transactions/opening-balance/{walletId}`, `/api/transactions/opening-balance` | Read or replace a wallet's opening balance (PUT needs a `reason`) |
 | POST | `/api/transactions/balance-adjustment` | Set a wallet to its real balance |
 | GET | `/api/summary` | Totals per currency, per wallet and per person or group |
 | GET | `/api/reports?from&to&currency&timeZone` | Figures for charts (daily up to 62 days, monthly above) |
@@ -148,7 +152,13 @@ All endpoints need a Keycloak access token. Explore them with Scalar at `/scalar
 | GET | `/api/groups/{id}/balances` | Balances, simplified payments and raw debts |
 | GET | `/api/debts` | My debts and the net per contact |
 | POST | `/api/debts/loans`, `/api/debts/splits`, `/api/debts/settlements`, `/api/debts/initial` | Asynchronous: `202` plus an operation |
-| GET | `/api/debts/operations/{id}` | `Pending`, `Completed` or `Rejected` (with the reason) |
+| GET | `/api/debts/operations/{id}` | An operation: `Pending`, `Completed`, `Rejected` (with the reason), `Superseded` or `Deleted` |
+| PUT/DELETE | `/api/transactions/{id}`, POST `/api/transactions/{id}/restore` | Correct, delete or restore a transaction (with a `reason`) |
+| GET | `/api/transactions/{id}/history`, `/api/transactions/activity` | Versions of a transaction; my recent changes |
+| GET/PUT | `/api/settings/books-lock` | Lock date |
+| GET | `/api/debts/operations?kind&groupId&personId&includeHistory`, `/{id}/history` | Loans, splits, settlements and existing debts, and their versions |
+| PUT/DELETE | `/api/debts/operations/{id}`, POST `/{id}/restore` | Request a change (linked users confirm it) |
+| GET/POST | `/api/debts/changes`, `/{id}/accept`, `/{id}/reject`; GET `/api/debts/activity` | Review changes; shared activity |
 
 Errors are RFC 7807 problem details. Business rule violations return `400` with a `code`, for example `ledger.insufficient_funds`.
 

@@ -1,6 +1,6 @@
 # Ledger Web
 
-Angular client of the Ledger API. It covers every feature: summary with **charts** (month, year or custom period), wallets (opening balance and balance adjustments), transactions (with filters), categories, contacts, loans, **existing debts**, splits, groups with simplified balances, settlements and pending wallet assignments. Every form has a **When** field (date and time; future dates not allowed). It is available in **English and Spanish** and has **light and dark** themes, and it works on desktop and on phones.
+Angular client of the Ledger API. It covers every feature: summary with **charts** (month, year or custom period), wallets (opening balance and balance adjustments), transactions (with filters), categories, contacts, loans, **existing debts**, splits, groups with simplified balances, settlements and pending wallet assignments. Everything can be **edited, deleted and restored** with a reason and a full **history**; changes to shared operations are **reviewed** by the linked users involved; there is an **Activity** page and a **lock date** in Settings. Every form has a **When** field (date and time; future dates not allowed). It is available in **English and Spanish** and has **light and dark** themes, and it works on desktop and on phones.
 
 | | |
 | --- | --- |
@@ -141,6 +141,8 @@ Amounts and dates follow the language (`€1,234.50` / `1234,50 €`). The label
 * **Dates** are chosen in local time and sent in UTC (`core/dates.ts`). The reports send the browser's IANA time zone, so days and months are cut where the user lives.
 * **Dashboard charts** (`features/dashboard/report-panel`): Month / Year / Custom with previous and next, and a currency selector (default: the currency with the most activity). Balance adjustments are not counted as income or expenses.
 * **Loans, splits, settlements and existing debts** are asynchronous in the API (*fire and notify*): the dialog closes as soon as the API accepts the operation, a toast says it is processing, and `OperationTracker` polls it and shows the result (recorded, or rejected with the reason).
+
+* **Edits** never modify anything: the API records a new version. Transactions are corrected synchronously; changes of shared operations return a change that is either *waiting for confirmation* (a toast names who must answer) or being applied (`OperationTracker.submitChange` polls the operation's history until it is applied or failed). `OperationActions` (`features/debts/operation-actions.ts`) opens the right edit dialog for each kind; the dialogs for recording (lend, existing debt, split, income/expense, transfer) have an edit mode with a required **Why?** (`ui/reason-field`).
 
 ## Tests
 

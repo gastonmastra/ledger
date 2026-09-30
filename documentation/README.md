@@ -20,6 +20,7 @@ For a quick start see the [root README](../README.md). For database migrations s
 12. [Reference: versions, conventions, commits](#12-reference)
 13. [Web client](#13-web-client)
 14. [Dates, opening balances, adjustments, existing debts and reports](#14-dates-opening-balances-adjustments-existing-debts-and-reports)
+15. [Editable, auditable ledger](#15-editable-auditable-ledger)
 
 ---
 
@@ -607,7 +608,7 @@ Added on branch `feature/ledger-enhancements`, to the API, the web app and the c
 | Future dates | Rejected (`NotInFuture`, 1 minute of clock skew) |
 | Wallet initial amount | **Both**: edit the opening balance (amount and date; append-only) and a balance adjustment to the real balance |
 | Adjustments | New system account **Balance adjustments** (Equity), **excluded** from income and expenses in reports |
-| Existing debts | Both directions, **contacts only**; recorded **as expense (I owed) or income (they owed me)**; **mirrored** to linked users |
+| Existing debts | Both directions, **contacts only**; **mirrored** to linked users. First recorded as expense (I owed) or income (they owed me); **changed in [section 15](#15-editable-auditable-ledger)** to neither (Opening balances) |
 | Charts | Spending by category, income vs expenses, net worth over time, balance per wallet; Month / Year / **Custom**; currency selector; **Chart.js** |
 | Console | Same features, plus a **text Reports menu** |
 
@@ -638,3 +639,76 @@ Added on branch `feature/ledger-enhancements`, to the API, the web app and the c
 | --- | --- |
 | A date with a non-UTC offset (e.g. `+02:00`) made PostgreSQL reject the value (500). The console's reports sent local offsets; the web app always sends UTC. | EF convention in every module: `DateTimeOffset` values are converted to UTC (same instant) when written and in queries. No schema change. Integration test added. |
 | While testing, the developer's API from a VS Code debug session ran old code on the same database and queues | Tests ran against an **isolated** copy: database `ledger_enh`, RabbitMQ virtual host `ledger-enh`, API on port 5219 and a temporary dev-server proxy |
+
+## 15. Editable, auditable ledger
+
+Added on branch `feature/ledger-edits`, to the API, the web app and the console. Users can correct or delete past income, expenses, transfers, loans, existing debts, splits (also group expenses) and settlements, restore what they deleted, see every version, close past periods, and review changes other people make to what they share. It also fixes the bug report "the income vs expense chart shows a debt as income".
+
+### 15.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| Edit model | **Reverse + replace.** Posted entries are never modified. An edit posts a reversal of the current version (same date, so both cancel out) and the corrected entry; a delete posts only the reversal. Lists, balances and charts show the **current** version only; a **History** shows every version. |
+| Reason | **Required** for every edit, delete and restore (max 500 characters); kept in the history. |
+| What can change | Income, expense, transfer (and delete/restore of balance adjustments); loans and existing debts; splits, including group expenses; settlements (date, description, wallet: the amount comes from the debts it paid). |
+| Settled debts | **Blocked**: undo (delete) the settlement first. Deleting a settlement reopens its debts. |
+| Shared with linked users | **They confirm.** Until everybody involved answers, everybody keeps the old version, the operation shows *change pending* and it cannot be settled. **Each user decides for their own books**: the author and those who accept get the new version; those who reject keep the old one and the operation is marked **disputed**. Contacts without an account need no confirmation. |
+| Who may change a shared operation | Any **registered user involved** (for group operations, any member). The contact, wallets, category and currency belong to whoever recorded it; others keep them. |
+| Existing debts | **Neither income nor expense**: posted against *Opening balances*, like a wallet's starting amount. Old ones were migrated with reverse + replace, marked as a **system** change. |
+| Extras | **Restore** deleted items; a **lock date** per user ("my books are closed up to X", can be moved back); a shared change that touches a linked user's locked period is **refused** for the author; an **Activity** feed. |
+| Console | Everything the web app has. |
+
+### 15.2 Ledger (Transactions module)
+
+* `Transaction` gained `EntryId` (the logical entry: its first version's id), `Revision`, `ReversalOfId`, `ReversedById`, `ChangedByUserId`, `ChangeAction` (`Edit`, `Delete`, `Restore`, `System`) and `ChangeReason`. Kind `Reversal` was added. Setting `ReversedById` on the original is the only change ever made to a posted row, and it is metadata.
+* **Current** = not reversed and not a reversal. Lists show only current transactions unless `includeHistory=true` (statuses `Current`, `Changed`, `Deleted`, `Reversal`). **Reports count income, expenses and spending from current transactions only**, so a correction is never counted twice; net worth and balances use every posting (a reversal and its original cancel out).
+* `LedgerWriter` checks the no-overdraft rule on each wallet's **final** balance over the whole batch (reversal + correction), not on intermediate steps.
+* **Lock date** (`books_locks`): every write checks `OccurredAt > LockedUntil` for every owner in the batch (reversals carry the original's date, so a closed period cannot be edited or deleted either). Error `books.locked`. Changes are published as `BooksLockChanged`; the Debts module keeps a copy to refuse shared changes early (`books.locked_for_other`).
+* Shared operations are revised through `LedgerRevisionRequested`: for each listed user, reverse their current transactions of **any earlier version** of the operation (so a user who kept an old version after a dispute is brought up to date by the next accepted change), cancel their open pending wallet assignments, and post their leg of the new version as the next revision. All users are updated atomically; the answer is `LedgerRevisionCompleted` or `LedgerRevisionRejected`.
+* Migration `TransactionRevisions` backfills `EntryId = Id` and `Revision = 1`, chains the successive opening balances of each wallet into one entry and links the old `OpeningBalanceReversal` rows to what they cancelled. Opening-balance changes now use the generic reversal.
+* **Existing debts migration** (`ExistingDebtsMigrationRunner`, at startup, idempotent): every current `InitialDebt` transaction with an income or expense posting is reversed and replaced by one against Opening balances, `ChangeAction = System`, reason "Existing debts no longer count as income or expenses". This fixes the "debt shown as income" report.
+
+| Operation | Postings |
+| --- | --- |
+| Correct an expense of 30 to 50 | Reversal (same date): Bank +30 · Food −30. Revision 2: Food +50 · Bank −50 |
+| Delete it | Reversal: Bank +50 · Food −50 |
+| "I already owed Sofi 50" (new rule) | Me: Opening balances +50 · I owe [Sofi] −50. Sofi, if linked: Owed to me [me] +50 · Opening balances −50 |
+
+### 15.3 Shared operations (Debts module)
+
+* `DebtOperation` gained `EntryId`, `Revision`, `ReplacesOperationId`, `PendingChangeId`, `IsDisputed` and `WalletId` (settlements: the initiator's wallet); statuses `Superseded` and `Deleted`. `Debt` gained status `Superseded`.
+* `OperationChange` (`Revise`, `Delete`, `Restore`; `Pending → Applying → Applied | Failed`) stores the requested values (`Draft`, JSON), a preview of the new version and one `ChangeApproval` per linked user involved other than the author.
+* Flow: request (validations: involved user, no pending change, debts not settled, no locked period) → approvals → when everybody answered, the new version is built **from the initiator's point of view** and the ledger is asked to update the author and those who accepted → on success the old version becomes `Superseded`/`Deleted`, its debts `Superseded`, the new one `Completed` (and `IsDisputed` if anybody rejected). On failure (e.g. not enough money, a locked period) the change is `Failed` and everything stays as it was.
+* While a change is pending, settling the debts of that operation (or anything in that group) is refused (`operation.change_pending`).
+
+### 15.4 API
+
+| Method | Route | Description |
+| --- | --- | --- |
+| PUT / DELETE | `/api/transactions/{id}` (DELETE body `{ reason }`) | Correct or delete an income, expense or transfer (delete also balance adjustments) |
+| POST | `/api/transactions/{id}/restore` | Restore a deleted one |
+| GET | `/api/transactions/{id}/history`, `/api/transactions/activity` | Versions; my recent changes |
+| GET/PUT | `/api/settings/books-lock` | Lock date (`null` = nothing locked) |
+| GET | `/api/debts/operations?kind&groupId&personId&includeHistory&page`, `/{id}`, `/{id}/history` | Operations with their flags (`canEdit`, `canDelete`, `canRestore`, `blockedReason`, `pendingChange`, `isDisputed`) |
+| PUT / DELETE | `/api/debts/operations/{id}`, POST `/{id}/restore` | Request a change; returns the change (`Pending` with who must answer, or `Applying`) |
+| GET / POST | `/api/debts/changes?filter=ToReview|All`, `/api/debts/changes/{id}/accept|reject` | Review changes |
+| GET | `/api/debts/activity` | Changes I requested or was asked about |
+
+### 15.5 Clients
+
+* **Web:** Edit / Delete / History on transactions and a *Show changes* toggle; an operations list in Debts and in each group (Edit, Delete, Restore, History, *Undo settlement*) with *Change pending* and *Disputed* badges; *Changes to review* page (badge in the menu and a banner in Debts); *Activity* and *Settings* pages; a reusable `ReasonField` and reason dialog. English and Spanish.
+* **Console:** Transactions (edit, delete, restore, history), Debts and Groups (*Loans, splits and settlements* / *Expenses and payments*), and the main menu's *Changes to review*, *Activity* and *Settings*.
+
+### 15.6 Verification
+
+* **Unit:** reversal, revisions, lock rule, change approvals (accept, reject, disputed, answered once), one pending change at a time, reopening settled debts, existing debts against Opening balances.
+* **Integration (Testcontainers):** edit/delete/restore an expense counted once in reports with a 3-row history; an overdrawing correction refused; the lock date blocks record, edit and delete; a loan change with a linked user accepted (both updated) and then rejected (disputed, books differ), and refused for a linked user's locked period; a settled loan blocked until the settlement is deleted; an existing debt not counted as income, edited, deleted and restored; a group expense edit recalculating group balances.
+* **Migrations** were run on a copy of a development database: opening-balance chains and the existing-debt migration were checked row by row.
+* **Web:** unit specs and Playwright (edit/delete/restore with history, lock date, a loan change accepted by the linked user); **console:** a scripted run of the same flows. Both against an isolated database, RabbitMQ virtual host and API (port 5219).
+
+### 15.7 Known limitations
+
+* Settlements recorded **before** this branch stored the initiator's wallet only when the initiator paid. If somebody else edits one where the initiator received the money, the initiator gets it in *Pending wallet assignments*.
+* A percentage split is shown for editing with the resulting amounts (percentages are not stored).
+* When a non-initiator edits a split outside groups, people who are only in the initiator's contacts may show as "(unknown)".
+* A disputed operation shows the version the author applied in the Debts screens; the books of whoever rejected keep the previous one.
