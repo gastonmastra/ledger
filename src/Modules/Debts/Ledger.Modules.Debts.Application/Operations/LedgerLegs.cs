@@ -28,8 +28,9 @@ internal static class LedgerLegs
     }
 
     /// <summary>
-    /// A debt that already existed: recorded as an expense for the debtor and as income for the
-    /// creditor, with no money moving (it is paid later with a settlement).
+    /// A debt that already existed: no money moves (it is paid later with a settlement) and it is
+    /// neither income nor expense. The balance comes from Opening balances, like a wallet's
+    /// starting amount.
     /// </summary>
     public static IReadOnlyList<LedgerLeg> ForInitialDebt(DebtOperation debt, PersonInfo creditor, PersonInfo debtor)
     {
@@ -39,16 +40,17 @@ internal static class LedgerLegs
         if (debtor.UserId is { } debtorUserId)
         {
             legs.Add(new LedgerLeg(
-                debtorUserId, null, debtorUserId == debt.InitiatorUserId ? debt.CategoryId : null, 0, amount,
-                [new LedgerPosition(creditor.PersonId, PositionSides.Payable, -amount)]));
+                debtorUserId, null, null, 0, 0,
+                [new LedgerPosition(creditor.PersonId, PositionSides.Payable, -amount)],
+                OpeningBalanceAmount: amount));
         }
 
         if (creditor.UserId is { } creditorUserId)
         {
             legs.Add(new LedgerLeg(
-                creditorUserId, null, creditorUserId == debt.InitiatorUserId ? debt.CategoryId : null, 0, 0,
+                creditorUserId, null, null, 0, 0,
                 [new LedgerPosition(debtor.PersonId, PositionSides.Receivable, amount)],
-                IncomeAmount: amount));
+                OpeningBalanceAmount: -amount));
         }
 
         return legs;
@@ -192,6 +194,13 @@ internal static class LedgerLegs
         => operation.Payers.Select(p => p.PersonId)
             .Concat(operation.Shares.Select(s => s.PersonId))
             .Distinct();
+
+    /// <summary>Registered users among the people of the operation (only they have books).</summary>
+    public static IReadOnlySet<Guid> RegisteredUsers(DebtOperation operation, IReadOnlyDictionary<Guid, PersonInfo> people)
+        => operation.InvolvedPersonIds
+            .Select(id => people.GetValueOrDefault(id)?.UserId ?? (id == operation.InitiatorUserId ? id : null))
+            .OfType<Guid>()
+            .ToHashSet();
 
     private static decimal Paid(DebtOperation split, Guid personId)
         => split.Payers.Where(p => p.PersonId == personId).Sum(p => p.Amount);

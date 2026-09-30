@@ -23,7 +23,11 @@ public enum OperationStatus
     Pending,
     Completed,
     /// <summary>The ledger refused it (e.g. not enough money in the wallet).</summary>
-    Rejected
+    Rejected,
+    /// <summary>Replaced by a newer version (an edit).</summary>
+    Superseded,
+    /// <summary>Deleted by a user (it can be restored).</summary>
+    Deleted
 }
 
 public enum SplitMethod
@@ -48,5 +52,33 @@ public enum DebtStatus
     Pending,
     Open,
     Settled,
+    Rejected,
+    /// <summary>Its operation was changed or deleted.</summary>
+    Superseded
+}
+
+public enum ChangeKind
+{
+    Revise,
+    Delete,
+    Restore
+}
+
+public enum ChangeStatus
+{
+    /// <summary>Waiting for the linked users to accept or reject it.</summary>
+    Pending,
+    /// <summary>Everybody answered; the ledger is recording it.</summary>
+    Applying,
+    /// <summary>Recorded (maybe disputed by some users).</summary>
+    Applied,
+    /// <summary>The ledger refused it (e.g. not enough money, a locked period).</summary>
+    Failed
+}
+
+public enum ApprovalStatus
+{
+    Pending,
+    Accepted,
     Rejected
 }

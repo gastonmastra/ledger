@@ -9,6 +9,9 @@ public static class DependencyInjection
     {
         services.AddScoped<PeopleDirectory>();
         services.AddScoped<GroupBalances>();
+        services.AddScoped<OperationFactory>();
+        services.AddScoped<BooksLockGuard>();
+        services.AddScoped<OperationLifecycle>();
 
         return services;
     }

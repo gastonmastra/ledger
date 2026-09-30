@@ -76,6 +76,33 @@ namespace Ledger.Modules.Debts.Infrastructure.Migrations
                     b.ToTable("integration_outbox", "debts");
                 });
 
+            modelBuilder.Entity("Ledger.Modules.Debts.Domain.ChangeApproval", b =>
+                {
+                    b.Property<Guid>("ChangeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("ChangeId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("operation_change_approvals", "debts");
+                });
+
             modelBuilder.Entity("Ledger.Modules.Debts.Domain.Debt", b =>
                 {
                     b.Property<Guid>("Id")
@@ -130,6 +157,20 @@ namespace Ledger.Modules.Debts.Infrastructure.Migrations
                     b.HasIndex("SettlementOperationId");
 
                     b.ToTable("debts", "debts");
+                });
+
+            modelBuilder.Entity("Ledger.Modules.Debts.Domain.DebtBooksLock", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("LockedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("known_books_locks", "debts");
                 });
 
             modelBuilder.Entity("Ledger.Modules.Debts.Domain.DebtContact", b =>
@@ -211,6 +252,9 @@ namespace Ledger.Modules.Debts.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("EntryId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("FromPersonId")
                         .HasColumnType("uuid");
 
@@ -219,6 +263,9 @@ namespace Ledger.Modules.Debts.Infrastructure.Migrations
 
                     b.Property<Guid>("InitiatorUserId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDisputed")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Kind")
                         .IsRequired()
@@ -232,9 +279,18 @@ namespace Ledger.Modules.Debts.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("PendingChangeId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("ReplacesOperationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Scope")
                         .HasMaxLength(20)
@@ -252,7 +308,12 @@ namespace Ledger.Modules.Debts.Infrastructure.Migrations
                         .HasPrecision(19, 4)
                         .HasColumnType("numeric(19,4)");
 
+                    b.Property<Guid?>("WalletId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("EntryId");
 
                     b.HasIndex("InitiatorUserId");
 
@@ -294,6 +355,70 @@ namespace Ledger.Modules.Debts.Infrastructure.Migrations
                     b.HasKey("WalletId");
 
                     b.ToTable("known_wallets", "debts");
+                });
+
+            modelBuilder.Entity("Ledger.Modules.Debts.Domain.OperationChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AppliedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Draft")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid?>("NewOperationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OperationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Preview")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OperationId");
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.ToTable("operation_changes", "debts");
+                });
+
+            modelBuilder.Entity("Ledger.Modules.Debts.Domain.ChangeApproval", b =>
+                {
+                    b.HasOne("Ledger.Modules.Debts.Domain.OperationChange", null)
+                        .WithMany("Approvals")
+                        .HasForeignKey("ChangeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Ledger.Modules.Debts.Domain.DebtOperation", b =>
@@ -360,6 +485,11 @@ namespace Ledger.Modules.Debts.Infrastructure.Migrations
                     b.Navigation("Payers");
 
                     b.Navigation("Shares");
+                });
+
+            modelBuilder.Entity("Ledger.Modules.Debts.Domain.OperationChange", b =>
+                {
+                    b.Navigation("Approvals");
                 });
 #pragma warning restore 612, 618
         }

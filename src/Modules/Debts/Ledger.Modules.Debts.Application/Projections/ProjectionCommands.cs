@@ -21,6 +21,8 @@ public sealed record ProjectWalletCommand(Guid WalletId, Guid UserId, string Cur
 
 public sealed record RemoveWalletProjectionCommand(Guid WalletId) : ICommand;
 
+public sealed record ProjectBooksLockCommand(Guid UserId, DateTimeOffset? LockedUntil) : ICommand;
+
 internal sealed class ProjectionHandlers(IDebtsDbContext dbContext)
     : ICommandHandler<ProjectContactCommand>,
       ICommandHandler<ProjectContactLinkCommand>,
@@ -28,8 +30,21 @@ internal sealed class ProjectionHandlers(IDebtsDbContext dbContext)
       ICommandHandler<ProjectGroupMembersCommand>,
       ICommandHandler<RemoveGroupMemberProjectionCommand>,
       ICommandHandler<ProjectWalletCommand>,
-      ICommandHandler<RemoveWalletProjectionCommand>
+      ICommandHandler<RemoveWalletProjectionCommand>,
+      ICommandHandler<ProjectBooksLockCommand>
 {
+    public async Task Handle(ProjectBooksLockCommand command, CancellationToken cancellationToken)
+    {
+        var existing = await dbContext.BooksLocks.SingleOrDefaultAsync(x => x.UserId == command.UserId, cancellationToken);
+
+        if (existing is null)
+            dbContext.BooksLocks.Add(DebtBooksLock.Create(command.UserId, command.LockedUntil));
+        else
+            existing.Set(command.LockedUntil);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task Handle(ProjectContactCommand command, CancellationToken cancellationToken)
     {
         if (await dbContext.Contacts.AnyAsync(x => x.ContactId == command.ContactId, cancellationToken))

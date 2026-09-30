@@ -18,6 +18,21 @@ public sealed class DebtOperation
     }
 
     public Guid Id { get; private set; }
+
+    /// <summary>The logical operation: id of its first version. All revisions share it.</summary>
+    public Guid EntryId { get; private set; }
+
+    public int Revision { get; private set; } = 1;
+
+    /// <summary>The version this one replaced (an edit or a restore).</summary>
+    public Guid? ReplacesOperationId { get; private set; }
+
+    /// <summary>A change waiting for linked users; the operation cannot be changed or settled meanwhile.</summary>
+    public Guid? PendingChangeId { get; private set; }
+
+    /// <summary>Some linked users rejected the last change: their books keep the previous version.</summary>
+    public bool IsDisputed { get; private set; }
+
     public OperationKind Kind { get; private set; }
     public OperationStatus Status { get; private set; }
     public Guid InitiatorUserId { get; private set; }
@@ -29,6 +44,9 @@ public sealed class DebtOperation
 
     /// <summary>Split only.</summary>
     public SplitMethod? Method { get; private set; }
+
+    /// <summary>Settlement only: the initiator's wallet the money came from or went to.</summary>
+    public Guid? WalletId { get; private set; }
 
     /// <summary>Split only: the initiator's expense category.</summary>
     public Guid? CategoryId { get; private set; }
@@ -81,7 +99,6 @@ public sealed class DebtOperation
         Guid debtorPersonId,
         decimal amount,
         Currency currency,
-        Guid? categoryId,
         DateTimeOffset occurredAt,
         string? description)
     {
@@ -93,7 +110,6 @@ public sealed class DebtOperation
         var operation = New(OperationKind.InitialDebt, initiatorUserId, null, currency, amount, occurredAt, description);
         operation.FromPersonId = debtorPersonId;
         operation.ToPersonId = creditorPersonId;
-        operation.CategoryId = categoryId;
 
         return operation;
     }
@@ -155,12 +171,63 @@ public sealed class DebtOperation
         operation.Scope = scope;
         operation.FromPersonId = fromPersonId;
         operation.ToPersonId = toPersonId;
+        operation.WalletId = amount > 0 ? walletId : null;
 
         if (amount > 0)
             operation._payers.Add(new OperationPayer(fromPersonId, amount, fromPersonId == initiatorUserId ? walletId : null));
 
         return operation;
     }
+
+    /// <summary>True for the version that counts (not replaced, not deleted, not refused).</summary>
+    public bool IsCurrent => Status is OperationStatus.Pending or OperationStatus.Completed;
+
+    /// <summary>Makes this freshly created operation the next version of <paramref name="previous"/>.</summary>
+    public void BecomeRevisionOf(DebtOperation previous, int revision)
+    {
+        EntryId = previous.EntryId;
+        Revision = revision;
+        ReplacesOperationId = previous.Id;
+    }
+
+    /// <param name="restoring">True to bring back this deleted version.</param>
+    public void StartChange(Guid changeId, bool restoring = false)
+    {
+        if (PendingChangeId is not null)
+            throw new DomainException("operation.change_pending", "A change of this operation is waiting for confirmation.");
+
+        if (restoring && Status != OperationStatus.Deleted)
+            throw new DomainException("operation.not_deleted", "Only a deleted operation can be restored.");
+
+        if (!restoring && Status != OperationStatus.Completed)
+            throw new DomainException("operation.not_current", "Only the current version of an operation can be changed.");
+
+        PendingChangeId = changeId;
+    }
+
+    public void EndChange() => PendingChangeId = null;
+
+    public void Supersede()
+    {
+        Status = OperationStatus.Superseded;
+        PendingChangeId = null;
+    }
+
+    public void MarkDeleted()
+    {
+        Status = OperationStatus.Deleted;
+        PendingChangeId = null;
+    }
+
+    /// <summary>A person whose books the operation may touch (payers, participants, both sides).</summary>
+    public IEnumerable<Guid> InvolvedPersonIds
+        => _payers.Select(p => p.PersonId)
+            .Concat(_shares.Select(s => s.PersonId))
+            .Concat(new[] { FromPersonId, ToPersonId }.OfType<Guid>())
+            .Append(InitiatorUserId)
+            .Distinct();
+
+    public void MarkDisputed(bool disputed) => IsDisputed = disputed;
 
     public void Complete()
     {
@@ -203,9 +270,12 @@ public sealed class DebtOperation
                 "operation.description_too_long",
                 $"Description cannot be longer than {DescriptionMaxLength} characters.");
 
+        var id = Guid.NewGuid();
+
         return new DebtOperation
         {
-            Id = Guid.NewGuid(),
+            Id = id,
+            EntryId = id,
             Kind = kind,
             Status = OperationStatus.Pending,
             InitiatorUserId = initiatorUserId,

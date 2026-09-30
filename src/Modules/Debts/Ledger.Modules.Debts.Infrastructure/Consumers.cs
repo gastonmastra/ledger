@@ -27,6 +27,29 @@ internal sealed class LedgerPostingRejectedConsumer(ISender sender, DebtsDbConte
             context.CancellationToken);
 }
 
+internal sealed class LedgerRevisionCompletedConsumer(ISender sender, DebtsDbContext dbContext)
+    : ModuleConsumer<LedgerRevisionCompleted, DebtsDbContext>(dbContext)
+{
+    protected override Task Handle(ConsumeContext<LedgerRevisionCompleted> context)
+        => sender.Send(new ApplyRevisionResultCommand(context.Message.ChangeId, true, null), context.CancellationToken);
+}
+
+internal sealed class LedgerRevisionRejectedConsumer(ISender sender, DebtsDbContext dbContext)
+    : ModuleConsumer<LedgerRevisionRejected, DebtsDbContext>(dbContext)
+{
+    protected override Task Handle(ConsumeContext<LedgerRevisionRejected> context)
+        => sender.Send(
+            new ApplyRevisionResultCommand(context.Message.ChangeId, false, context.Message.Reason),
+            context.CancellationToken);
+}
+
+internal sealed class BooksLockChangedConsumer(ISender sender, DebtsDbContext dbContext)
+    : ModuleConsumer<BooksLockChanged, DebtsDbContext>(dbContext)
+{
+    protected override Task Handle(ConsumeContext<BooksLockChanged> context)
+        => sender.Send(new ProjectBooksLockCommand(context.Message.UserId, context.Message.LockedUntil), context.CancellationToken);
+}
+
 internal sealed class UserRegisteredConsumer(ISender sender, DebtsDbContext dbContext)
     : ModuleConsumer<UserRegistered, DebtsDbContext>(dbContext)
 {

@@ -73,3 +73,21 @@ public sealed class DebtWallet
     public static DebtWallet Create(Guid walletId, Guid userId, Currency currency)
         => new() { WalletId = walletId, UserId = userId, Currency = currency };
 }
+
+/// <summary>Local copy of each user's books lock (shared operations cannot touch a locked period).</summary>
+public sealed class DebtBooksLock
+{
+    private DebtBooksLock()
+    {
+    }
+
+    public Guid UserId { get; private set; }
+    public DateTimeOffset? LockedUntil { get; private set; }
+
+    public static DebtBooksLock Create(Guid userId, DateTimeOffset? lockedUntil)
+        => new() { UserId = userId, LockedUntil = lockedUntil };
+
+    public void Set(DateTimeOffset? lockedUntil) => LockedUntil = lockedUntil;
+
+    public bool Covers(DateTimeOffset date) => LockedUntil is { } until && date <= until;
+}

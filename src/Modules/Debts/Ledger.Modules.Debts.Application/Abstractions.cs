@@ -12,6 +12,8 @@ public interface IDebtsDbContext
     DbSet<DebtUser> Users { get; }
     DbSet<DebtGroupMember> GroupMembers { get; }
     DbSet<DebtWallet> Wallets { get; }
+    DbSet<DebtBooksLock> BooksLocks { get; }
+    DbSet<OperationChange> Changes { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

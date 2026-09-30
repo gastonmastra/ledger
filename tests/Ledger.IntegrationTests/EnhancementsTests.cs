@@ -46,20 +46,25 @@ public class EnhancementsTests(LedgerApiFactory factory)
         await alice.PostJsonAsync("/api/transactions/expense", new { walletId, amount = 30 });
 
         var newDate = new DateTimeOffset(2025, 12, 31, 9, 0, 0, TimeSpan.Zero);
-        await Put(alice, "/api/transactions/opening-balance", new { walletId, amount = 250, occurredAt = newDate });
+        await Put(alice, "/api/transactions/opening-balance", new { walletId, amount = 250, occurredAt = newDate, reason = "Wrong amount" });
 
         await EventuallyAsync(async () => await alice.WalletBalanceAsync(walletId) == 220 ? (object)true : null, "new balance");
         opening = await alice.GetJsonAsync($"/api/transactions/opening-balance/{walletId}");
         Assert.Equal(250, opening.GetProperty("amount").GetDecimal());
         Assert.Equal(newDate, opening.GetProperty("occurredAt").GetDateTimeOffset());
 
+        // Only the current version is listed; the history keeps the replaced one and its reversal.
         var kinds = (await alice.GetJsonAsync($"/api/transactions?walletId={walletId}&pageSize=50"))
             .GetProperty("items").EnumerateArray().Select(t => t.GetProperty("kind").GetString()).ToList();
-        Assert.Contains("OpeningBalanceReversal", kinds);
-        Assert.Equal(2, kinds.Count(k => k == "OpeningBalance"));
+        Assert.Single(kinds, k => k == "OpeningBalance");
+
+        var withHistory = (await alice.GetJsonAsync($"/api/transactions?walletId={walletId}&pageSize=50&includeHistory=true"))
+            .GetProperty("items").EnumerateArray().Select(t => t.GetProperty("kind").GetString()).ToList();
+        Assert.Contains("Reversal", withHistory);
+        Assert.Equal(2, withHistory.Count(k => k == "OpeningBalance"));
 
         // Lowering it below what was already spent would overdraw the wallet.
-        var response = await Put(alice, "/api/transactions/opening-balance", new { walletId, amount = 10 }, expectSuccess: false);
+        var response = await Put(alice, "/api/transactions/opening-balance", new { walletId, amount = 10, reason = "Too low" }, expectSuccess: false);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal(220, await alice.WalletBalanceAsync(walletId));
     }
