@@ -1,0 +1,47 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "command": "dotnet",
+      "type": "process",
+      "args": ["build", "${workspaceFolder}/Ledger.slnx", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary"],
+      "problemMatcher": "$msCompile",
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "infra-up",
+      "detail": "Start PostgreSQL, RabbitMQ and Keycloak and wait until they are healthy",
+      "type": "shell",
+      "command": "docker compose up -d --wait postgres rabbitmq keycloak",
+      "problemMatcher": []
+    },
+    {
+      "label": "migrate",
+      "detail": "Apply the EF Core migrations of every module",
+      "type": "shell",
+      "command": "dotnet run --project src/Ledger.Migrator",
+      "dependsOn": ["infra-up"],
+      "problemMatcher": []
+    },
+    {
+      "label": "prepare-debug",
+      "dependsOrder": "sequence",
+      "dependsOn": ["migrate", "build"],
+      "problemMatcher": []
+    },
+    {
+      "label": "full-up",
+      "detail": "Run everything in containers (API on http://localhost:8081)",
+      "type": "shell",
+      "command": "docker compose --profile full up -d --build",
+      "problemMatcher": []
+    },
+    {
+      "label": "down",
+      "type": "shell",
+      "command": "docker compose --profile full down",
+      "problemMatcher": []
+    }
+  ]
+}
