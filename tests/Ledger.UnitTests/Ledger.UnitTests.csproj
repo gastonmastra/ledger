@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\Transactions\Ledger.Modules.Transactions.Domain\Ledger.Modules.Transactions.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Wallets\Ledger.Modules.Wallets.Domain\Ledger.Modules.Wallets.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Accounts\Ledger.Modules.Accounts.Domain\Ledger.Modules.Accounts.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Contacts\Ledger.Modules.Contacts.Domain\Ledger.Modules.Contacts.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Groups\Ledger.Modules.Groups.Domain\Ledger.Modules.Groups.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Debts\Ledger.Modules.Debts.Application\Ledger.Modules.Debts.Application.csproj" />
+  </ItemGroup>
+
+</Project>
