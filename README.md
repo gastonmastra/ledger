@@ -4,12 +4,14 @@ Ledger is a personal finance app built on **double-entry bookkeeping**. Every mo
 
 It is a **.NET 10 modular monolith**: one deployable application made of independent modules. Each module has its own clean-architecture layers, its own PostgreSQL schema and EF Core migrations, and its own RabbitMQ queue. Modules only talk to each other through integration events, so any of them can later be moved into its own service.
 
+> **Full documentation:** [documentation/README.md](documentation/README.md) covers the requirements, the decision log with trade-offs, the accounting model with worked examples, the message flows, problems found and fixed, and troubleshooting.
+
 ## Features
 
 | Feature | How |
 | --- | --- |
 | Wallets | Create (with an opening balance), rename, archive (only when empty) and delete (only without transactions). EUR, USD and ARS. |
-| Income and expenses | Record money in or out of a wallet, optionally in a user-defined category. Without a category it goes to *Uncategorized*. |
+| Income and expenses | Record money in or out of a wallet, optionally in a user-defined category. Without a category it goes to *Uncategorized* (expenses) or *Uncategorized income* (income). |
 | Transfers | Between two of my wallets. Across currencies I type the amount received, and the ledger balances each currency through a *Currency exchange* account. A wallet can never go below zero. |
 | Loans | Lend money from a wallet to a contact. The contact now owes me. |
 | Splits | Split an expense among me, my contacts or a group: equally, by amount or by percentage, with **any number of payers**. "A friend paid for me" is a split where the friend pays and I consume. |
@@ -62,7 +64,7 @@ Ledger.slnx
 
 * **Outbox.** A module never publishes directly. `IEventBus.PublishAsync` stores the event in the module's `integration_outbox` table, in the same database transaction as the change. A background processor per module then sends it to RabbitMQ.
 * **Inbox.** Each module has **one queue** (`ledger-<module>`) that holds all its consumers. Consumers derive from `ModuleConsumer`, which records the message id in the module's `inbox_messages` table in the same transaction as the handler's changes, so redelivered messages are ignored.
-* **Eventual consistency.** Other modules learn about new data a few milliseconds later. Wallets expose `isReady` once the ledger knows them. A request that depends on data still being provisioned gets **503** with `Retry-After` (the console retries automatically).
+* **Eventual consistency.** Other modules learn about new data a few milliseconds later. Wallets expose `isReady` once the ledger knows them. A request that depends on data still being provisioned gets **503** with `Retry-After` (the console retries automatically). A wallet, category or contact used within milliseconds of being created can get a 404 from another module; retry shortly.
 * **Asynchronous operations.** Loans, splits and settlements affect several users' books, so the API answers **202 Accepted** with an operation. Debts asks Transactions to post the entries (`LedgerPostingRequested`), and Transactions answers `LedgerPostingCompleted`, or `LedgerPostingRejected` (for example when a wallet does not have enough money). Poll `GET /api/debts/operations/{id}`.
 
 ### Key modelling decisions
@@ -87,7 +89,7 @@ Ledger.slnx
 2. Pick one of these launch configurations and press F5:
    * **API + Console**: starts PostgreSQL, RabbitMQ and Keycloak (`docker compose up -d --wait`), applies the migrations, builds, then debugs the API and the console together.
    * **API**: same, API only. It opens Scalar at `http://localhost:5209/scalar`.
-   * **Console** or **Migrator**: on their own.
+   * **Console** or **Migrator**: on their own. **Console alone needs the API to be running already.**
 
 Without VS Code:
 
@@ -142,7 +144,7 @@ Errors are RFC 7807 problem details. Business rule violations return `400` with 
 
 ## Console client
 
-`Ledger.Console` is a client of the HTTP API. On start it opens the browser on the Keycloak login page (authorization code + PKCE) and receives the result on `http://127.0.0.1:7890/callback/`. Menus: summary, wallets, transactions, categories, contacts, groups, debts and splits, and pending wallet assignments. The API URL and Keycloak settings are in `src/Ledger.Console/appsettings.json`.
+`Ledger.Console` is a client of the HTTP API. On start it opens the browser on the Keycloak login page (authorization code + PKCE) and receives the result on `http://127.0.0.1:7890/callback/`. Then it waits up to 30 seconds for the API (`/health`); if the API is not running it tells you how to start it. Menus: summary, wallets, transactions, categories, contacts, groups, debts and splits, and pending wallet assignments. The API URL and Keycloak settings are in `src/Ledger.Console/appsettings.json` (use `Api__BaseUrl=http://localhost:8081` for the containerised API).
 
 ## Tests
 
