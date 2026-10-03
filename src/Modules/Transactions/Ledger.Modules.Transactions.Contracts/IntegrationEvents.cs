@@ -103,3 +103,43 @@ public sealed record LedgerRevisionRejected(Guid ChangeId, string Reason);
 public sealed record BooksLockChanged(Guid UserId, DateTimeOffset? LockedUntil);
 
 public sealed record LedgerPostingRejected(Guid OperationId, string Reason);
+
+public static class InvestmentPostingKinds
+{
+    public const string Buy = nameof(Buy);
+    public const string Sell = nameof(Sell);
+    /// <summary>A holding the user already owned before using Ledger (against Opening balances).</summary>
+    public const string Opening = nameof(Opening);
+}
+
+/// <summary>
+/// Asks the ledger to record an investment trade of one user. Amounts are positive and have at most 2 decimals.
+/// Answered with <see cref="InvestmentPostingCompleted"/> or <see cref="InvestmentPostingRejected"/>.
+/// </summary>
+/// <param name="TradeId">Id of the trade in the Investments module (correlation of the transaction).</param>
+/// <param name="Kind">Buy, Sell or Opening (<see cref="InvestmentPostingKinds"/>).</param>
+/// <param name="AssetId">The asset; its ledger account is the Investment account referencing it.</param>
+/// <param name="AssetCurrency">Quote currency of the asset.</param>
+/// <param name="Total">Quantity × unit price, in the asset currency (paid for a buy, received for a sale).</param>
+/// <param name="CostRemoved">Sales only: the cost basis of the units sold (average cost), in the asset currency.
+/// The difference with <c>Total</c> is the realized gain or loss.</param>
+/// <param name="WalletId">Wallet that pays or receives the money; null for an opening holding.</param>
+/// <param name="WalletAmount">Amount in the wallet's currency, required when it differs from the asset currency
+/// (the difference goes through Currency exchange); ignored when both currencies are the same.</param>
+public sealed record InvestmentPostingRequested(
+    Guid TradeId,
+    string Kind,
+    Guid OwnerId,
+    Guid AssetId,
+    string AssetCurrency,
+    DateTimeOffset OccurredAt,
+    string? Description,
+    decimal Total,
+    decimal CostRemoved,
+    Guid? WalletId,
+    decimal? WalletAmount);
+
+/// <param name="WalletCurrency">Currency of the wallet used, if any.</param>
+public sealed record InvestmentPostingCompleted(Guid TradeId, string? WalletCurrency = null);
+
+public sealed record InvestmentPostingRejected(Guid TradeId, string Reason);

@@ -13,7 +13,11 @@ public enum LedgerAccountPurpose
     Uncategorized,
     UncategorizedIncome,
     PendingSettlements,
-    BalanceAdjustments
+    BalanceAdjustments,
+    /// <summary>Cost of an investment asset (ReferenceId = asset id).</summary>
+    Investment,
+    /// <summary>Realized gains and losses of investment sales.</summary>
+    InvestmentGains
 }
 
 public enum LedgerAccountType
