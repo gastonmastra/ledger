@@ -168,3 +168,21 @@ internal sealed class LedgerRevisionRequestedConsumer(
         await eventBus.PublishAsync(reply, context.CancellationToken);
     }
 }
+
+internal sealed class InvestmentPostingRequestedConsumer(
+    ISender sender,
+    ITransactionsEventBus eventBus,
+    TransactionsDbContext dbContext)
+    : ModuleConsumer<InvestmentPostingRequested, TransactionsDbContext>(dbContext)
+{
+    protected override async Task Handle(ConsumeContext<InvestmentPostingRequested> context)
+    {
+        var result = await sender.Send(new PostInvestmentTradeCommand(context.Message), context.CancellationToken);
+
+        object reply = result.Succeeded
+            ? new InvestmentPostingCompleted(context.Message.TradeId, result.WalletCurrency)
+            : new InvestmentPostingRejected(context.Message.TradeId, result.RejectionReason!);
+
+        await eventBus.PublishAsync(reply, context.CancellationToken);
+    }
+}

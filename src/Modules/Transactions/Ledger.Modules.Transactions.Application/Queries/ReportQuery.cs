@@ -6,12 +6,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ledger.Modules.Transactions.Application.Queries;
 
-public enum ReportGranularity
-{
-    Day,
-    Month
-}
-
 /// <param name="NetWorth">Wallets + owed to me − I owe + pending, at the end of the bucket.</param>
 public sealed record ReportBucketDto(DateTimeOffset Start, decimal Income, decimal Expenses, decimal NetWorth);
 
@@ -56,9 +50,6 @@ internal sealed class GetReportValidator : AbstractValidator<GetReportQuery>
 /// </summary>
 internal sealed class GetReportHandler(ITransactionsDbContext dbContext) : IQueryHandler<GetReportQuery, ReportDto>
 {
-    /// <summary>Up to this many days the report shows days; above, months.</summary>
-    public const int MaxDailyDays = 62;
-
     private static readonly LedgerAccountPurpose[] NetWorthPurposes =
     [
         LedgerAccountPurpose.Wallet,
@@ -69,7 +60,7 @@ internal sealed class GetReportHandler(ITransactionsDbContext dbContext) : IQuer
 
     public async Task<ReportDto> Handle(GetReportQuery query, CancellationToken cancellationToken)
     {
-        var zone = FindZone(query.TimeZone);
+        var zone = ReportBuckets.FindZone(query.TimeZone);
 
         var accounts = await dbContext.LedgerAccounts
             .AsNoTracking()
@@ -104,8 +95,8 @@ internal sealed class GetReportHandler(ITransactionsDbContext dbContext) : IQuer
                 })
             .ToListAsync(cancellationToken);
 
-        var granularity = (query.To - query.From).TotalDays <= MaxDailyDays ? ReportGranularity.Day : ReportGranularity.Month;
-        var bucketStarts = BucketStarts(query.From, query.To, granularity, zone);
+        var granularity = ReportBuckets.GranularityFor(query.From, query.To);
+        var bucketStarts = ReportBuckets.Starts(query.From, query.To, granularity, zone);
         var buckets = new List<ReportBucketDto>();
         var netWorth = 0m;
         var index = 0;
@@ -113,7 +104,7 @@ internal sealed class GetReportHandler(ITransactionsDbContext dbContext) : IQuer
         for (var b = 0; b < bucketStarts.Count; b++)
         {
             var start = bucketStarts[b];
-            var end = b + 1 < bucketStarts.Count ? bucketStarts[b + 1] : query.To.AddTicks(1);
+            var end = ReportBuckets.End(bucketStarts, b, query.To);
             decimal income = 0, expenses = 0;
 
             for (; index < rows.Count && rows[index].OccurredAt < end; index++)
@@ -182,45 +173,5 @@ internal sealed class GetReportHandler(ITransactionsDbContext dbContext) : IQuer
             .FirstOrDefaultAsync(cancellationToken);
 
         return busiest ?? (currencies.Count > 0 ? currencies[0] : Currency.EUR);
-    }
-
-    /// <summary>Start of every day or month of the period, in the user's time zone.</summary>
-    private static List<DateTimeOffset> BucketStarts(
-        DateTimeOffset from,
-        DateTimeOffset to,
-        ReportGranularity granularity,
-        TimeZoneInfo zone)
-    {
-        var starts = new List<DateTimeOffset> { from };
-        var local = TimeZoneInfo.ConvertTime(from, zone).DateTime;
-        var cursor = granularity == ReportGranularity.Day
-            ? local.Date.AddDays(1)
-            : new DateTime(local.Year, local.Month, 1).AddMonths(1);
-
-        while (true)
-        {
-            var start = new DateTimeOffset(cursor, zone.GetUtcOffset(cursor));
-            if (start > to) break;
-
-            starts.Add(start);
-            cursor = granularity == ReportGranularity.Day ? cursor.AddDays(1) : cursor.AddMonths(1);
-        }
-
-        return starts;
-    }
-
-    private static TimeZoneInfo FindZone(string? id)
-    {
-        if (string.IsNullOrWhiteSpace(id))
-            return TimeZoneInfo.Utc;
-
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById(id);
-        }
-        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            return TimeZoneInfo.Utc;
-        }
     }
 }

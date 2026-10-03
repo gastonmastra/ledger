@@ -25,6 +25,25 @@ internal sealed class AccountResolver(ITransactionsDbContext dbContext)
         return account;
     }
 
+    /// <remarks>
+    /// The account of a new asset is created asynchronously, so its absence is transient: a
+    /// <see cref="NotYetAvailableException"/> makes the consumer retry.
+    /// </remarks>
+    public async Task<LedgerAccount> InvestmentAsync(Guid userId, Guid assetId, CancellationToken cancellationToken)
+    {
+        var account = await dbContext.LedgerAccounts
+                          .AsNoTracking()
+                          .SingleOrDefaultAsync(
+                              x => x.Purpose == LedgerAccountPurpose.Investment && x.ReferenceId == assetId,
+                              cancellationToken)
+                      ?? throw new NotYetAvailableException($"The account of asset '{assetId}' is not known yet.");
+
+        if (account.OwnerId != userId)
+            throw new NotFoundException("Asset", assetId);
+
+        return account;
+    }
+
     public async Task<LedgerAccount> CategoryAsync(
         Guid userId,
         Guid? categoryId,

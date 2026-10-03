@@ -47,7 +47,8 @@ public static class TransactionsModule
             typeof(GroupCreatedConsumer),
             typeof(GroupMemberAddedConsumer),
             typeof(LedgerPostingRequestedConsumer),
-            typeof(LedgerRevisionRequestedConsumer));
+            typeof(LedgerRevisionRequestedConsumer),
+            typeof(InvestmentPostingRequestedConsumer));
 
         return services;
     }
