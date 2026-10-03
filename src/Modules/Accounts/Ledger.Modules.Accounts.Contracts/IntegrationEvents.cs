@@ -29,6 +29,10 @@ public static class AccountPurposes
     public const string PendingSettlements = nameof(PendingSettlements);
     /// <summary>Differences recorded when the user reconciles a wallet with its real balance.</summary>
     public const string BalanceAdjustments = nameof(BalanceAdjustments);
+    /// <summary>Asset account holding the cost of an investment asset (ReferenceId = asset id).</summary>
+    public const string Investment = nameof(Investment);
+    /// <summary>Realized gains and losses of investment sales (neither income nor expenses).</summary>
+    public const string InvestmentGains = nameof(InvestmentGains);
 }
 
 public sealed record AccountCreated(

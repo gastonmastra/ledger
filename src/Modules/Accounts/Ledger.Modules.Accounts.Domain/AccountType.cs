@@ -20,5 +20,7 @@ public enum AccountPurpose
     Uncategorized,
     UncategorizedIncome,
     PendingSettlements,
-    BalanceAdjustments
+    BalanceAdjustments,
+    Investment,
+    InvestmentGains
 }

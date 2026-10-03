@@ -41,7 +41,10 @@ public static class AccountsModule
             typeof(WalletCreatedConsumer),
             typeof(WalletRenamedConsumer),
             typeof(WalletArchivedConsumer),
-            typeof(WalletDeletedConsumer));
+            typeof(WalletDeletedConsumer),
+            typeof(AssetCreatedConsumer),
+            typeof(AssetRenamedConsumer),
+            typeof(AssetArchivedConsumer));
 
         return services;
     }

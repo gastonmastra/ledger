@@ -12,6 +12,7 @@
     <ProjectReference Include="..\..\..\BuildingBlocks\Ledger.BuildingBlocks.Infrastructure\Ledger.BuildingBlocks.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Identity\Ledger.Modules.Identity.Contracts\Ledger.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="..\..\Wallets\Ledger.Modules.Wallets.Contracts\Ledger.Modules.Wallets.Contracts.csproj" />
+    <ProjectReference Include="..\..\Investments\Ledger.Modules.Investments.Contracts\Ledger.Modules.Investments.Contracts.csproj" />
   </ItemGroup>
 
 </Project>
