@@ -1,6 +1,7 @@
 import {
   AccountPurpose,
   ApprovalStatus,
+  AssetType,
   CategoryType,
   ChangeAction,
   ChangeKind,
@@ -11,7 +12,10 @@ import {
   Posting,
   SplitMethod,
   TransactionKind,
+  TradeKind,
+  TradeStatus,
   TransactionStatus,
+  ValuationSource,
   WalletStatus,
 } from '../api/models';
 
@@ -31,6 +35,9 @@ export function transactionKindLabel(kind: TransactionKind): string {
     BalanceAdjustment: () => $localize`:@@kind.balanceAdjustment:Balance adjustment`,
     InitialDebt: () => $localize`:@@kind.initialDebt:Existing debt`,
     Reversal: () => $localize`:@@kind.reversal:Reversal`,
+    InvestmentBuy: () => $localize`:@@kind.investmentBuy:Investment purchase`,
+    InvestmentSell: () => $localize`:@@kind.investmentSell:Investment sale`,
+    InvestmentOpening: () => $localize`:@@kind.investmentOpening:Investment already owned`,
   };
 
   return labels[kind]?.() ?? kind;
@@ -47,6 +54,7 @@ export function accountLabel(posting: Pick<Posting, 'accountName' | 'accountPurp
     UncategorizedIncome: () => $localize`:@@account.uncategorizedIncome:Uncategorized income`,
     PendingSettlements: () => $localize`:@@account.pendingSettlements:Pending settlements`,
     BalanceAdjustments: () => $localize`:@@account.balanceAdjustments:Balance adjustments`,
+    InvestmentGains: () => $localize`:@@account.investmentGains:Investment gains`,
   };
 
   const label = posting.accountPurpose ? labels[posting.accountPurpose as AccountPurpose] : undefined;
@@ -158,4 +166,51 @@ export function approvalStatusLabel(status: ApprovalStatus): string {
   };
 
   return labels[status]();
+}
+
+export function assetTypeLabel(type: AssetType): string {
+  const labels: Record<AssetType, () => string> = {
+    Stock: () => $localize`:@@assetType.stock:Stock`,
+    Etf: () => $localize`:@@assetType.etf:ETF`,
+    Crypto: () => $localize`:@@assetType.crypto:Crypto`,
+    Bond: () => $localize`:@@assetType.bond:Bond`,
+    Fund: () => $localize`:@@assetType.fund:Fund`,
+    Other: () => $localize`:@@assetType.other:Other`,
+  };
+
+  return labels[type]();
+}
+
+export function tradeKindLabel(kind: TradeKind): string {
+  const labels: Record<TradeKind, () => string> = {
+    Buy: () => $localize`:@@tradeKind.buy:Buy`,
+    Sell: () => $localize`:@@tradeKind.sell:Sell`,
+    Opening: () => $localize`:@@tradeKind.opening:Already owned`,
+  };
+
+  return labels[kind]();
+}
+
+export function tradeStatusLabel(status: TradeStatus): string {
+  const labels: Record<TradeStatus, () => string> = {
+    Pending: () => $localize`:@@opStatus.pending:Being recorded`,
+    Completed: () => $localize`:@@tradeStatus.completed:Recorded`,
+    Rejected: () => $localize`:@@opStatus.rejected:Refused`,
+  };
+
+  return labels[status]();
+}
+
+export function valuationSourceLabel(source: ValuationSource): string {
+  const labels: Record<ValuationSource, () => string> = {
+    Sell: () => $localize`:@@valuation.sell:Sell price`,
+    Buy: () => $localize`:@@valuation.buy:Buy price (no sell price yet)`,
+    Cost: () => $localize`:@@valuation.cost:Average cost (no price yet)`,
+  };
+
+  return labels[source]();
+}
+
+export function priceSideLabel(side: 'Buy' | 'Sell'): string {
+  return side === 'Buy' ? $localize`:@@priceSide.buy:Buy price` : $localize`:@@priceSide.sell:Sell price`;
 }

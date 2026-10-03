@@ -72,7 +72,10 @@ export type TransactionKind =
   | 'OpeningBalanceReversal'
   | 'BalanceAdjustment'
   | 'InitialDebt'
-  | 'Reversal';
+  | 'Reversal'
+  | 'InvestmentBuy'
+  | 'InvestmentSell'
+  | 'InvestmentOpening';
 
 export type AccountPurpose =
   | 'Wallet'
@@ -84,7 +87,9 @@ export type AccountPurpose =
   | 'Uncategorized'
   | 'UncategorizedIncome'
   | 'PendingSettlements'
-  | 'BalanceAdjustments';
+  | 'BalanceAdjustments'
+  | 'Investment'
+  | 'InvestmentGains';
 
 export interface Posting {
   accountId: string;
@@ -540,4 +545,115 @@ export interface ProblemDetails {
   status?: number;
   code?: string;
   errors?: Record<string, string[]>;
+}
+
+// Investments
+
+export type AssetType = 'Stock' | 'Etf' | 'Crypto' | 'Bond' | 'Fund' | 'Other';
+export const ASSET_TYPES: readonly AssetType[] = ['Stock', 'Etf', 'Crypto', 'Bond', 'Fund', 'Other'];
+export type AssetStatus = 'Active' | 'Archived';
+export type ValuationSource = 'Sell' | 'Buy' | 'Cost';
+export type TradeKind = 'Buy' | 'Sell' | 'Opening';
+export type TradeStatus = 'Pending' | 'Completed' | 'Rejected';
+export type PriceSide = 'Buy' | 'Sell';
+export type PriceSource = 'Trade' | 'Manual';
+
+/** An asset and my holding of it, valued now. */
+export interface Asset {
+  id: string;
+  name: string;
+  symbol: string | null;
+  type: AssetType;
+  currency: Currency;
+  status: AssetStatus;
+  quantity: number;
+  costBasis: number;
+  averageCost: number | null;
+  buyPrice: number | null;
+  sellPrice: number | null;
+  /** Price used for the market value: the latest sell price, else the latest buy price, else the average cost. */
+  valuationPrice: number | null;
+  valuationSource: ValuationSource | null;
+  marketValue: number;
+  unrealizedGain: number;
+  realizedGain: number;
+  lastTradeAt: string | null;
+  hasPendingTrade: boolean;
+  createdAt: string;
+}
+
+export interface Trade {
+  id: string;
+  assetId: string;
+  assetName: string;
+  assetSymbol: string | null;
+  kind: TradeKind;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  currency: Currency;
+  walletId: string | null;
+  walletCurrency: Currency | null;
+  walletAmount: number | null;
+  costRemoved: number;
+  realizedGain: number;
+  counterPrice: number | null;
+  occurredAt: string;
+  description: string | null;
+  status: TradeStatus;
+  rejectionReason: string | null;
+  createdAt: string;
+}
+
+export interface AssetPrice {
+  id: string;
+  side: PriceSide;
+  price: number;
+  occurredAt: string;
+  source: PriceSource;
+  tradeId: string | null;
+}
+
+export interface InvestmentsTotal {
+  currency: Currency;
+  value: number;
+  cost: number;
+  unrealizedGain: number;
+  realizedGain: number;
+}
+
+export interface InvestmentsBucket {
+  start: string;
+  value: number;
+  cost: number;
+}
+
+export interface InvestmentsReport {
+  currency: Currency;
+  currencies: Currency[];
+  granularity: ReportGranularity;
+  buckets: InvestmentsBucket[];
+  assetValues: { assetId: string; name: string; symbol: string | null; value: number }[];
+  realizedGain: number;
+}
+
+export interface CreateAssetRequest {
+  name: string;
+  symbol?: string | null;
+  type: AssetType;
+  currency: Currency;
+}
+
+/** Buy, sell or already owned holding. `walletAmount` is required when the wallet's currency differs from the asset's. */
+export interface TradeRequest {
+  assetId: string;
+  quantity: number;
+  unitPrice: number;
+  walletId?: string | null;
+  walletAmount?: number | null;
+  /** Buy and opening: the current sell price. Sell: use `buyPrice`. */
+  sellPrice?: number | null;
+  buyPrice?: number | null;
+  occurredAt?: string | null;
+  description?: string | null;
 }

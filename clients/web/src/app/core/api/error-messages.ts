@@ -36,6 +36,18 @@ const byCode: Record<string, () => string> = {
     $localize`:@@error.noDifference:The wallet already has that balance: there is nothing to adjust.`,
   'group.member_has_activity': () =>
     $localize`:@@error.memberHasActivity:This member already took part in group expenses and cannot be removed.`,
+  'investment.trade_pending': () =>
+    $localize`:@@error.tradePending:Another trade of this asset is still being recorded. Try again in a moment.`,
+  'investment.backdated': () =>
+    $localize`:@@error.tradeBackdated:Trades can't be dated before the latest trade of the asset.`,
+  'investment.insufficient_quantity': () => $localize`:@@error.insufficientQuantity:You don't hold that much of this asset.`,
+  'investment.total_zero': () =>
+    $localize`:@@error.tradeTotalZero:Quantity × price is less than one cent: it can't be recorded.`,
+  'investment.not_empty': () => $localize`:@@error.assetNotEmpty:Only assets you no longer hold can be archived.`,
+  'investment.archived': () => $localize`:@@error.assetArchived:The asset is archived.`,
+  'investment.quantity_too_many_decimals': () =>
+    $localize`:@@error.quantityDecimals:The quantity can have at most 12 decimals.`,
+  'investment.price_too_many_decimals': () => $localize`:@@error.priceDecimals:The price can have at most 8 decimals.`,
   'books.locked': () =>
     $localize`:@@error.booksLocked:Your books are closed for that date. Move the lock date back in Settings to change it.`,
   'books.locked_for_other': () =>

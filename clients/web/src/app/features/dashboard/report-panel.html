@@ -83,6 +83,18 @@
         }
       </ui-card>
 
+      @if (investmentsChart(); as chart) {
+        <ui-card i18n-heading="@@report.investmentsOverTime" heading="Investments over time">
+          <ui-chart class="h-64" [config]="chart" i18n-label="@@report.investmentsOverTime" label="Investments over time" />
+          @if (investmentsInPeriod()?.realizedGain; as realized) {
+            <p class="mt-2 text-sm text-muted">
+              <span i18n="@@report.realizedInPeriod">Realized gains in this period</span>:
+              <span class="tabular-nums" [class]="realized > 0 ? 'text-success' : 'text-danger'">{{ realized | money: investmentsInPeriod()!.currency: true }}</span>
+            </p>
+          }
+        </ui-card>
+      }
+
       <ui-card i18n-heading="@@report.walletBalances" heading="Balance per wallet">
         @if (walletsChart(); as chart) {
           <ui-chart class="h-64" [config]="chart" i18n-label="@@report.walletBalances" label="Balance per wallet" />

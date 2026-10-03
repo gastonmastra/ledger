@@ -36,6 +36,7 @@ export class Shell {
     { path: '/wallets', label: $localize`:@@nav.wallets:Wallets`, icon: 'wallet' },
     { path: '/transactions', label: $localize`:@@nav.transactions:Transactions`, icon: 'list' },
     { path: '/debts', label: $localize`:@@nav.debts:Debts & splits`, icon: 'scale' },
+    { path: '/investments', label: $localize`:@@nav.investments:Investments`, icon: 'trending' },
     { path: '/groups', label: $localize`:@@nav.groups:Groups`, icon: 'users' },
     { path: '/contacts', label: $localize`:@@nav.contacts:Contacts`, icon: 'user' },
     { path: '/categories', label: $localize`:@@nav.categories:Categories`, icon: 'tag' },
