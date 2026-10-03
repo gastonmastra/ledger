@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, LOCALE_ID, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { LedgerApi } from '../../core/api/ledger-api';
@@ -27,7 +27,8 @@ export class DebtsPage {
   private readonly dialogs = inject(DialogService);
   private readonly tracker = inject(OperationTracker);
   private readonly currentUser = inject(CurrentUser);
-  private readonly locale = inject(LOCALE_ID);
+  /** Formats (and masks, with "hide amounts") the amount shown in the settle dialog. */
+  private readonly money = new MoneyPipe();
 
   protected readonly statusLabel = debtStatusLabel;
   protected readonly amountClass = amountClass;
@@ -106,7 +107,7 @@ export class DebtsPage {
   }
 
   private pickWallet(currency: Debt['currency'], receiving: boolean, name: string, amount: number, walletRequired: boolean) {
-    const formatted = new Intl.NumberFormat(this.locale, { style: 'currency', currency }).format(amount);
+    const formatted = this.money.transform(amount, currency);
 
     return this.dialogs.open<WalletPickerResult, WalletPickerData>(WalletPickerDialog, {
       currency,

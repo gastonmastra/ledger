@@ -88,6 +88,10 @@ Components never use raw colors: they use semantic Tailwind utilities generated 
 
 `ThemeService` follows the operating system by default. The button in the top bar cycles **system → light → dark**, and the choice is stored in `localStorage` (`ledger.theme`). A small script in `index.html` applies the theme before Angular starts, so there is no flash.
 
+### Hide amounts
+
+The eye button in the top bar (or **Shift+H**, except while typing in a field) hides sensitive figures, e.g. while sharing the screen: money amounts keep their currency but show `•••••` (`€•••••`, `••••• €`), asset quantities and unit prices are masked, and charts keep their shapes but lose the numbers on the value axis and in tooltips. The choice is stored in `localStorage` (`ledger.hideAmounts`). `PrivacyService` (`core/privacy`) holds the state; `MoneyPipe`, `PricePipe` and `QuantityPipe` are impure so they update when it changes, and `ChartView` redraws masked. Amounts typed or prefilled in form fields stay visible, and green/red colors still show whether an amount is positive or negative.
+
 ### UI kit (`src/app/ui`)
 
 | Component | Use |

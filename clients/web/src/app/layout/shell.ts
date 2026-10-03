@@ -7,6 +7,7 @@ import { LedgerApi } from '../core/api/ledger-api';
 import { AuthService } from '../core/auth/auth.service';
 import { DataChanges } from '../core/data-changes';
 import { LOCALES, LocaleService } from '../core/i18n/locale.service';
+import { PrivacyService } from '../core/privacy/privacy.service';
 import { ThemeService } from '../core/theme/theme.service';
 import { Badge, Icon, IconName, ToastContainer } from '../ui';
 
@@ -27,6 +28,7 @@ export class Shell {
   private readonly changes = inject(DataChanges);
   protected readonly auth = inject(AuthService);
   protected readonly theme = inject(ThemeService);
+  protected readonly privacy = inject(PrivacyService);
   protected readonly locale = inject(LocaleService);
   protected readonly locales = LOCALES;
   protected readonly menuOpen = signal(false);
@@ -66,6 +68,12 @@ export class Shell {
 
   protected readonly themeIcon = computed<IconName>(() =>
     this.theme.mode() === 'system' ? 'computer' : this.theme.mode() === 'dark' ? 'moon' : 'sun',
+  );
+
+  protected readonly privacyLabel = computed(() =>
+    this.privacy.hidden()
+      ? $localize`:@@privacy.show:Show amounts (Shift+H)`
+      : $localize`:@@privacy.hide:Hide amounts (Shift+H)`,
   );
 
   protected readonly themeLabel = computed(() => {
