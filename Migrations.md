@@ -19,7 +19,8 @@ PostgreSQL database "ledger"
 ├── transactions   transactions, postings, ledger_accounts, pending_wallet_assignments, counterparties
 ├── contacts       contacts, registered_users
 ├── groups         groups, group_members, known_contacts, known_users
-└── debts          operations, operation_payers, operation_shares, debts, known_*
+├── debts          operations, operation_payers, operation_shares, debts, known_*
+└── investments    assets, trades, asset_prices
 ```
 
 Every schema also has `__EFMigrationsHistory`, `integration_outbox` (events waiting to be published) and `inbox_messages` (messages already handled).
@@ -33,6 +34,7 @@ Every schema also has `__EFMigrationsHistory`, `integration_outbox` (events wait
 | Contacts | `ContactsDbContext` | `src/Modules/Contacts/Ledger.Modules.Contacts.Infrastructure` |
 | Groups | `GroupsDbContext` | `src/Modules/Groups/Ledger.Modules.Groups.Infrastructure` |
 | Debts | `DebtsDbContext` | `src/Modules/Debts/Ledger.Modules.Debts.Infrastructure` |
+| Investments | `InvestmentsDbContext` | `src/Modules/Investments/Ledger.Modules.Investments.Infrastructure` |
 
 ## Apply migrations
 

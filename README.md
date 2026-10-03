@@ -25,9 +25,10 @@ It is a **.NET 10 modular monolith**: one deployable application made of indepen
 | Groups | Shared with every member who is a registered user. Group balances are **simplified** into the fewest payments. |
 | Settlements | Full settlement of one debt, of everything with a contact, or of one suggested group payment. |
 | Linked contacts | A contact with a registered user's email is linked. Debts are then mirrored into that user's books automatically, with contacts created for them. Money they paid or received waits in *Pending wallet assignments* until they choose the wallet. |
-| Summary | Per currency: wallets, owed to me, I owe, pending and **net**, with a breakdown per wallet and per person or group. |
+| Summary | Per currency: wallets, owed to me, I owe, pending and **net**, with a breakdown per wallet and per person or group; plus the investments' market value and the **total**. |
 | History | Transactions newest first, paginated, filterable by wallet, category, contact and date range. |
-| Reports | Per period (month, year or custom) and currency: income vs expenses, spending by category, net worth over time and balance per wallet. Charts in the web dashboard, tables in the console. |
+| Investments | Assets (shares, ETFs, crypto…) in any quote currency. **Buy** from a wallet (any currency), **sell** into a wallet and record holdings **already owned**; quantities with up to 12 decimals and unit prices with up to 8. The ledger records **cost** (average cost on sales, realized gains in *Investment gains*); holdings are valued at the latest **sell** price, which can be updated anytime without moving money. |
+| Reports | Per period (month, year or custom) and currency: income vs expenses, spending by category, net worth over time (money and investments stacked), investments over time and balance per wallet. Charts in the web dashboard, tables in the console. |
 
 ## Architecture
 
@@ -69,6 +70,7 @@ Ledger.slnx
 | Contacts | `contacts` | People of each user, linked to registered users by email | User registered, debt operation completed, group created/member added |
 | Groups | `groups` | Groups and members | User registered, contacts, debt operation completed |
 | Debts | `debts` | Loans, splits, settlements, who-owes-whom, group balances | Users, contacts, groups, wallets, ledger posting completed/rejected |
+| Investments | `investments` | Assets, holdings (quantity, cost basis, realized gains), trades and prices | Investment posting completed/rejected |
 
 ### How modules communicate
 
@@ -159,6 +161,9 @@ All endpoints need a Keycloak access token. Explore them with Scalar at `/scalar
 | GET | `/api/debts/operations?kind&groupId&personId&includeHistory`, `/{id}/history` | Loans, splits, settlements and existing debts, and their versions |
 | PUT/DELETE | `/api/debts/operations/{id}`, POST `/{id}/restore` | Request a change (linked users confirm it) |
 | GET/POST | `/api/debts/changes`, `/{id}/accept`, `/{id}/reject`; GET `/api/debts/activity` | Review changes; shared activity |
+| GET/POST/PUT | `/api/investments/assets`, `/{id}`, POST `/{id}/archive`, GET/POST `/{id}/prices` | Assets with holdings and valuation; prices |
+| POST | `/api/investments/trades/buy`, `/sell`, `/opening` | Asynchronous: `202` plus a trade |
+| GET | `/api/investments/trades?assetId&page`, `/{id}`, `/api/investments/summary`, `/api/investments/report?from&to&currency&timeZone` | Trades; totals per currency; value over time |
 
 Errors are RFC 7807 problem details. Business rule violations return `400` with a `code`, for example `ledger.insufficient_funds`.
 
@@ -168,7 +173,7 @@ Errors are RFC 7807 problem details. Business rule violations return `400` with 
 
 ## Console client
 
-`Ledger.Console` is a client of the HTTP API. On start it opens the browser on the Keycloak login page (authorization code + PKCE) and receives the result on `http://127.0.0.1:7890/callback/`. Then it waits up to 30 seconds for the API (`/health`); if the API is not running it tells you how to start it. Menus: summary, wallets, transactions, categories, contacts, groups, debts and splits, pending wallet assignments and reports. Every operation asks "When" (ENTER = now). The API URL and Keycloak settings are in `src/Ledger.Console/appsettings.json` (use `Api__BaseUrl=http://localhost:8081` for the containerised API).
+`Ledger.Console` is a client of the HTTP API. On start it opens the browser on the Keycloak login page (authorization code + PKCE) and receives the result on `http://127.0.0.1:7890/callback/`. Then it waits up to 30 seconds for the API (`/health`); if the API is not running it tells you how to start it. Menus: summary, wallets, transactions, categories, contacts, groups, debts and splits, investments, pending wallet assignments and reports. Every operation asks "When" (ENTER = now). The API URL and Keycloak settings are in `src/Ledger.Console/appsettings.json` (use `Api__BaseUrl=http://localhost:8081` for the containerised API).
 
 ## Tests
 
@@ -178,7 +183,7 @@ dotnet test Ledger.slnx
 
 * **Unit**: transaction balancing per currency, overdraft, split math (rounding, multiple payers, simplification), wallet, contact and group rules, ledger legs.
 * **Architecture**: a module only references other modules' `Contracts`, the Domain is free of EF, MassTransit and ASP.NET, Application does not depend on infrastructure, and contracts are immutable.
-* **Integration** (needs Docker): the real API with PostgreSQL and RabbitMQ in Testcontainers, and a test authentication scheme in place of Keycloak. It covers transfers and overdraft, a split mirrored to a linked user and settled, a rejected loan, and group simplification and settlement.
+* **Integration** (needs Docker): the real API with PostgreSQL and RabbitMQ in Testcontainers, and a test authentication scheme in place of Keycloak. It covers transfers and overdraft, a split mirrored to a linked user and settled, a rejected loan, group simplification and settlement, and investments (buy, sell, prices, cross-currency, already owned).
 
 ## Database migrations
 
@@ -188,5 +193,6 @@ Every module owns its migrations (`src/Modules/<Module>/Ledger.Modules.<Module>.
 
 * Mirrored debts are applied automatically. Letting the other user cancel or dispute them is future work.
 * Totals are not converted between currencies.
+* Investments: no fees or dividends, trades are append-only (no edits or backdating), prices are entered by hand.
 * A contact can only be linked to a user before it is used in debts or groups.
 * MediatR 12 and MassTransit 8 are the last Apache-licensed versions. MassTransit 8 receives security fixes until the end of 2026.
