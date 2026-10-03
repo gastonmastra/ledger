@@ -54,6 +54,13 @@
     <Project Path="src/Modules/Identity/Ledger.Modules.Identity.Infrastructure/Ledger.Modules.Identity.Infrastructure.csproj" />
     <Project Path="src/Modules/Identity/Ledger.Modules.Identity.Presentation/Ledger.Modules.Identity.Presentation.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Investments/">
+    <Project Path="src/Modules/Investments/Ledger.Modules.Investments.Application/Ledger.Modules.Investments.Application.csproj" />
+    <Project Path="src/Modules/Investments/Ledger.Modules.Investments.Contracts/Ledger.Modules.Investments.Contracts.csproj" />
+    <Project Path="src/Modules/Investments/Ledger.Modules.Investments.Domain/Ledger.Modules.Investments.Domain.csproj" />
+    <Project Path="src/Modules/Investments/Ledger.Modules.Investments.Infrastructure/Ledger.Modules.Investments.Infrastructure.csproj" />
+    <Project Path="src/Modules/Investments/Ledger.Modules.Investments.Presentation/Ledger.Modules.Investments.Presentation.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Transactions/">
     <Project Path="src/Modules/Transactions/Ledger.Modules.Transactions.Application/Ledger.Modules.Transactions.Application.csproj" />
     <Project Path="src/Modules/Transactions/Ledger.Modules.Transactions.Contracts/Ledger.Modules.Transactions.Contracts.csproj" />

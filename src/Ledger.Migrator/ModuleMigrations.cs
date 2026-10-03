@@ -3,6 +3,7 @@ using Ledger.Modules.Contacts.Infrastructure.Persistence;
 using Ledger.Modules.Debts.Infrastructure;
 using Ledger.Modules.Groups.Infrastructure;
 using Ledger.Modules.Identity.Infrastructure.Persistence;
+using Ledger.Modules.Investments.Infrastructure.Persistence;
 using Ledger.Modules.Transactions.Infrastructure.Persistence;
 using Ledger.Modules.Wallets.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +23,8 @@ public static class ModuleMigrations
         typeof(TransactionsDbContext),
         typeof(ContactsDbContext),
         typeof(GroupsDbContext),
-        typeof(DebtsDbContext)
+        typeof(DebtsDbContext),
+        typeof(InvestmentsDbContext)
     ];
 
     public static async Task ApplyAsync(IServiceProvider services, ILogger logger, CancellationToken cancellationToken)
