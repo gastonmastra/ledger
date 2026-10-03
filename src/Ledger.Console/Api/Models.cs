@@ -123,3 +123,26 @@ public sealed record OperationHistory(IReadOnlyList<OperationDetails> Versions, 
 /// <param name="Status">Pending (waiting for linked users), Applying, Applied or Failed.</param>
 public sealed record ChangeResult(
     Guid ChangeId, Guid OperationId, string Kind, string Status, Guid? NewOperationId, IReadOnlyList<string> WaitingFor);
+
+// Investments
+
+/// <param name="ValuationPrice">Latest sell price, else latest buy price, else average cost (<c>ValuationSource</c>).</param>
+public sealed record Asset(
+    Guid Id, string Name, string? Symbol, string Type, string Currency, string Status, decimal Quantity, decimal CostBasis,
+    decimal? AverageCost, decimal? BuyPrice, decimal? SellPrice, decimal? ValuationPrice, string? ValuationSource,
+    decimal MarketValue, decimal UnrealizedGain, decimal RealizedGain, DateTimeOffset? LastTradeAt, bool HasPendingTrade);
+
+/// <param name="Status">Pending, Completed or Rejected.</param>
+public sealed record Trade(
+    Guid Id, Guid AssetId, string AssetName, string? AssetSymbol, string Kind, decimal Quantity, decimal UnitPrice, decimal Total,
+    string Currency, Guid? WalletId, string? WalletCurrency, decimal? WalletAmount, decimal CostRemoved, decimal RealizedGain,
+    decimal? CounterPrice, DateTimeOffset OccurredAt, string? Description, string Status, string? RejectionReason);
+
+public sealed record AssetPrice(Guid Id, string Side, decimal Price, DateTimeOffset OccurredAt, string Source, Guid? TradeId);
+
+public sealed record InvestmentsTotal(string Currency, decimal Value, decimal Cost, decimal UnrealizedGain, decimal RealizedGain);
+
+public sealed record InvestmentsBucket(DateTimeOffset Start, decimal Value, decimal Cost);
+
+public sealed record InvestmentsReport(
+    string Currency, IReadOnlyList<string> Currencies, string Granularity, IReadOnlyList<InvestmentsBucket> Buckets, decimal RealizedGain);

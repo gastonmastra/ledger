@@ -74,6 +74,31 @@ public sealed class ReportsMenu(LedgerApiClient api) : Menu
         foreach (var bucket in lines)
             SystemConsole.WriteLine($"{Label(bucket.Start, report),-10} {Bar(Math.Abs(bucket.NetWorth), maxWorth),-BarWidth} {Money(bucket.NetWorth, report)}");
 
+        var investments = await api.InvestmentsReportAsync(period.From, period.To, report.Currency, ct);
+
+        if (investments.Buckets.Count == report.Buckets.Count && investments.Buckets.Any(b => b.Value != 0 || b.Cost != 0))
+        {
+            Section("Investments (market value) and total net worth");
+            var previousValue = (decimal?)null;
+            var rows = investments.Buckets
+                .Select((b, i) => (Bucket: b, Total: b.Value + report.Buckets[i].NetWorth, Index: i))
+                .Where(x =>
+                {
+                    var changed = x.Bucket.Value != previousValue || x.Index == investments.Buckets.Count - 1;
+                    previousValue = x.Bucket.Value;
+                    return changed;
+                })
+                .ToList();
+            var maxValue = rows.Select(r => r.Bucket.Value).DefaultIfEmpty(0).Max();
+
+            foreach (var row in rows)
+                SystemConsole.WriteLine(
+                    $"{Label(row.Bucket.Start, report),-10} {Bar(row.Bucket.Value, maxValue),-BarWidth} {Money(row.Bucket.Value, report)} (cost {Money(row.Bucket.Cost, report)}, total {Money(row.Total, report)})");
+
+            if (investments.RealizedGain != 0)
+                SystemConsole.WriteLine($"Realized gains in the period: {Money(investments.RealizedGain, report)}");
+        }
+
         Section("Balance per wallet (end of the period)");
         var maxWallet = report.WalletBalances.Select(w => Math.Abs(w.Balance)).DefaultIfEmpty(0).Max();
 
