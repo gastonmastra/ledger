@@ -21,6 +21,7 @@ For a quick start see the [root README](../README.md). For database migrations s
 13. [Web client](#13-web-client)
 14. [Dates, opening balances, adjustments, existing debts and reports](#14-dates-opening-balances-adjustments-existing-debts-and-reports)
 15. [Editable, auditable ledger](#15-editable-auditable-ledger)
+16. [Investments](#16-investments)
 
 ---
 
@@ -175,6 +176,7 @@ Application handlers access data through an interface of their module (`IWallets
 | **Contacts** | `contacts` | `contacts` (person id, optional link to a user), `registered_users` projection | `ContactCreated`, `ContactLinked` | `UserRegistered`, `DebtOperationCompleted`, `GroupCreated`, `GroupMemberAdded` |
 | **Groups** | `groups` | `groups`, `group_members`, projections of contacts and users | `GroupCreated`, `GroupMemberAdded`, `GroupMemberRemoved` | `UserRegistered`, `ContactCreated/Linked`, `DebtOperationCompleted` |
 | **Debts** | `debts` | `operations` (with payers and shares), `debts`, projections of contacts, users, group members and wallets | `LedgerPostingRequested`, `DebtOperationCompleted` | `UserRegistered`, `ContactCreated/Linked`, `GroupCreated`, `GroupMemberAdded/Removed`, `WalletCreated/Deleted`, `LedgerPostingCompleted/Rejected` |
+| **Investments** | `investments` | `assets` (with the holding: quantity, cost basis, realized gain), `trades`, `asset_prices` | `AssetCreated/Renamed/Archived`, `InvestmentPostingRequested` | `InvestmentPostingCompleted/Rejected` |
 
 Every schema also holds `__EFMigrationsHistory`, `integration_outbox` and `inbox_messages`.
 
@@ -217,6 +219,8 @@ Error mapping (RFC 7807):
 | Uncategorized | Expense | `Uncategorized` | the user registers |
 | Uncategorized income | Income | `UncategorizedIncome` | the user registers |
 | Pending settlements | Asset | `PendingSettlements` | the user registers |
+| *(asset name)* | Asset | `Investment` (one currency; holds the **cost** of an investment asset) | an asset is added ([section 16](#16-investments)) |
+| Investment gains | Equity | `InvestmentGains` (realized gains and losses; neither income nor expense) | the user registers (existing users: startup backfill) |
 
 ### 4.3 Debts: counterparty dimension
 
@@ -712,3 +716,87 @@ Added on branch `feature/ledger-edits`, to the API, the web app and the console.
 * A percentage split is shown for editing with the resulting amounts (percentages are not stored).
 * When a non-initiator edits a split outside groups, people who are only in the initiator's contacts may show as "(unknown)".
 * A disputed operation shows the version the author applied in the Debts screens; the books of whoever rejected keep the previous one.
+
+## 16. Investments
+
+Added on branch `feature/investments`, to the API, the web app and the console. A user records that they bought (or already owned) an amount of an asset (shares, ETFs, crypto…) at a price, sells it, and updates its price. Holdings count toward net worth as a separate kind of asset, with charts of how they change over time. Market prices are entered by hand for now.
+
+### 16.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| Books vs value | The **ledger records cost** (what was paid). **Market value** = quantity × valuation price, computed by the Investments module. No revaluation postings: a future real-time price feed will not create ledger entries. |
+| Valuation price at a moment | The latest **sell** price before it (what the holding would fetch), else the latest **buy** price, else the average cost. |
+| Prices | A buy records the buy price and optionally the current sell price; a sale records the sell price and optionally the current buy price. **Update price** records buy and/or sell prices without moving money. Prices can be backdated (not in the future). |
+| Precision | Quantity `numeric(28,12)`. Unit price up to **8 decimals** (some assets cost less than a cent). The total, `round(quantity × price, 2)`, is what the ledger posts. |
+| Selling | **Average cost**: the cost removed is `round(costBasis × sold / held, 2)`, or the whole cost basis when everything is sold. The difference with what was received goes to **Investment gains** (Equity), so it is not income or expense in the reports. |
+| Currency | Every asset has a **quote currency**. Any wallet can pay or receive: in another currency the user enters the wallet amount and the difference goes through **Currency exchange** (like transfers). |
+| Already owned | "Already owned" holdings are posted against **Opening balances** (no wallet), like existing debts. |
+| Edits | **Append-only** and **no backdating**: a trade can't be dated before the latest recorded trade of the asset (average costs never need recomputing); mistakes are fixed with an opposite trade. One pending trade per asset at a time. |
+| Catalogue | **Per user**: name, optional symbol, type (`Stock`, `Etf`, `Crypto`, `Bond`, `Fund`, `Other`) and quote currency (fixed). Assets can be renamed and archived once nothing is held. One holding per asset (no broker/location). |
+| Fees | Not modelled yet (record a normal expense). |
+| Dashboard | Per currency: **Money (net)** (the ledger's net, which excludes investments), **Investments** (market value) and **Total**. The net-worth chart stacks money and investments; an *Investments over time* chart shows value against cost. |
+
+### 16.2 Accounting
+
+T = total in the asset currency, C = cost removed (average cost of the units sold).
+
+| Operation | Postings |
+| --- | --- |
+| Buy 2 BTC at 100 USD from a USD wallet | Investment[BTC] +200 · Wallet −200 |
+| Buy 1.5 AAPL at 200 USD paying 360,000 ARS | Investment +300 USD · Currency exchange −300 USD · Currency exchange +360,000 ARS · Wallet −360,000 ARS |
+| Sell 1 BTC at 150 (average cost 100) | Wallet +150 · Investment −100 · Investment gains −50 (a loss is a debit; omitted when 0) |
+| Sell into a wallet in another currency (R received) | Investment −C · Investment gains −(T−C) · Currency exchange +T · Currency exchange −R · Wallet +R |
+| Already owned 3 ETF units at 10.50 EUR | Investment +31.50 · Opening balances −31.50 |
+
+* The Transactions summary and report keep **Net = money only** (wallets, owed to me, I owe, pending): Investment and Investment gains are not in those sums. Buying moves money into the Investment account, so the ledger's net drops by T and the investments' market value (T at the purchase price) takes its place in the total.
+* Investment transactions appear in the transaction list (kinds `InvestmentBuy`, `InvestmentSell`, `InvestmentOpening`) but cannot be edited or deleted there.
+* `ReportBuckets` (days up to 62 days, months above, cut in the user's time zone) moved to `BuildingBlocks.Application` so both reports produce aligned buckets for the stacked chart.
+
+### 16.3 Flow
+
+```text
+POST /api/investments/assets → Investments ──AssetCreated──► Accounts: Investment account (ReferenceId = asset) ──AccountCreated──► Transactions projection
+POST /api/investments/trades/{buy|sell|opening} → Investments: checks (asset owned and active, no pending trade, date ≥ latest trade,
+     sell quantity ≤ held), computes T and C, stores the trade (Pending) and reserves the asset
+  ──InvestmentPostingRequested──► Transactions: postings above through LedgerWriter (no overdraft, books lock, wallet ownership and currency)
+     ├─ OK   ──InvestmentPostingCompleted(walletCurrency)──► Investments: trade Completed, holding updated, trade prices recorded
+     └─ fail ──InvestmentPostingRejected(reason)──► Investments: trade Rejected, asset released
+```
+
+* The **ledger validates the wallet** (owner, archived, currency): a wallet projection in Investments would start empty for wallets created before the module existed (their `WalletCreated` events were consumed long ago). The completion event reports the wallet currency back for display.
+* A trade on a just-created asset waits (retries) until its Investment account reaches the ledger (`NotYetAvailableException`).
+* Two trades of the same asset at the same time: the `xmin` row version of the asset makes the second fail with `investment.trade_pending`.
+
+### 16.4 API
+
+| Method | Route | Description |
+| --- | --- | --- |
+| GET/POST | `/api/investments/assets?includeArchived`, `/{id}` | Assets with their holding and valuation (`quantity`, `costBasis`, `averageCost`, `buyPrice`, `sellPrice`, `valuationPrice`, `valuationSource`, `marketValue`, `unrealizedGain`, `realizedGain`) |
+| PUT / POST | `/api/investments/assets/{id}`, `/{id}/archive` | Rename or change the symbol; archive (nothing held) |
+| GET/POST | `/api/investments/assets/{id}/prices` | Known prices; record `{ buyPrice?, sellPrice?, occurredAt? }` |
+| POST | `/api/investments/trades/buy`, `/sell`, `/opening` | `202` with a `Pending` trade; `walletAmount` when the wallet's currency differs; optional `sellPrice` (buy, opening) or `buyPrice` (sell) |
+| GET | `/api/investments/trades?assetId&page&pageSize`, `/{id}` | Trades newest first; one trade (`Pending`, `Completed`, `Rejected` with the reason) |
+| GET | `/api/investments/summary` | Per currency: value, cost, unrealized and realized gains |
+| GET | `/api/investments/report?from&to&currency&timeZone` | Value and cost at the end of each bucket (same buckets as `/api/reports`), value per asset, realized gains in the period |
+
+Error codes: `investment.trade_pending`, `investment.backdated`, `investment.insufficient_quantity`, `investment.total_zero`, `investment.not_empty`, `investment.archived`, `investment.quantity_too_many_decimals`, `investment.price_too_many_decimals`, `investment.wallet_required`, `investment.opening_with_wallet`. The ledger may reject a trade with `ledger.insufficient_funds`, `ledger.currency_mismatch` or `books.locked`.
+
+### 16.5 Clients
+
+* **Web:** *Investments* page (totals per currency, holdings table with Buy / Sell / Update price / History / Edit / Archive, trades list), a trade dialog that can add a new asset on the way and shows the total, the latest price and the date limit, a price dialog and an asset history (trades and prices). Trades are tracked like debt operations (toast when recorded or refused). Dashboard cards, stacked net-worth chart, *Investments over time* and a holdings card. English and Spanish.
+* **Console:** main menu *Investments* (holdings, buy, sell, already owned, update price, trades, price history, new/edit/archive asset); the summary adds investments and the total; the reports add investments over time with the total net worth.
+
+### 16.6 Verification
+
+* **Unit:** average cost (partial and full sale), rounding of totals, losses, no backdating, insufficient quantity, one pending trade and release on rejection, precision rules, wallet rules, trade prices and counter-prices, valuation fallback (sell → buy → cost), archive rules.
+* **Integration (Testcontainers):** buy at cost with a sell price (value 190 on a cost of 200), money-only ledger net, manual price, partial sale with a realized gain that is not income, aligned report buckets, investment transactions not editable, overdraft rejected, selling too much and backdating refused; cross-currency purchase through Currency exchange (rejected without the wallet amount); already owned holding; lock date refusing a trade; archive rules.
+* **Real stack:** a copy of the development database (migration and the *Investment gains* backfill for existing users checked), an isolated RabbitMQ virtual host and API on port 5219. Web: Playwright (new asset bought, price updated, partial sale, wallet balance, dashboard) and the full E2E suite; console: a scripted run (already owned → buy → sell → update price → holdings → trades → summary).
+
+### 16.7 Known limitations and next steps
+
+* No fees, dividends, staking income or splits of shares.
+* Trades cannot be edited, deleted or backdated before the latest trade of the asset; fix mistakes with an opposite trade.
+* Prices are manual. A market feed can later add `AssetPrice` rows (source `Feed`) by symbol without touching the ledger.
+* Average cost only (no FIFO lots for taxes); one holding per asset (no brokers/locations).
+* The ledger's descriptions of trades without one are generated in English ("Buy 0.5 BTC").

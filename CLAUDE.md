@@ -49,7 +49,7 @@ clients/web         Angular 22 standalone + signals + zoneless, Tailwind 4, CDK 
 tests/              UnitTests · ArchitectureTests (NetArchTest) · IntegrationTests (real API + Testcontainers)
 ```
 
-Modules: **Identity** (Keycloak `sub` → internal user, `ledger_user_id` claim via provisioning middleware), **Accounts** (categories / account catalogue), **Wallets**, **Transactions** (the double-entry ledger, reports, summary, lock date), **Contacts**, **Groups**, **Debts** (loans, existing debts, splits, settlements, change confirmations).
+Modules: **Identity** (Keycloak `sub` → internal user, `ledger_user_id` claim via provisioning middleware), **Accounts** (categories / account catalogue), **Wallets**, **Transactions** (the double-entry ledger, reports, summary, lock date), **Contacts**, **Groups**, **Debts** (loans, existing debts, splits, settlements, change confirmations), **Investments** (assets, holdings at average cost, append-only trades posted through `InvestmentPostingRequested`, manual prices; valued at the latest sell price outside the ledger — documentation §16).
 
 ### Layer rules (enforced by `tests/Ledger.ArchitectureTests`)
 * A module references **only the `.Contracts`** of other modules (integration events). Never another module's Domain/Application/Infrastructure, and never another module's tables or schema.
