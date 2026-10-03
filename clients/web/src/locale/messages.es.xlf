@@ -4030,6 +4030,14 @@
         <source>Investments</source>
         <target state="translated">Inversiones</target>
       </trans-unit>
+      <trans-unit id="privacy.show" datatype="html">
+        <source>Show amounts (Shift+H)</source>
+        <target state="translated">Mostrar montos (Shift+H)</target>
+      </trans-unit>
+      <trans-unit id="privacy.hide" datatype="html">
+        <source>Hide amounts (Shift+H)</source>
+        <target state="translated">Ocultar montos (Shift+H)</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>

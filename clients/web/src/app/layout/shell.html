@@ -43,6 +43,12 @@
           </select>
         </label>
 
+        <button type="button" class="rounded-ui p-2 hover:bg-surface-muted hover:text-foreground cursor-pointer"
+                [class]="privacy.hidden() ? 'text-primary' : 'text-muted'"
+                (click)="privacy.toggle()" [attr.aria-pressed]="privacy.hidden()" [attr.aria-label]="privacyLabel()" [title]="privacyLabel()">
+          <ui-icon [name]="privacy.hidden() ? 'eyeSlash' : 'eye'" />
+        </button>
+
         <button type="button" class="rounded-ui p-2 text-muted hover:bg-surface-muted hover:text-foreground cursor-pointer"
                 (click)="theme.cycle()" [attr.aria-label]="themeLabel()" [title]="themeLabel()">
           <ui-icon [name]="themeIcon()" />

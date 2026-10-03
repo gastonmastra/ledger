@@ -1,9 +1,11 @@
 import { LOCALE_ID, Pipe, PipeTransform, inject } from '@angular/core';
+import { MASK, PrivacyService, maskNumber } from '../../core/privacy/privacy.service';
 
-/** Unit price of an asset: a currency amount that may need up to 8 decimals (e.g. 0.00001234 $). */
-@Pipe({ name: 'price' })
+/** Unit price of an asset: a currency amount that may need up to 8 decimals (e.g. 0.00001234 $). Masked with "hide amounts". */
+@Pipe({ name: 'price', pure: false })
 export class PricePipe implements PipeTransform {
   private readonly locale = inject(LOCALE_ID);
+  private readonly privacy = inject(PrivacyService);
   private readonly formatters = new Map<string, Intl.NumberFormat>();
 
   transform(price: number | null | undefined, currency: string): string {
@@ -21,17 +23,19 @@ export class PricePipe implements PipeTransform {
       this.formatters.set(currency, formatter);
     }
 
-    return formatter.format(price);
+    return this.privacy.hidden() ? maskNumber(formatter, price) : formatter.format(price);
   }
 }
 
-/** Quantity of an asset: up to 12 decimals, no trailing zeros. */
-@Pipe({ name: 'quantity' })
+/** Quantity of an asset: up to 12 decimals, no trailing zeros. Masked with "hide amounts". */
+@Pipe({ name: 'quantity', pure: false })
 export class QuantityPipe implements PipeTransform {
   private readonly format = new Intl.NumberFormat(inject(LOCALE_ID), { maximumFractionDigits: 12 });
+  private readonly privacy = inject(PrivacyService);
 
   transform(quantity: number | null | undefined): string {
-    return quantity === null || quantity === undefined ? '' : this.format.format(quantity);
+    if (quantity === null || quantity === undefined) return '';
+    return this.privacy.hidden() ? MASK : this.format.format(quantity);
   }
 }
 

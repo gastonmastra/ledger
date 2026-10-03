@@ -25,6 +25,7 @@ import {
   PointElement,
   Tooltip,
 } from 'chart.js';
+import { MASK, PrivacyService } from '../core/privacy/privacy.service';
 import { ThemeService } from '../core/theme/theme.service';
 
 // Only what the app uses (keeps the bundle small).
@@ -69,6 +70,7 @@ export type ChartConfigFactory = (colors: ChartColors) => ChartConfiguration;
 export class ChartView implements OnDestroy {
   private readonly document = inject(DOCUMENT);
   private readonly theme = inject(ThemeService);
+  private readonly privacy = inject(PrivacyService);
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   private chart: Chart | null = null;
 
@@ -78,10 +80,11 @@ export class ChartView implements OnDestroy {
   constructor() {
     effect(() => {
       this.theme.isDark(); // redraw with the new colors when the theme changes
+      const hidden = this.privacy.hidden(); // and when amounts are hidden or shown
       const factory = this.config();
 
       // Wait for the theme class to be applied before reading the CSS variables.
-      queueMicrotask(() => this.render(factory));
+      queueMicrotask(() => this.render(factory, hidden));
     });
   }
 
@@ -89,13 +92,16 @@ export class ChartView implements OnDestroy {
     this.chart?.destroy();
   }
 
-  private render(factory: ChartConfigFactory): void {
+  private render(factory: ChartConfigFactory, hidden: boolean): void {
     const colors = this.readColors();
     Chart.defaults.color = colors.text;
     Chart.defaults.font.family = getComputedStyle(this.document.body).fontFamily;
 
+    const config = factory(colors);
+    if (hidden) maskValues(config);
+
     this.chart?.destroy();
-    this.chart = new Chart(this.canvas().nativeElement, factory(colors));
+    this.chart = new Chart(this.canvas().nativeElement, config);
   }
 
   private readColors(): ChartColors {
@@ -112,4 +118,32 @@ export class ChartView implements OnDestroy {
       grid: token('--border'),
     };
   }
+}
+
+/**
+ * "Hide amounts": the shapes stay, the numbers go. Value axes lose their labels and tooltips show
+ * only the series and category names.
+ */
+function maskValues(config: ChartConfiguration): void {
+  const options = (config.options ??= {}) as ChartConfiguration['options'] & {
+    indexAxis?: 'x' | 'y';
+    scales?: Record<string, { ticks?: { callback?: unknown } }>;
+  };
+
+  if (config.type === 'line' || config.type === 'bar') {
+    const valueAxis = options.indexAxis === 'y' ? 'x' : 'y';
+    const scales = (options.scales ??= {});
+    const axis = (scales[valueAxis] ??= {});
+    axis.ticks = { ...axis.ticks, callback: () => MASK };
+  }
+
+  const plugins = (options.plugins ??= {});
+  plugins.tooltip = {
+    ...plugins.tooltip,
+    callbacks: {
+      ...plugins.tooltip?.callbacks,
+      label: (ctx) => ` ${ctx.dataset.label || ctx.label}: ${MASK}`,
+      footer: () => '',
+    },
+  };
 }
