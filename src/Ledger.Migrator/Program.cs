@@ -4,6 +4,7 @@ using Ledger.Modules.Contacts.Infrastructure;
 using Ledger.Modules.Debts.Infrastructure;
 using Ledger.Modules.Groups.Infrastructure;
 using Ledger.Modules.Identity.Infrastructure;
+using Ledger.Modules.Investments.Infrastructure;
 using Ledger.Modules.Transactions.Infrastructure;
 using Ledger.Modules.Wallets.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,7 +26,8 @@ builder.Services
     .AddTransactionsPersistence(builder.Configuration)
     .AddContactsPersistence(builder.Configuration)
     .AddGroupsPersistence(builder.Configuration)
-    .AddDebtsPersistence(builder.Configuration);
+    .AddDebtsPersistence(builder.Configuration)
+    .AddInvestmentsPersistence(builder.Configuration);
 
 using var host = builder.Build();
 

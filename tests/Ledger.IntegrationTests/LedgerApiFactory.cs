@@ -6,6 +6,7 @@ using Ledger.Modules.Contacts.Infrastructure;
 using Ledger.Modules.Debts.Infrastructure;
 using Ledger.Modules.Groups.Infrastructure;
 using Ledger.Modules.Identity.Infrastructure;
+using Ledger.Modules.Investments.Infrastructure;
 using Ledger.Modules.Transactions.Infrastructure;
 using Ledger.Modules.Wallets.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
@@ -90,6 +91,7 @@ public sealed class LedgerApiFactory : WebApplicationFactory<Program>, IAsyncLif
             .AddContactsPersistence(configuration)
             .AddGroupsPersistence(configuration)
             .AddDebtsPersistence(configuration)
+            .AddInvestmentsPersistence(configuration)
             .BuildServiceProvider();
 
         await ModuleMigrations.ApplyAsync(services, NullLogger.Instance, CancellationToken.None);

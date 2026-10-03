@@ -12,6 +12,8 @@ using Ledger.Modules.Groups.Infrastructure;
 using Ledger.Modules.Groups.Presentation;
 using Ledger.Modules.Identity.Infrastructure;
 using Ledger.Modules.Identity.Presentation;
+using Ledger.Modules.Investments.Infrastructure;
+using Ledger.Modules.Investments.Presentation;
 using Ledger.Modules.Transactions.Infrastructure;
 using Ledger.Modules.Transactions.Presentation;
 using Ledger.Modules.Wallets.Infrastructure;
@@ -39,6 +41,7 @@ builder.Services
     .AddContactsModule(builder.Configuration)
     .AddGroupsModule(builder.Configuration)
     .AddDebtsModule(builder.Configuration)
+    .AddInvestmentsModule(builder.Configuration)
     .AddLedgerMessageBus(builder.Configuration);
 
 var app = builder.Build();
@@ -73,6 +76,7 @@ app.MapTransactionsEndpoints();
 app.MapContactsEndpoints();
 app.MapGroupsEndpoints();
 app.MapDebtsEndpoints();
+app.MapInvestmentsEndpoints();
 
 app.Run();
 
