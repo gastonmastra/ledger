@@ -2,7 +2,12 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
+  Asset,
+  AssetPrice,
   BooksLock,
+  CreateAssetRequest,
+  InvestmentsReport,
+  InvestmentsTotal,
   Category,
   ChangeResult,
   CategoryType,
@@ -27,6 +32,9 @@ import {
   SettleRequest,
   SplitRequest,
   Summary,
+  Trade,
+  TradeKind,
+  TradeRequest,
   Transaction,
   TransactionActivity,
   TransactionFilter,
@@ -295,6 +303,59 @@ export class LedgerApi {
     if (currency) params = params.set('currency', currency);
 
     return this.http.get<Report>(`${this.base}/reports`, { params });
+  }
+
+  // Investments
+  assets(includeArchived = false): Observable<Asset[]> {
+    return this.http.get<Asset[]>(`${this.base}/investments/assets`, { params: { includeArchived } });
+  }
+
+  createAsset(body: CreateAssetRequest): Observable<Asset> {
+    return this.http.post<Asset>(`${this.base}/investments/assets`, body);
+  }
+
+  updateAsset(id: string, name: string, symbol: string | null): Observable<void> {
+    return this.http.put<void>(`${this.base}/investments/assets/${id}`, { name, symbol });
+  }
+
+  archiveAsset(id: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/investments/assets/${id}/archive`, null);
+  }
+
+  assetPrices(id: string): Observable<AssetPrice[]> {
+    return this.http.get<AssetPrice[]>(`${this.base}/investments/assets/${id}/prices`);
+  }
+
+  recordPrice(id: string, body: { buyPrice?: number | null; sellPrice?: number | null; occurredAt?: string | null }): Observable<void> {
+    return this.http.post<void>(`${this.base}/investments/assets/${id}/prices`, body);
+  }
+
+  /** Buy, sell or record an already owned holding (`opening`). Answers 202 with a pending trade. */
+  recordTrade(kind: TradeKind, body: TradeRequest): Observable<Trade> {
+    const path = kind === 'Buy' ? 'buy' : kind === 'Sell' ? 'sell' : 'opening';
+    return this.http.post<Trade>(`${this.base}/investments/trades/${path}`, body);
+  }
+
+  trades(assetId: string | null, page = 1, pageSize = 20): Observable<PagedResult<Trade>> {
+    let params = new HttpParams().set('page', page).set('pageSize', pageSize);
+    if (assetId) params = params.set('assetId', assetId);
+
+    return this.http.get<PagedResult<Trade>>(`${this.base}/investments/trades`, { params });
+  }
+
+  trade(id: string): Observable<Trade> {
+    return this.http.get<Trade>(`${this.base}/investments/trades/${id}`);
+  }
+
+  investmentsSummary(): Observable<InvestmentsTotal[]> {
+    return this.http.get<InvestmentsTotal[]>(`${this.base}/investments/summary`);
+  }
+
+  investmentsReport(from: string, to: string, currency: Currency | null, timeZone: string): Observable<InvestmentsReport> {
+    let params = new HttpParams().set('from', from).set('to', to).set('timeZone', timeZone);
+    if (currency) params = params.set('currency', currency);
+
+    return this.http.get<InvestmentsReport>(`${this.base}/investments/report`, { params });
   }
 }
 

@@ -23,24 +23,33 @@
   @let data = summary.value()!;
 
   <section class="grid gap-4 md:grid-cols-2">
-    @for (total of data.totals; track total.currency) {
+    @for (card of cards(); track card.currency) {
+      @let total = card.money;
       <ui-card>
         <div class="mb-4 flex items-center justify-between">
-          <ui-badge tone="primary">{{ total.currency }}</ui-badge>
+          <ui-badge tone="primary">{{ card.currency }}</ui-badge>
         </div>
         <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <ui-stat class="col-span-2 sm:col-span-3" i18n-label="@@summary.net" label="Net" [value]="total.net | money: total.currency"
-                   [tone]="amountTone(total.net)" [emphasis]="true" />
-          <ui-stat i18n-label="@@summary.wallets" label="In wallets" [value]="total.wallets | money: total.currency" />
-          <ui-stat i18n-label="@@summary.owedToMe" label="Owed to me" [value]="total.owedToMe | money: total.currency"
+          @if (card.investments?.value) {
+            <ui-stat class="col-span-2 sm:col-span-3" i18n-label="@@summary.total" label="Total" [value]="card.total | money: card.currency"
+                     [tone]="amountTone(card.total)" [emphasis]="true" />
+            <ui-stat i18n-label="@@summary.moneyNet" label="Money (net)" [value]="total.net | money: card.currency"
+                     [tone]="amountTone(total.net)" />
+            <ui-stat i18n-label="@@summary.investments" label="Investments" [value]="card.investments!.value | money: card.currency" />
+          } @else {
+            <ui-stat class="col-span-2 sm:col-span-3" i18n-label="@@summary.net" label="Net" [value]="total.net | money: card.currency"
+                     [tone]="amountTone(total.net)" [emphasis]="true" />
+          }
+          <ui-stat i18n-label="@@summary.wallets" label="In wallets" [value]="total.wallets | money: card.currency" />
+          <ui-stat i18n-label="@@summary.owedToMe" label="Owed to me" [value]="total.owedToMe | money: card.currency"
                    [tone]="total.owedToMe ? 'positive' : 'muted'" />
-          <ui-stat i18n-label="@@summary.iOwe" label="I owe" [value]="total.iOwe | money: total.currency"
+          <ui-stat i18n-label="@@summary.iOwe" label="I owe" [value]="total.iOwe | money: card.currency"
                    [tone]="total.iOwe ? 'negative' : 'muted'" />
           @if (total.pending) {
-            <ui-stat i18n-label="@@summary.pending" label="Pending" [value]="total.pending | money: total.currency" tone="muted" />
+            <ui-stat i18n-label="@@summary.pending" label="Pending" [value]="total.pending | money: card.currency" tone="muted" />
           }
           @if (total.adjustments) {
-            <ui-stat i18n-label="@@summary.adjustments" label="Adjustments" [value]="total.adjustments | money: total.currency: true" tone="muted" />
+            <ui-stat i18n-label="@@summary.adjustments" label="Adjustments" [value]="total.adjustments | money: card.currency: true" tone="muted" />
           }
         </div>
       </ui-card>
@@ -63,6 +72,25 @@
         </tbody>
       </ui-table>
     </ui-card>
+
+    @if (heldAssets().length) {
+      <ui-card i18n-heading="@@dashboard.investments" heading="Investments" [padded]="false">
+        <a card-actions uiButton variant="ghost" size="sm" routerLink="/investments" i18n="@@ui.manage">Manage</a>
+        <ui-table>
+          <tbody>
+            @for (asset of heldAssets(); track asset.id) {
+              <tr>
+                <td>{{ asset.name }} <span class="text-muted">{{ asset.symbol }}</span></td>
+                <td class="text-right tabular-nums">
+                  {{ asset.marketValue | money: asset.currency }}
+                  <div class="text-xs" [class]="amountClass(asset.unrealizedGain)">{{ asset.unrealizedGain | money: asset.currency: true }}</div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </ui-table>
+      </ui-card>
+    }
 
     <ui-card i18n-heading="@@dashboard.people" heading="People and groups" [padded]="false">
       <a card-actions uiButton variant="ghost" size="sm" routerLink="/debts" i18n="@@ui.manage">Manage</a>

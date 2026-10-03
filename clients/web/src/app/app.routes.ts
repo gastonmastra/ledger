@@ -7,6 +7,10 @@ export const routes: Routes = [
     path: 'transactions',
     loadComponent: () => import('./features/transactions/transactions-page').then((m) => m.TransactionsPage),
   },
+  {
+    path: 'investments',
+    loadComponent: () => import('./features/investments/investments-page').then((m) => m.InvestmentsPage),
+  },
   { path: 'debts', loadComponent: () => import('./features/debts/debts-page').then((m) => m.DebtsPage) },
   { path: 'groups', loadComponent: () => import('./features/groups/groups-page').then((m) => m.GroupsPage) },
   {

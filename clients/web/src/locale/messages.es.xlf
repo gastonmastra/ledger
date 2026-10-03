@@ -3638,6 +3638,398 @@
         <source>E.g. wrong amount, duplicated…</source>
         <target state="translated">Ej.: monto equivocado, duplicado…</target>
       </trans-unit>
+      <trans-unit id="error.tradePending" datatype="html">
+        <source>Another trade of this asset is still being recorded. Try again in a moment.</source>
+        <target state="translated">Otra operación de este activo todavía se está registrando. Probá de nuevo en un momento.</target>
+      </trans-unit>
+      <trans-unit id="error.tradeBackdated" datatype="html">
+        <source>Trades can&apos;t be dated before the latest trade of the asset.</source>
+        <target state="translated">Las operaciones no pueden tener una fecha anterior a la última operación del activo.</target>
+      </trans-unit>
+      <trans-unit id="error.insufficientQuantity" datatype="html">
+        <source>You don&apos;t hold that much of this asset.</source>
+        <target state="translated">No tenés tanta cantidad de este activo.</target>
+      </trans-unit>
+      <trans-unit id="error.tradeTotalZero" datatype="html">
+        <source>Quantity × price is less than one cent: it can&apos;t be recorded.</source>
+        <target state="translated">Cantidad × precio es menos de un centavo: no se puede registrar.</target>
+      </trans-unit>
+      <trans-unit id="error.assetNotEmpty" datatype="html">
+        <source>Only assets you no longer hold can be archived.</source>
+        <target state="translated">Solo se pueden archivar los activos que ya no tenés.</target>
+      </trans-unit>
+      <trans-unit id="error.assetArchived" datatype="html">
+        <source>The asset is archived.</source>
+        <target state="translated">El activo está archivado.</target>
+      </trans-unit>
+      <trans-unit id="error.quantityDecimals" datatype="html">
+        <source>The quantity can have at most 12 decimals.</source>
+        <target state="translated">La cantidad puede tener como máximo 12 decimales.</target>
+      </trans-unit>
+      <trans-unit id="error.priceDecimals" datatype="html">
+        <source>The price can have at most 8 decimals.</source>
+        <target state="translated">El precio puede tener como máximo 8 decimales.</target>
+      </trans-unit>
+      <trans-unit id="kind.investmentBuy" datatype="html">
+        <source>Investment purchase</source>
+        <target state="translated">Compra de inversión</target>
+      </trans-unit>
+      <trans-unit id="kind.investmentSell" datatype="html">
+        <source>Investment sale</source>
+        <target state="translated">Venta de inversión</target>
+      </trans-unit>
+      <trans-unit id="kind.investmentOpening" datatype="html">
+        <source>Investment already owned</source>
+        <target state="translated">Inversión que ya tenía</target>
+      </trans-unit>
+      <trans-unit id="account.investmentGains" datatype="html">
+        <source>Investment gains</source>
+        <target state="translated">Ganancias de inversiones</target>
+      </trans-unit>
+      <trans-unit id="assetType.stock" datatype="html">
+        <source>Stock</source>
+        <target state="translated">Acción</target>
+      </trans-unit>
+      <trans-unit id="assetType.etf" datatype="html">
+        <source>ETF</source>
+        <target state="translated">ETF</target>
+      </trans-unit>
+      <trans-unit id="assetType.crypto" datatype="html">
+        <source>Crypto</source>
+        <target state="translated">Cripto</target>
+      </trans-unit>
+      <trans-unit id="assetType.bond" datatype="html">
+        <source>Bond</source>
+        <target state="translated">Bono</target>
+      </trans-unit>
+      <trans-unit id="assetType.fund" datatype="html">
+        <source>Fund</source>
+        <target state="translated">Fondo</target>
+      </trans-unit>
+      <trans-unit id="assetType.other" datatype="html">
+        <source>Other</source>
+        <target state="translated">Otro</target>
+      </trans-unit>
+      <trans-unit id="tradeKind.buy" datatype="html">
+        <source>Buy</source>
+        <target state="translated">Compra</target>
+      </trans-unit>
+      <trans-unit id="tradeKind.sell" datatype="html">
+        <source>Sell</source>
+        <target state="translated">Venta</target>
+      </trans-unit>
+      <trans-unit id="tradeKind.opening" datatype="html">
+        <source>Already owned</source>
+        <target state="translated">Ya lo tenía</target>
+      </trans-unit>
+      <trans-unit id="tradeStatus.completed" datatype="html">
+        <source>Recorded</source>
+        <target state="translated">Registrada</target>
+      </trans-unit>
+      <trans-unit id="valuation.sell" datatype="html">
+        <source>Sell price</source>
+        <target state="translated">Precio de venta</target>
+      </trans-unit>
+      <trans-unit id="valuation.buy" datatype="html">
+        <source>Buy price (no sell price yet)</source>
+        <target state="translated">Precio de compra (todavía sin precio de venta)</target>
+      </trans-unit>
+      <trans-unit id="valuation.cost" datatype="html">
+        <source>Average cost (no price yet)</source>
+        <target state="translated">Costo promedio (todavía sin precio)</target>
+      </trans-unit>
+      <trans-unit id="priceSide.buy" datatype="html">
+        <source>Buy price</source>
+        <target state="translated">Precio de compra</target>
+      </trans-unit>
+      <trans-unit id="priceSide.sell" datatype="html">
+        <source>Sell price</source>
+        <target state="translated">Precio de venta</target>
+      </trans-unit>
+      <trans-unit id="summary.total" datatype="html">
+        <source>Total</source>
+        <target state="translated">Total</target>
+      </trans-unit>
+      <trans-unit id="summary.moneyNet" datatype="html">
+        <source>Money (net)</source>
+        <target state="translated">Dinero (neto)</target>
+      </trans-unit>
+      <trans-unit id="summary.investments" datatype="html">
+        <source>Investments</source>
+        <target state="translated">Inversiones</target>
+      </trans-unit>
+      <trans-unit id="dashboard.investments" datatype="html">
+        <source>Investments</source>
+        <target state="translated">Inversiones</target>
+      </trans-unit>
+      <trans-unit id="report.investmentsOverTime" datatype="html">
+        <source>Investments over time</source>
+        <target state="translated">Inversiones en el tiempo</target>
+      </trans-unit>
+      <trans-unit id="report.realizedInPeriod" datatype="html">
+        <source>Realized gains in this period</source>
+        <target state="translated">Ganancias realizadas en este período</target>
+      </trans-unit>
+      <trans-unit id="investments.value" datatype="html">
+        <source>Market value</source>
+        <target state="translated">Valor de mercado</target>
+      </trans-unit>
+      <trans-unit id="investments.cost" datatype="html">
+        <source>Cost</source>
+        <target state="translated">Costo</target>
+      </trans-unit>
+      <trans-unit id="asset.name" datatype="html">
+        <source>Name</source>
+        <target state="translated">Nombre</target>
+      </trans-unit>
+      <trans-unit id="asset.namePlaceholder" datatype="html">
+        <source>e.g. Bitcoin</source>
+        <target state="translated">p. ej. Bitcoin</target>
+      </trans-unit>
+      <trans-unit id="asset.symbol" datatype="html">
+        <source>Symbol</source>
+        <target state="translated">Símbolo</target>
+      </trans-unit>
+      <trans-unit id="ui.optional" datatype="html">
+        <source>Optional</source>
+        <target state="translated">Opcional</target>
+      </trans-unit>
+      <trans-unit id="asset.symbolPlaceholder" datatype="html">
+        <source>e.g. BTC</source>
+        <target state="translated">p. ej. BTC</target>
+      </trans-unit>
+      <trans-unit id="asset.type" datatype="html">
+        <source>Type</source>
+        <target state="translated">Tipo</target>
+      </trans-unit>
+      <trans-unit id="asset.currency" datatype="html">
+        <source>Quoted in</source>
+        <target state="translated">Cotiza en</target>
+      </trans-unit>
+      <trans-unit id="asset.currencyHint" datatype="html">
+        <source>The currency of its price. It can&apos;t be changed later.</source>
+        <target state="translated">La moneda de su precio. No se puede cambiar después.</target>
+      </trans-unit>
+      <trans-unit id="asset.editTitle" datatype="html">
+        <source>Edit asset</source>
+        <target state="translated">Editar activo</target>
+      </trans-unit>
+      <trans-unit id="asset.newTitle" datatype="html">
+        <source>New asset</source>
+        <target state="translated">Nuevo activo</target>
+      </trans-unit>
+      <trans-unit id="asset.create" datatype="html">
+        <source>Add asset</source>
+        <target state="translated">Agregar activo</target>
+      </trans-unit>
+      <trans-unit id="investments.trades" datatype="html">
+        <source>Trades</source>
+        <target state="translated">Operaciones</target>
+      </trans-unit>
+      <trans-unit id="investments.prices" datatype="html">
+        <source>Prices</source>
+        <target state="translated">Precios</target>
+      </trans-unit>
+      <trans-unit id="investments.noPrices" datatype="html">
+        <source>No prices recorded yet.</source>
+        <target state="translated">Todavía no hay precios registrados.</target>
+      </trans-unit>
+      <trans-unit id="price.fromTrade" datatype="html">
+        <source>trade</source>
+        <target state="translated">operación</target>
+      </trans-unit>
+      <trans-unit id="investments.title" datatype="html">
+        <source>Investments</source>
+        <target state="translated">Inversiones</target>
+      </trans-unit>
+      <trans-unit id="investments.subtitle" datatype="html">
+        <source>Shares, ETFs, crypto… what you hold and what it is worth.</source>
+        <target state="translated">Acciones, ETFs, cripto… lo que tenés y cuánto vale.</target>
+      </trans-unit>
+      <trans-unit id="trade.buyTitle" datatype="html">
+        <source>Buy</source>
+        <target state="translated">Comprar</target>
+      </trans-unit>
+      <trans-unit id="trade.sellTitle" datatype="html">
+        <source>Sell</source>
+        <target state="translated">Vender</target>
+      </trans-unit>
+      <trans-unit id="investments.alreadyOwned" datatype="html">
+        <source>I already own some</source>
+        <target state="translated">Ya tengo algunos</target>
+      </trans-unit>
+      <trans-unit id="investments.unrealized" datatype="html">
+        <source>Unrealized gain</source>
+        <target state="translated">Ganancia no realizada</target>
+      </trans-unit>
+      <trans-unit id="investments.realizedTotal" datatype="html">
+        <source>Realized gains</source>
+        <target state="translated">Ganancias realizadas</target>
+      </trans-unit>
+      <trans-unit id="investments.holdings" datatype="html">
+        <source>Holdings</source>
+        <target state="translated">Tenencias</target>
+      </trans-unit>
+      <trans-unit id="investments.empty" datatype="html">
+        <source>No investments yet. Record a purchase, or a holding you already own.</source>
+        <target state="translated">Todavía no tenés inversiones. Registrá una compra o algo que ya tenías.</target>
+      </trans-unit>
+      <trans-unit id="investments.buyFirst" datatype="html">
+        <source>Record a purchase</source>
+        <target state="translated">Registrar una compra</target>
+      </trans-unit>
+      <trans-unit id="trade.asset" datatype="html">
+        <source>Asset</source>
+        <target state="translated">Activo</target>
+      </trans-unit>
+      <trans-unit id="trade.quantity" datatype="html">
+        <source>Quantity</source>
+        <target state="translated">Cantidad</target>
+      </trans-unit>
+      <trans-unit id="investments.avgCost" datatype="html">
+        <source>Average cost</source>
+        <target state="translated">Costo promedio</target>
+      </trans-unit>
+      <trans-unit id="investments.price" datatype="html">
+        <source>Valued at</source>
+        <target state="translated">Valuado a</target>
+      </trans-unit>
+      <trans-unit id="price.title" datatype="html">
+        <source>Update price</source>
+        <target state="translated">Actualizar precio</target>
+      </trans-unit>
+      <trans-unit id="asset.created" datatype="html">
+        <source>Asset added.</source>
+        <target state="translated">Activo agregado.</target>
+      </trans-unit>
+      <trans-unit id="price.saved" datatype="html">
+        <source>Price recorded.</source>
+        <target state="translated">Precio registrado.</target>
+      </trans-unit>
+      <trans-unit id="asset.archiveTitle" datatype="html">
+        <source>Archive asset</source>
+        <target state="translated">Archivar activo</target>
+      </trans-unit>
+      <trans-unit id="asset.archiveMessage" datatype="html">
+        <source>&quot;<x id="name" equiv-text="asset.name"/>&quot; will be hidden. Its trades are kept. Only assets you no longer hold can be archived.</source>
+        <target state="translated">&quot;<x id="name" equiv-text="asset.name"/>&quot; se va a ocultar. Sus operaciones se conservan. Solo se pueden archivar los activos que ya no tenés.</target>
+      </trans-unit>
+      <trans-unit id="asset.archived" datatype="html">
+        <source>Asset archived.</source>
+        <target state="translated">Activo archivado.</target>
+      </trans-unit>
+      <trans-unit id="price.explanation" datatype="html">
+        <source> Your holding of <x id="INTERPOLATION" equiv-text="{{ asset.name }}"/> is valued at its sell price (what you would get if you sold it). No money moves. </source>
+        <target state="translated"> Tu tenencia de <x id="INTERPOLATION" equiv-text="{{ asset.name }}"/> se valúa a su precio de venta (lo que obtendrías si la vendieras). No se mueve dinero. </target>
+      </trans-unit>
+      <trans-unit id="price.current" datatype="html">
+        <source>Current:</source>
+        <target state="translated">Actual:</target>
+      </trans-unit>
+      <trans-unit id="trade.newAsset" datatype="html">
+        <source>+ New asset…</source>
+        <target state="translated">+ Nuevo activo…</target>
+      </trans-unit>
+      <trans-unit id="trade.sellAll" datatype="html">
+        <source>Sell everything</source>
+        <target state="translated">Vender todo</target>
+      </trans-unit>
+      <trans-unit id="trade.total" datatype="html">
+        <source>Total</source>
+        <target state="translated">Total</target>
+      </trans-unit>
+      <trans-unit id="trade.walletAmountHint" datatype="html">
+        <source>The wallet uses another currency: enter what it really moved.</source>
+        <target state="translated">La billetera usa otra moneda: ingresá lo que realmente se movió.</target>
+      </trans-unit>
+      <trans-unit id="trade.counterPriceHint" datatype="html">
+        <source>Optional. Keeps the value of your holdings up to date.</source>
+        <target state="translated">Opcional. Mantiene actualizado el valor de tus tenencias.</target>
+      </trans-unit>
+      <trans-unit id="trade.openingTitle" datatype="html">
+        <source>Add a holding I already own</source>
+        <target state="translated">Agregar algo que ya tengo</target>
+      </trans-unit>
+      <trans-unit id="trade.sellUnitPrice" datatype="html">
+        <source>Price per unit received</source>
+        <target state="translated">Precio por unidad recibido</target>
+      </trans-unit>
+      <trans-unit id="trade.buyUnitPrice" datatype="html">
+        <source>Price per unit paid</source>
+        <target state="translated">Precio por unidad pagado</target>
+      </trans-unit>
+      <trans-unit id="trade.currentBuyPrice" datatype="html">
+        <source>Current buy price</source>
+        <target state="translated">Precio de compra actual</target>
+      </trans-unit>
+      <trans-unit id="trade.currentSellPrice" datatype="html">
+        <source>Current sell price</source>
+        <target state="translated">Precio de venta actual</target>
+      </trans-unit>
+      <trans-unit id="trade.walletIn" datatype="html">
+        <source>Into wallet</source>
+        <target state="translated">A la billetera</target>
+      </trans-unit>
+      <trans-unit id="trade.walletOut" datatype="html">
+        <source>From wallet</source>
+        <target state="translated">Desde la billetera</target>
+      </trans-unit>
+      <trans-unit id="trade.youHold" datatype="html">
+        <source>You hold <x id="quantity" equiv-text="this.quantityFormat.transform(asset.quantity)"/></source>
+        <target state="translated">Tenés <x id="quantity" equiv-text="this.quantityFormat.transform(asset.quantity)"/></target>
+      </trans-unit>
+      <trans-unit id="trade.latestPrice" datatype="html">
+        <source>Latest: <x id="price" equiv-text="this.priceFormat.transform(latest, asset.currency)"/></source>
+        <target state="translated">Último: <x id="price" equiv-text="this.priceFormat.transform(latest, asset.currency)"/></target>
+      </trans-unit>
+      <trans-unit id="trade.notBefore" datatype="html">
+        <source>Not before its latest trade (<x id="date" equiv-text="formatDate(last, &apos;medium&apos;, this.locale)"/>).</source>
+        <target state="translated">No antes de su última operación (<x id="date" equiv-text="formatDate(last, &apos;medium&apos;, this.locale)"/>).</target>
+      </trans-unit>
+      <trans-unit id="trade.walletAmountIn" datatype="html">
+        <source>Received in <x id="currency" equiv-text="currency"/></source>
+        <target state="translated">Recibido en <x id="currency" equiv-text="currency"/></target>
+      </trans-unit>
+      <trans-unit id="trade.walletAmountOut" datatype="html">
+        <source>Paid in <x id="currency" equiv-text="currency"/></source>
+        <target state="translated">Pagado en <x id="currency" equiv-text="currency"/></target>
+      </trans-unit>
+      <trans-unit id="trade.bought" datatype="html">
+        <source>Purchase recorded.</source>
+        <target state="translated">Compra registrada.</target>
+      </trans-unit>
+      <trans-unit id="trade.sold" datatype="html">
+        <source>Sale recorded.</source>
+        <target state="translated">Venta registrada.</target>
+      </trans-unit>
+      <trans-unit id="trade.opened" datatype="html">
+        <source>Holding recorded.</source>
+        <target state="translated">Tenencia registrada.</target>
+      </trans-unit>
+      <trans-unit id="investments.noTrades" datatype="html">
+        <source>No trades yet.</source>
+        <target state="translated">Todavía no hay operaciones.</target>
+      </trans-unit>
+      <trans-unit id="investments.date" datatype="html">
+        <source>Date</source>
+        <target state="translated">Fecha</target>
+      </trans-unit>
+      <trans-unit id="investments.trade" datatype="html">
+        <source>Trade</source>
+        <target state="translated">Operación</target>
+      </trans-unit>
+      <trans-unit id="investments.unitPrice" datatype="html">
+        <source>Price</source>
+        <target state="translated">Precio</target>
+      </trans-unit>
+      <trans-unit id="investments.realized" datatype="html">
+        <source>Realized</source>
+        <target state="translated">Realizada</target>
+      </trans-unit>
+      <trans-unit id="nav.investments" datatype="html">
+        <source>Investments</source>
+        <target state="translated">Inversiones</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>
