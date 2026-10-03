@@ -291,6 +291,66 @@ public sealed class LedgerApiClient(HttpClient http)
         return GetAsync<Report>($"api/reports?{query}", ct);
     }
 
+    // Investments
+    public Task<List<Asset>> AssetsAsync(bool includeArchived, CancellationToken ct)
+        => GetAsync<List<Asset>>($"api/investments/assets?includeArchived={includeArchived}", ct);
+
+    public Task<Asset> CreateAssetAsync(string name, string? symbol, string type, string currency, CancellationToken ct)
+        => SendAsync<Asset>(HttpMethod.Post, "api/investments/assets", new { name, symbol, type, currency }, ct);
+
+    public Task UpdateAssetAsync(Guid id, string name, string? symbol, CancellationToken ct)
+        => SendAsync<object>(HttpMethod.Put, $"api/investments/assets/{id}", new { name, symbol }, ct);
+
+    public Task ArchiveAssetAsync(Guid id, CancellationToken ct)
+        => SendAsync<object>(HttpMethod.Post, $"api/investments/assets/{id}/archive", null, ct);
+
+    public Task<List<AssetPrice>> AssetPricesAsync(Guid id, CancellationToken ct)
+        => GetAsync<List<AssetPrice>>($"api/investments/assets/{id}/prices", ct);
+
+    public Task RecordPriceAsync(Guid id, decimal? buyPrice, decimal? sellPrice, DateTimeOffset occurredAt, CancellationToken ct)
+        => SendAsync<object>(HttpMethod.Post, $"api/investments/assets/{id}/prices", new { buyPrice, sellPrice, occurredAt }, ct);
+
+    /// <param name="kind">"buy", "sell" or "opening" (a holding already owned).</param>
+    /// <param name="counterPrice">Buy/opening: the current sell price. Sell: the current buy price.</param>
+    public Task<Trade> RecordTradeAsync(
+        string kind, Guid assetId, decimal quantity, decimal unitPrice, Guid? walletId, decimal? walletAmount,
+        decimal? counterPrice, DateTimeOffset occurredAt, string? description, CancellationToken ct)
+        => SendAsync<Trade>(HttpMethod.Post, $"api/investments/trades/{kind}", new
+        {
+            assetId,
+            quantity,
+            unitPrice,
+            walletId,
+            walletAmount,
+            sellPrice = kind == "sell" ? null : counterPrice,
+            buyPrice = kind == "sell" ? counterPrice : null,
+            occurredAt,
+            description
+        }, ct);
+
+    public Task<PagedList<Trade>> TradesAsync(Guid? assetId, int page, CancellationToken ct)
+        => GetAsync<PagedList<Trade>>($"api/investments/trades?page={page}&pageSize=20{(assetId is { } id ? $"&assetId={id}" : "")}", ct);
+
+    /// <summary>Trades are recorded asynchronously: wait for the outcome.</summary>
+    public async Task<Trade> WaitForTradeAsync(Trade trade, CancellationToken ct)
+    {
+        for (var attempt = 0; attempt < 40 && trade.Status == "Pending"; attempt++)
+        {
+            await Task.Delay(250, ct);
+            trade = await GetAsync<Trade>($"api/investments/trades/{trade.Id}", ct);
+        }
+
+        return trade;
+    }
+
+    public Task<List<InvestmentsTotal>> InvestmentsSummaryAsync(CancellationToken ct)
+        => GetAsync<List<InvestmentsTotal>>("api/investments/summary", ct);
+
+    public Task<InvestmentsReport> InvestmentsReportAsync(DateTimeOffset from, DateTimeOffset to, string currency, CancellationToken ct)
+        => GetAsync<InvestmentsReport>(
+            $"api/investments/report?from={Uri.EscapeDataString(from.ToString("O"))}&to={Uri.EscapeDataString(to.ToString("O"))}" +
+            $"&timeZone={Uri.EscapeDataString(TimeZoneInfo.Local.Id)}&currency={currency}", ct);
+
     private Task<T> GetAsync<T>(string path, CancellationToken ct) => SendAsync<T>(HttpMethod.Get, path, null, ct);
 
     private async Task<T> SendAsync<T>(HttpMethod method, string path, object? body, CancellationToken ct)

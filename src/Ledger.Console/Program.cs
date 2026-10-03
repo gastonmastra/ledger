@@ -34,6 +34,7 @@ builder.Services
     .AddTransient<ContactsMenu>()
     .AddTransient<GroupsMenu>()
     .AddTransient<DebtsMenu>()
+    .AddTransient<InvestmentsMenu>()
     .AddTransient<PendingMenu>()
     .AddTransient<ReportsMenu>()
     .AddTransient<OperationsScreen>()
