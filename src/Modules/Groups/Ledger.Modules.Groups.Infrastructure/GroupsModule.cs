@@ -42,6 +42,18 @@ internal sealed class ContactLinkedConsumer(ISender sender, GroupsDbContext dbCo
     }
 }
 
+internal sealed class PersonMergedConsumer(ISender sender, GroupsDbContext dbContext)
+    : ModuleConsumer<PersonMerged, GroupsDbContext>(dbContext)
+{
+    protected override Task Handle(ConsumeContext<PersonMerged> context)
+    {
+        var merged = context.Message;
+        var name = merged.Parties.FirstOrDefault(p => p.PersonId == merged.UserId)?.DisplayName ?? "(unknown)";
+
+        return sender.Send(new MergeGroupMemberCommand(merged.PreviousPersonId, merged.UserId, name), context.CancellationToken);
+    }
+}
+
 /// <summary>Members that took part in group expenses cannot be removed anymore.</summary>
 internal sealed class DebtOperationCompletedConsumer(ISender sender, GroupsDbContext dbContext)
     : ModuleConsumer<DebtOperationCompleted, GroupsDbContext>(dbContext)
@@ -85,6 +97,7 @@ public static class GroupsModule
             typeof(UserRegisteredConsumer),
             typeof(ContactCreatedConsumer),
             typeof(ContactLinkedConsumer),
+            typeof(PersonMergedConsumer),
             typeof(DebtOperationCompletedConsumer));
 
         return services;

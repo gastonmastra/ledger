@@ -16,6 +16,13 @@ public sealed class GroupsDbContext(DbContextOptions<GroupsDbContext> options)
     public DbSet<KnownContact> KnownContacts => Set<KnownContact>();
     public DbSet<KnownUser> KnownUsers => Set<KnownUser>();
 
+    public Task ReplaceMemberAsync(Guid previousPersonId, Guid userId, string displayName, CancellationToken cancellationToken)
+        => Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE groups.group_members
+            SET "PersonId" = {userId}, "UserId" = {userId}, "DisplayName" = {displayName}
+            WHERE "PersonId" = {previousPersonId}
+            """, cancellationToken);
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         => configurationBuilder.UseUtcDateTimeOffsets();
 
