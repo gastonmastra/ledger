@@ -3,6 +3,7 @@ using FluentValidation;
 using Ledger.BuildingBlocks.Application;
 using Ledger.BuildingBlocks.Application.Exceptions;
 using Ledger.BuildingBlocks.Domain;
+using Ledger.Modules.Debts.Application.Links;
 using Ledger.Modules.Debts.Domain;
 using Ledger.Modules.Transactions.Contracts;
 using Microsoft.EntityFrameworkCore;
@@ -131,7 +132,8 @@ internal sealed class ChangeHandlers(
     PeopleDirectory people,
     OperationFactory factory,
     OperationLifecycle lifecycle,
-    BooksLockGuard locks)
+    BooksLockGuard locks,
+    MergeGuard merges)
     : ICommandHandler<ReviseOperationCommand, ChangeResultDto>,
       ICommandHandler<DeleteOperationCommand, ChangeResultDto>,
       ICommandHandler<RestoreOperationCommand, ChangeResultDto>,
@@ -252,6 +254,8 @@ internal sealed class ChangeHandlers(
             dates.Add(built.Operation.OccurredAt);
 
         await locks.EnsureOpenAsync(involvedUsers, dates, authorUserId, cancellationToken);
+        await merges.EnsureNotMergingAsync(
+            operation.InvolvedPersonIds.Concat(built?.Operation.InvolvedPersonIds ?? []), cancellationToken);
 
         var change = OperationChange.Request(
             operation.Id,

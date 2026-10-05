@@ -7,7 +7,8 @@ namespace Ledger.Modules.Debts.Application.Projections;
 
 public sealed record ProjectContactCommand(Guid ContactId, Guid OwnerId, Guid PersonId, string Name, Guid? LinkedUserId) : ICommand;
 
-public sealed record ProjectContactLinkCommand(Guid ContactId, Guid PersonId, Guid LinkedUserId) : ICommand;
+/// <param name="MergedIntoContactId">The contact was merged into another contact of the same owner.</param>
+public sealed record ProjectContactLinkCommand(Guid ContactId, Guid PersonId, Guid LinkedUserId, Guid? MergedIntoContactId = null) : ICommand;
 
 public sealed record ProjectUserCommand(Guid UserId, string DisplayName) : ICommand;
 
@@ -61,7 +62,11 @@ internal sealed class ProjectionHandlers(IDebtsDbContext dbContext)
             ?? throw new BuildingBlocks.Application.Exceptions.NotYetAvailableException(
                 $"Contact '{command.ContactId}' is not projected yet.");
 
-        contact.Link(command.PersonId, command.LinkedUserId);
+        if (command.MergedIntoContactId is not null)
+            contact.MarkMerged(command.LinkedUserId);
+        else
+            contact.Link(command.PersonId, command.LinkedUserId);
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 

@@ -47,7 +47,12 @@ public static class DebtsModule
             typeof(GroupMemberAddedConsumer),
             typeof(GroupMemberRemovedConsumer),
             typeof(WalletCreatedConsumer),
-            typeof(WalletDeletedConsumer));
+            typeof(WalletDeletedConsumer),
+            typeof(ContactLinkRequestedConsumer),
+            typeof(ContactLinkRequestClosedConsumer),
+            typeof(PersonMergeRequestedConsumer),
+            typeof(LedgerOpeningsCompletedConsumer),
+            typeof(LedgerOpeningsRejectedConsumer));
 
         return services;
     }

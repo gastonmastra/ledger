@@ -14,8 +14,17 @@ public interface IDebtsDbContext
     DbSet<DebtWallet> Wallets { get; }
     DbSet<DebtBooksLock> BooksLocks { get; }
     DbSet<OperationChange> Changes { get; }
+    DbSet<PersonMerge> PersonMerges { get; }
+    DbSet<DebtLinkRequest> LinkRequests { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Moves every reference to <paramref name="previousPersonId"/> to the user <paramref name="userId"/>: debts,
+    /// operations (sides, payers, shares), group members and contacts. A contact whose owner already has another
+    /// contact for the user is marked as merged instead.
+    /// </summary>
+    Task ReplacePersonAsync(Guid previousPersonId, Guid userId, CancellationToken cancellationToken);
 }
 
 public interface IDebtsEventBus : IEventBus;

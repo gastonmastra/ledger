@@ -1,4 +1,5 @@
 using Ledger.BuildingBlocks.Application;
+using Ledger.Modules.Debts.Application.Links;
 using Ledger.Modules.Debts.Application.Operations;
 using Ledger.Modules.Debts.Application.Queries;
 using Ledger.Modules.Debts.Domain;
@@ -137,6 +138,10 @@ public static class DebtsEndpoints
         debts.MapGet("/operations/{id:guid}", async (Guid id, ICurrentUser user, ISender sender, CancellationToken ct) =>
                 Results.Ok(await sender.Send(new GetOperationQuery(user.UserId, id), ct)))
             .WithSummary("A loan, split or settlement with its status (Pending, Completed, Rejected, Superseded, Deleted)");
+
+        debts.MapGet("/link-requests/{id:guid}/preview", async (Guid id, ICurrentUser user, ISender sender, CancellationToken ct) =>
+                Results.Ok(await sender.Send(new GetLinkPreviewQuery(user.UserId, id), ct)))
+            .WithSummary("What accepting a link request copies into the linked user's books: balances per person or group");
 
         debts.MapGet("/operations/{id:guid}/history", async (Guid id, ICurrentUser user, ISender sender, CancellationToken ct) =>
                 Results.Ok(await sender.Send(new GetOperationHistoryQuery(user.UserId, id), ct)))

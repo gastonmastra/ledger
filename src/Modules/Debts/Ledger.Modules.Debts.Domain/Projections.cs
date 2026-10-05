@@ -16,12 +16,21 @@ public sealed class DebtContact
     public string Name { get; private set; }
     public Guid? LinkedUserId { get; private set; }
 
+    /// <summary>Merged into another contact of the same owner for the same person: ignored everywhere.</summary>
+    public bool IsMerged { get; private set; }
+
     public static DebtContact Create(Guid contactId, Guid ownerId, Guid personId, string name, Guid? linkedUserId)
         => new() { ContactId = contactId, OwnerId = ownerId, PersonId = personId, Name = name, LinkedUserId = linkedUserId };
 
     public void Link(Guid personId, Guid userId)
     {
         PersonId = personId;
+        LinkedUserId = userId;
+    }
+
+    public void MarkMerged(Guid userId)
+    {
+        IsMerged = true;
         LinkedUserId = userId;
     }
 }

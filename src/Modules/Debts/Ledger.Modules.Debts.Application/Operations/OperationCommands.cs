@@ -3,6 +3,7 @@ using Ledger.BuildingBlocks.Application;
 using Ledger.BuildingBlocks.Application.Exceptions;
 using Ledger.BuildingBlocks.Domain;
 using Ledger.Modules.Debts.Contracts;
+using Ledger.Modules.Debts.Application.Links;
 using Ledger.Modules.Debts.Domain;
 using Ledger.Modules.Transactions.Contracts;
 using Microsoft.EntityFrameworkCore;
@@ -134,7 +135,8 @@ internal sealed class OperationHandlers(
     OperationFactory factory,
     OperationLifecycle lifecycle,
     BooksLockGuard locks,
-    GroupBalances groupBalances)
+    GroupBalances groupBalances,
+    MergeGuard merges)
     : ICommandHandler<RecordLoanCommand, OperationDto>,
       ICommandHandler<RecordSplitCommand, OperationDto>,
       ICommandHandler<RecordInitialDebtCommand, OperationDto>,
@@ -309,6 +311,7 @@ internal sealed class OperationHandlers(
     private async Task<OperationDto> RecordAsync(BuiltOperation built, Guid userId, CancellationToken cancellationToken)
     {
         await locks.EnsureOpenAsync(built.RegisteredUserIds, [built.Operation.OccurredAt], userId, cancellationToken);
+        await merges.EnsureNotMergingAsync(built.Operation.InvolvedPersonIds, cancellationToken);
 
         dbContext.Operations.Add(built.Operation);
         dbContext.Debts.AddRange(built.Debts);

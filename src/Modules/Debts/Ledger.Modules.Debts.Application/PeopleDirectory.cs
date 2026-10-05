@@ -28,7 +28,7 @@ internal sealed class PeopleDirectory(IDebtsDbContext dbContext)
         if (contact is null)
             throw new NotYetAvailableException($"Contact '{contactId}' is not available yet. Try again in a moment.");
 
-        if (contact.OwnerId != userId)
+        if (contact.OwnerId != userId || contact.IsMerged)
             throw new NotFoundException("Contact", contactId);
 
         return new PersonInfo(contact.PersonId, contact.Name, contact.LinkedUserId);
@@ -40,7 +40,7 @@ internal sealed class PeopleDirectory(IDebtsDbContext dbContext)
         var me = await MeAsync(userId, cancellationToken);
 
         var contacts = await dbContext.Contacts.AsNoTracking()
-            .Where(x => x.OwnerId == userId)
+            .Where(x => x.OwnerId == userId && !x.IsMerged)
             .ToListAsync(cancellationToken);
 
         var people = contacts.ToDictionary(c => c.PersonId, c => new PersonInfo(c.PersonId, c.Name, c.LinkedUserId));
@@ -83,7 +83,7 @@ internal sealed class PeopleDirectory(IDebtsDbContext dbContext)
         }
 
         foreach (var contact in await dbContext.Contacts.AsNoTracking()
-                     .Where(c => c.OwnerId == userId)
+                     .Where(c => c.OwnerId == userId && !c.IsMerged)
                      .ToListAsync(cancellationToken))
             names[contact.PersonId] = contact.Name;
 

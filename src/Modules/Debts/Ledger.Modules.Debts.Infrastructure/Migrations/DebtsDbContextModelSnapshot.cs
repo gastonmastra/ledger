@@ -179,6 +179,9 @@ namespace Ledger.Modules.Debts.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsMerged")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid?>("LinkedUserId")
                         .HasColumnType("uuid");
 
@@ -226,6 +229,26 @@ namespace Ledger.Modules.Debts.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("known_group_members", "debts");
+                });
+
+            modelBuilder.Entity("Ledger.Modules.Debts.Domain.DebtLinkRequest", b =>
+                {
+                    b.Property<Guid>("RequestId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TargetUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("RequestId");
+
+                    b.ToTable("known_link_requests", "debts");
                 });
 
             modelBuilder.Entity("Ledger.Modules.Debts.Domain.DebtOperation", b =>
@@ -410,6 +433,50 @@ namespace Ledger.Modules.Debts.Infrastructure.Migrations
                     b.HasIndex("RequestedByUserId");
 
                     b.ToTable("operation_changes", "debts");
+                });
+
+            modelBuilder.Entity("Ledger.Modules.Debts.Domain.PersonMerge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Parties")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("PreviousPersonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestId")
+                        .IsUnique();
+
+                    b.HasIndex("PreviousPersonId", "Status");
+
+                    b.ToTable("person_merges", "debts");
                 });
 
             modelBuilder.Entity("Ledger.Modules.Debts.Domain.ChangeApproval", b =>

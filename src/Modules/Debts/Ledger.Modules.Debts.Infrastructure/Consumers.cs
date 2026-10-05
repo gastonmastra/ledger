@@ -1,5 +1,6 @@
 using Ledger.BuildingBlocks.Infrastructure.Messaging;
 using Ledger.Modules.Contacts.Contracts;
+using Ledger.Modules.Debts.Application.Links;
 using Ledger.Modules.Debts.Application.Operations;
 using Ledger.Modules.Debts.Application.Projections;
 using Ledger.Modules.Groups.Contracts;
@@ -73,7 +74,9 @@ internal sealed class ContactLinkedConsumer(ISender sender, DebtsDbContext dbCon
     protected override Task Handle(ConsumeContext<ContactLinked> context)
     {
         var c = context.Message;
-        return sender.Send(new ProjectContactLinkCommand(c.ContactId, c.PersonId, c.LinkedUserId), context.CancellationToken);
+        return sender.Send(
+            new ProjectContactLinkCommand(c.ContactId, c.PersonId, c.LinkedUserId, c.MergedIntoContactId),
+            context.CancellationToken);
     }
 }
 
@@ -124,4 +127,48 @@ internal sealed class WalletDeletedConsumer(ISender sender, DebtsDbContext dbCon
 {
     protected override Task Handle(ConsumeContext<WalletDeleted> context)
         => sender.Send(new RemoveWalletProjectionCommand(context.Message.WalletId), context.CancellationToken);
+}
+
+internal sealed class ContactLinkRequestedConsumer(ISender sender, DebtsDbContext dbContext)
+    : ModuleConsumer<ContactLinkRequested, DebtsDbContext>(dbContext)
+{
+    protected override Task Handle(ConsumeContext<ContactLinkRequested> context)
+    {
+        var r = context.Message;
+        return sender.Send(new ProjectLinkRequestCommand(r.RequestId, r.OwnerId, r.PersonId, r.TargetUserId), context.CancellationToken);
+    }
+}
+
+internal sealed class ContactLinkRequestClosedConsumer(ISender sender, DebtsDbContext dbContext)
+    : ModuleConsumer<ContactLinkRequestClosed, DebtsDbContext>(dbContext)
+{
+    protected override Task Handle(ConsumeContext<ContactLinkRequestClosed> context)
+        => sender.Send(new CloseLinkRequestCommand(context.Message.RequestId), context.CancellationToken);
+}
+
+internal sealed class PersonMergeRequestedConsumer(ISender sender, DebtsDbContext dbContext)
+    : ModuleConsumer<PersonMergeRequested, DebtsDbContext>(dbContext)
+{
+    protected override async Task Handle(ConsumeContext<PersonMergeRequested> context)
+    {
+        var m = context.Message;
+        await sender.Send(new RequestPersonMergeCommand(m.RequestId, m.OwnerId, m.PreviousPersonId, m.UserId), context.CancellationToken);
+        // The preview is no longer needed once the request was answered.
+        await sender.Send(new CloseLinkRequestCommand(m.RequestId), context.CancellationToken);
+    }
+}
+
+internal sealed class LedgerOpeningsCompletedConsumer(ISender sender, DebtsDbContext dbContext)
+    : ModuleConsumer<LedgerOpeningsCompleted, DebtsDbContext>(dbContext)
+{
+    protected override Task Handle(ConsumeContext<LedgerOpeningsCompleted> context)
+        => sender.Send(new ApplyOpeningsResultCommand(context.Message.MergeId, true, null), context.CancellationToken);
+}
+
+internal sealed class LedgerOpeningsRejectedConsumer(ISender sender, DebtsDbContext dbContext)
+    : ModuleConsumer<LedgerOpeningsRejected, DebtsDbContext>(dbContext)
+{
+    protected override Task Handle(ConsumeContext<LedgerOpeningsRejected> context)
+        => sender.Send(
+            new ApplyOpeningsResultCommand(context.Message.MergeId, false, context.Message.Reason), context.CancellationToken);
 }
