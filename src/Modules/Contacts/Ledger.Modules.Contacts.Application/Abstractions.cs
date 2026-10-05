@@ -8,6 +8,7 @@ public interface IContactsDbContext
 {
     DbSet<Contact> Contacts { get; }
     DbSet<RegisteredUser> RegisteredUsers { get; }
+    DbSet<ContactLinkRequest> LinkRequests { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

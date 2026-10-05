@@ -95,6 +95,9 @@ namespace Ledger.Modules.Contacts.Infrastructure.Migrations
                     b.Property<Guid?>("LinkedUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("MergedIntoContactId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -108,15 +111,69 @@ namespace Ledger.Modules.Contacts.Infrastructure.Migrations
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("PendingLinkRequestId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("PersonId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PersonId");
+
                     b.HasIndex("OwnerId", "PersonId")
                         .IsUnique();
 
                     b.ToTable("contacts", "contacts");
+                });
+
+            modelBuilder.Entity("Ledger.Modules.Contacts.Domain.ContactLinkRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AnsweredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ContactId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContactName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PersonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("TargetUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContactId");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("TargetUserId");
+
+                    b.ToTable("link_requests", "contacts");
                 });
 
             modelBuilder.Entity("Ledger.Modules.Contacts.Domain.RegisteredUser", b =>

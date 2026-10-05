@@ -60,6 +60,26 @@ internal sealed class GroupMemberAddedConsumer(ISender sender, ContactsDbContext
             context.CancellationToken);
 }
 
+internal sealed class PersonMergedConsumer(ISender sender, ContactsDbContext dbContext)
+    : ModuleConsumer<PersonMerged, ContactsDbContext>(dbContext)
+{
+    protected override Task Handle(ConsumeContext<PersonMerged> context)
+        => sender.Send(
+            new ApplyPersonMergeCommand(
+                context.Message.RequestId,
+                context.Message.PreviousPersonId,
+                context.Message.UserId,
+                context.Message.Parties.Select(p => new PersonReference(p.PersonId, p.DisplayName, p.UserId)).ToList()),
+            context.CancellationToken);
+}
+
+internal sealed class PersonMergeFailedConsumer(ISender sender, ContactsDbContext dbContext)
+    : ModuleConsumer<PersonMergeFailed, ContactsDbContext>(dbContext)
+{
+    protected override Task Handle(ConsumeContext<PersonMergeFailed> context)
+        => sender.Send(new FailPersonMergeCommand(context.Message.RequestId, context.Message.Reason), context.CancellationToken);
+}
+
 public static class ContactsModule
 {
     public const string Name = "contacts";
@@ -86,7 +106,9 @@ public static class ContactsModule
             typeof(UserRegisteredConsumer),
             typeof(DebtOperationCompletedConsumer),
             typeof(GroupCreatedConsumer),
-            typeof(GroupMemberAddedConsumer));
+            typeof(GroupMemberAddedConsumer),
+            typeof(PersonMergedConsumer),
+            typeof(PersonMergeFailedConsumer));
 
         return services;
     }

@@ -14,6 +14,7 @@ public sealed class ContactsDbContext(DbContextOptions<ContactsDbContext> option
 
     public DbSet<Contact> Contacts => Set<Contact>();
     public DbSet<RegisteredUser> RegisteredUsers => Set<RegisteredUser>();
+    public DbSet<ContactLinkRequest> LinkRequests => Set<ContactLinkRequest>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
         => configurationBuilder.UseUtcDateTimeOffsets();
@@ -46,8 +47,40 @@ internal sealed class ContactConfiguration : IEntityTypeConfiguration<Contact>
             .HasMaxLength(20)
             .IsRequired();
 
+        builder.Ignore(x => x.IsMerged);
+
         builder.HasIndex(x => new { x.OwnerId, x.PersonId })
             .IsUnique();
+
+        builder.HasIndex(x => x.PersonId);
+    }
+}
+
+internal sealed class ContactLinkRequestConfiguration : IEntityTypeConfiguration<ContactLinkRequest>
+{
+    public void Configure(EntityTypeBuilder<ContactLinkRequest> builder)
+    {
+        builder.ToTable("link_requests");
+
+        builder.HasKey(x => x.Id);
+
+        builder.Property(x => x.ContactName)
+            .HasMaxLength(Contact.NameMaxLength)
+            .IsRequired();
+
+        builder.Property(x => x.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+
+        builder.Property(x => x.FailureReason)
+            .HasMaxLength(ContactLinkRequest.ReasonMaxLength);
+
+        builder.Ignore(x => x.IsOpen);
+
+        builder.HasIndex(x => x.OwnerId);
+        builder.HasIndex(x => x.TargetUserId);
+        builder.HasIndex(x => x.ContactId);
     }
 }
 

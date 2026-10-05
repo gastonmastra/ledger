@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ledger.Modules.Contacts.Application;
 
+/// <param name="PendingLinkRequestId">A link request waiting for the user's answer (or being applied).</param>
 public sealed record ContactDto(
     Guid Id,
     Guid PersonId,
@@ -16,11 +17,16 @@ public sealed record ContactDto(
     Guid? LinkedUserId,
     bool IsLinked,
     ContactOrigin Origin,
-    bool IsInUse);
+    bool IsInUse,
+    Guid? PendingLinkRequestId = null);
 
 /// <param name="Email">When it belongs to a registered user, the contact is linked to that user.</param>
 public sealed record CreateContactCommand(Guid OwnerId, string Name, string? Email) : ICommand<ContactDto>;
 
+/// <summary>
+/// Links a contact to the registered user with that email. A contact that is not used yet is linked right away;
+/// one that takes part in debts or groups sends a link request the user has to accept.
+/// </summary>
 public sealed record LinkContactCommand(Guid OwnerId, Guid ContactId, string Email) : ICommand<ContactDto>;
 
 public sealed record GetContactsQuery(Guid OwnerId) : IQuery<IReadOnlyList<ContactDto>>;
@@ -89,6 +95,21 @@ internal sealed class ContactHandlers(
                 "contact.user_not_found",
                 $"No registered user has the email '{command.Email}'. They must log in to Ledger once first.");
 
+        if (contact.IsInUse)
+        {
+            // Its history will be copied into the user's books: they decide. If the owner already has another
+            // contact for that user, both are merged when it is applied.
+            var request = contact.RequestLink(user.UserId);
+            dbContext.LinkRequests.Add(request);
+
+            await eventBus.PublishAsync(
+                new ContactLinkRequested(request.Id, request.OwnerId, request.ContactId, request.PersonId, request.TargetUserId),
+                cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return ToDto(contact);
+        }
+
         await EnsureNotAlreadyAContactAsync(command.OwnerId, user.UserId, cancellationToken);
 
         var previousPersonId = contact.PersonId;
@@ -104,17 +125,27 @@ internal sealed class ContactHandlers(
 
     public async Task Handle(EnsureMutualContactsCommand command, CancellationToken cancellationToken)
     {
-        var personIds = command.People.Select(p => p.PersonId).ToList();
+        await EnsureMutualContactsAsync(command.People, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
 
-        foreach (var owner in command.People.Where(p => p.UserId is not null))
+    /// <summary>Every registered user among the people gets a contact for each of the others; all are marked in use.</summary>
+    internal async Task EnsureMutualContactsAsync(IReadOnlyList<PersonReference> people, CancellationToken cancellationToken)
+    {
+        var personIds = people.Select(p => p.PersonId).ToList();
+
+        foreach (var owner in people.Where(p => p.UserId is not null))
         {
             var ownerId = owner.UserId!.Value;
 
-            var existing = await dbContext.Contacts
-                .Where(c => c.OwnerId == ownerId && personIds.Contains(c.PersonId))
-                .ToDictionaryAsync(c => c.PersonId, cancellationToken);
+            var existing = (await dbContext.Contacts
+                    .Where(c => c.OwnerId == ownerId && personIds.Contains(c.PersonId))
+                    .ToListAsync(cancellationToken))
+                .Union(dbContext.Contacts.Local.Where(c => c.OwnerId == ownerId && personIds.Contains(c.PersonId)))
+                .Where(c => !c.IsMerged)
+                .ToDictionary(c => c.PersonId);
 
-            foreach (var other in command.People.Where(p => p.PersonId != owner.PersonId && p.UserId != ownerId))
+            foreach (var other in people.Where(p => p.PersonId != owner.PersonId && p.UserId != ownerId))
             {
                 if (existing.TryGetValue(other.PersonId, out var contact))
                 {
@@ -124,11 +155,10 @@ internal sealed class ContactHandlers(
 
                 contact = Contact.CreateMirrored(ownerId, other.PersonId, other.Name, other.UserId);
                 dbContext.Contacts.Add(contact);
+                existing[other.PersonId] = contact;
                 await eventBus.PublishAsync(Created(contact), cancellationToken);
             }
         }
-
-        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task Handle(ProjectRegisteredUserCommand command, CancellationToken cancellationToken)
@@ -144,7 +174,7 @@ internal sealed class ContactHandlers(
     {
         var contacts = await dbContext.Contacts
             .AsNoTracking()
-            .Where(x => x.OwnerId == query.OwnerId)
+            .Where(x => x.OwnerId == query.OwnerId && x.MergedIntoContactId == null)
             .OrderBy(x => x.Name)
             .ToListAsync(cancellationToken);
 
@@ -181,5 +211,6 @@ internal sealed class ContactHandlers(
             contact.LinkedUserId,
             contact.LinkedUserId is not null,
             contact.Origin,
-            contact.IsInUse);
+            contact.IsInUse,
+            contact.PendingLinkRequestId);
 }
