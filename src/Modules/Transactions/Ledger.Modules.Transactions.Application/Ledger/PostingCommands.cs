@@ -18,6 +18,9 @@ public sealed record PostDebtOperationCommand(LedgerPostingRequested Request) : 
 /// <summary>Applies a change of a shared operation to the books of the users who accepted it.</summary>
 public sealed record ReviseDebtOperationCommand(LedgerRevisionRequested Request) : ICommand<LedgerPostingResult>;
 
+/// <summary>Copies the shared history into the books of a user who was just linked to a contact.</summary>
+public sealed record PostLedgerOpeningsCommand(LedgerOpeningsRequested Request) : ICommand<LedgerPostingResult>;
+
 internal readonly record struct PostingContext(Guid OperationId, DateTimeOffset OccurredAt, string? Description);
 
 internal sealed class PostingHandlers(
@@ -26,7 +29,8 @@ internal sealed class PostingHandlers(
     LedgerWriter writer)
     : ICommandHandler<PostOpeningBalanceCommand>,
       ICommandHandler<PostDebtOperationCommand, LedgerPostingResult>,
-      ICommandHandler<ReviseDebtOperationCommand, LedgerPostingResult>
+      ICommandHandler<ReviseDebtOperationCommand, LedgerPostingResult>,
+      ICommandHandler<PostLedgerOpeningsCommand, LedgerPostingResult>
 {
     public async Task Handle(PostOpeningBalanceCommand command, CancellationToken cancellationToken)
     {
@@ -170,6 +174,50 @@ internal sealed class PostingHandlers(
 
                 if (transactions.Count != 0)
                     await writer.WriteAsync(transactions, cancellationToken);
+
+                return new LedgerPostingResult(true, null);
+            }, cancellationToken);
+        }
+        catch (Exception ex) when (ex is DomainException or NotFoundException)
+        {
+            dbContext.DiscardLedgerChanges();
+            return new LedgerPostingResult(false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// One existing-debt entry per copied operation, dated like the operation and correlated to it, so a later
+    /// revision of that operation reverses the copy too. All of them or none.
+    /// </summary>
+    public async Task<LedgerPostingResult> Handle(PostLedgerOpeningsCommand command, CancellationToken cancellationToken)
+    {
+        var request = command.Request;
+
+        if (request.Entries.Count == 0)
+            return new LedgerPostingResult(true, null);
+
+        var first = request.Entries[0].OperationId;
+        var alreadyPosted = await dbContext.Transactions.AnyAsync(
+            x => x.OwnerId == request.UserId && x.CorrelationId == first && x.Kind == TransactionKind.InitialDebt,
+            cancellationToken);
+
+        if (alreadyPosted)
+            return new LedgerPostingResult(true, null);
+
+        try
+        {
+            return await dbContext.InTransactionAsync(async () =>
+            {
+                var transactions = new List<Transaction>();
+
+                foreach (var entry in request.Entries)
+                {
+                    var context = new PostingContext(entry.OperationId, entry.OccurredAt, entry.Description);
+                    transactions.Add(await BuildLegAsync(
+                        context, entry.Leg, TransactionKind.InitialDebt, Currencies.Parse(entry.Currency), cancellationToken));
+                }
+
+                await writer.WriteAsync(transactions, cancellationToken);
 
                 return new LedgerPostingResult(true, null);
             }, cancellationToken);

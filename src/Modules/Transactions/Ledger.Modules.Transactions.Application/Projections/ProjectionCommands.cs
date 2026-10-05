@@ -22,13 +22,17 @@ public sealed record ArchiveAccountProjectionCommand(Guid AccountId) : ICommand;
 
 public sealed record DeleteAccountProjectionCommand(Guid AccountId) : ICommand;
 
+/// <param name="PreviousPersonId">The contact was linked to a user: its previous person id becomes an alias.</param>
+/// <param name="MergedIntoAnother">The contact was merged into another contact for the same user: only the alias
+/// is recorded, the other contact keeps its name.</param>
 public sealed record ProjectCounterpartyCommand(
     Guid OwnerId,
     Guid PersonId,
     CounterpartyKind Kind,
     Guid SourceId,
     string Name,
-    Guid? PreviousPersonId = null) : ICommand;
+    Guid? PreviousPersonId = null,
+    bool MergedIntoAnother = false) : ICommand;
 
 internal sealed class ProjectionHandlers(
     ITransactionsDbContext dbContext,
@@ -106,13 +110,19 @@ internal sealed class ProjectionHandlers(
 
     public async Task Handle(ProjectCounterpartyCommand command, CancellationToken cancellationToken)
     {
-        if (command.PreviousPersonId is { } previous)
+        if (command.PreviousPersonId is { } previous && previous != command.PersonId)
         {
             var old = await dbContext.Counterparties.SingleOrDefaultAsync(
                 x => x.OwnerId == command.OwnerId && x.PersonId == previous, cancellationToken);
 
-            if (old is not null)
-                dbContext.Counterparties.Remove(old);
+            // Postings may still carry the previous person id (they are never rewritten): keep it as an alias.
+            old?.MergeInto(command.PersonId);
+
+            if (command.MergedIntoAnother)
+            {
+                await dbContext.SaveChangesAsync(cancellationToken);
+                return;
+            }
         }
 
         var existing = await dbContext.Counterparties.SingleOrDefaultAsync(

@@ -94,10 +94,17 @@ internal sealed class TransactionQueryHandlers(ITransactionsDbContext dbContext,
 
         if (query.ContactId is { } contactId)
         {
-            var personIds = dbContext.Counterparties
+            var contactPersonIds = dbContext.Counterparties
                 .Where(c => c.OwnerId == query.UserId
                             && c.Kind == CounterpartyKind.Contact
                             && c.SourceId == contactId)
+                .Select(c => c.PersonId);
+
+            // Older postings may carry a person id that was later merged into this contact's user.
+            var personIds = dbContext.Counterparties
+                .Where(c => c.OwnerId == query.UserId
+                            && (contactPersonIds.Contains(c.PersonId)
+                                || (c.MergedIntoPersonId != null && contactPersonIds.Contains(c.MergedIntoPersonId.Value))))
                 .Select(c => (Guid?)c.PersonId);
 
             transactions = transactions.Where(t => t.Postings.Any(p => personIds.Contains(p.CounterpartyId)));

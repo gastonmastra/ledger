@@ -104,6 +104,32 @@ public sealed record BooksLockChanged(Guid UserId, DateTimeOffset? LockedUntil);
 
 public sealed record LedgerPostingRejected(Guid OperationId, string Reason);
 
+/// <summary>
+/// One operation of the shared history copied into the books of a user who was just linked to a contact.
+/// The leg has no cash, expense or income: positions against Opening balances.
+/// </summary>
+/// <param name="OperationId">The original operation (the transaction's correlation id, so later revisions of the
+/// operation also reverse this copy).</param>
+public sealed record LedgerOpeningEntry(
+    Guid OperationId,
+    DateTimeOffset OccurredAt,
+    string? Description,
+    string Currency,
+    LedgerLeg Leg);
+
+/// <summary>
+/// Asks the ledger to record copies of shared operations in one user's books, atomically. Answered with
+/// <see cref="LedgerOpeningsCompleted"/> or <see cref="LedgerOpeningsRejected"/>.
+/// </summary>
+public sealed record LedgerOpeningsRequested(
+    Guid MergeId,
+    Guid UserId,
+    IReadOnlyList<LedgerOpeningEntry> Entries);
+
+public sealed record LedgerOpeningsCompleted(Guid MergeId);
+
+public sealed record LedgerOpeningsRejected(Guid MergeId, string Reason);
+
 public static class InvestmentPostingKinds
 {
     public const string Buy = nameof(Buy);

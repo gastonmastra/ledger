@@ -81,10 +81,21 @@ internal sealed class SummaryQueryHandler(ITransactionsDbContext dbContext)
             })
             .ToList();
 
-        var counterpartyNames = await dbContext.Counterparties
+        var counterpartyRows = await dbContext.Counterparties
             .AsNoTracking()
             .Where(c => c.OwnerId == query.UserId)
-            .ToDictionaryAsync(c => c.PersonId, c => (c.Name, Kind: c.Kind.ToString()), cancellationToken);
+            .ToListAsync(cancellationToken);
+
+        var counterpartyNames = counterpartyRows.ToDictionary(c => c.PersonId, c => (c.Name, Kind: c.Kind.ToString()));
+
+        // A person merged into a registered user: their older postings count for the user.
+        var aliases = counterpartyRows
+            .Where(c => c.MergedIntoPersonId is not null)
+            .ToDictionary(c => c.PersonId, c => c.MergedIntoPersonId!.Value);
+
+        positions = positions
+            .Select(p => p with { CounterpartyId = Resolve(p.CounterpartyId, aliases) })
+            .ToList();
 
         var counterparties = positions
             .Where(p => p.Purpose is LedgerAccountPurpose.Receivables or LedgerAccountPurpose.Payables && p.CounterpartyId is not null)
@@ -129,5 +140,14 @@ internal sealed class SummaryQueryHandler(ITransactionsDbContext dbContext)
             .ToList();
 
         return new SummaryDto(totals, wallets, counterparties);
+    }
+
+    private static Guid? Resolve(Guid? personId, IReadOnlyDictionary<Guid, Guid> aliases)
+    {
+        // Follow the chain (a person could be merged more than once), guarding against cycles.
+        for (var i = 0; personId is { } id && aliases.TryGetValue(id, out var next) && i < 10; i++)
+            personId = next;
+
+        return personId;
     }
 }

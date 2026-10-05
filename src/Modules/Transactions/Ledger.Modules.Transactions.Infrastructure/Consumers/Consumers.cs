@@ -93,7 +93,8 @@ internal sealed class ContactLinkedConsumer(ISender sender, TransactionsDbContex
                 CounterpartyKind.Contact,
                 contact.ContactId,
                 contact.Name,
-                contact.PreviousPersonId),
+                contact.PreviousPersonId,
+                MergedIntoAnother: contact.MergedIntoContactId is not null),
             context.CancellationToken);
     }
 }
@@ -182,6 +183,24 @@ internal sealed class InvestmentPostingRequestedConsumer(
         object reply = result.Succeeded
             ? new InvestmentPostingCompleted(context.Message.TradeId, result.WalletCurrency)
             : new InvestmentPostingRejected(context.Message.TradeId, result.RejectionReason!);
+
+        await eventBus.PublishAsync(reply, context.CancellationToken);
+    }
+}
+
+internal sealed class LedgerOpeningsRequestedConsumer(
+    ISender sender,
+    ITransactionsEventBus eventBus,
+    TransactionsDbContext dbContext)
+    : ModuleConsumer<LedgerOpeningsRequested, TransactionsDbContext>(dbContext)
+{
+    protected override async Task Handle(ConsumeContext<LedgerOpeningsRequested> context)
+    {
+        var result = await sender.Send(new PostLedgerOpeningsCommand(context.Message), context.CancellationToken);
+
+        object reply = result.Succeeded
+            ? new LedgerOpeningsCompleted(context.Message.MergeId)
+            : new LedgerOpeningsRejected(context.Message.MergeId, result.RejectionReason!);
 
         await eventBus.PublishAsync(reply, context.CancellationToken);
     }
