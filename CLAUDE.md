@@ -81,6 +81,7 @@ Modules: **Identity** (Keycloak `sub` → internal user, `ledger_user_id` claim 
 * Loans, splits, settlements and existing debts are **asynchronous**: the API answers `202` with an operation (`Pending → Completed | Rejected`); clients poll (`OperationTracker` in web, `WaitForOperationAsync` in console).
 * Operations are built by `OperationFactory` **from the initiator's point of view** (their contacts, wallets, category). Changes are `OperationChange`s: linked users involved approve; the author and those who accept get the new version, rejecters keep the old one (operation `IsDisputed`). Settled debts must be un-settled first (`debt.settled`).
 * Non-registered contacts have no books: only registered users get ledger legs.
+* Linking a contact that is already in use is a **link request** the user accepts; it merges the person id into the user (Debts re-keys, Transactions keeps the old id as a counterparty alias) and copies the shared history into the user's books (documentation §17).
 
 ### Web client (`clients/web/src/app`)
 * `core/api/ledger-api.ts` (typed client) + `core/api/models.ts` (mirror of API DTOs, enums as string unions). `core/api/error-messages.ts` maps API error `code`s to localized text — add new codes there.

@@ -24,7 +24,7 @@ It is a **.NET 10 modular monolith**: one deployable application made of indepen
 | Splits | Split an expense among me, my contacts or a group: equally, by amount or by percentage, with **any number of payers**. "A friend paid for me" is a split where the friend pays and I consume. |
 | Groups | Shared with every member who is a registered user. Group balances are **simplified** into the fewest payments. |
 | Settlements | Full settlement of one debt, of everything with a contact, or of one suggested group payment. |
-| Linked contacts | A contact with a registered user's email is linked. Debts are then mirrored into that user's books automatically, with contacts created for them. Money they paid or received waits in *Pending wallet assignments* until they choose the wallet. |
+| Linked contacts | A contact with a registered user's email is linked. Debts are then mirrored into that user's books automatically, with contacts created for them. Money they paid or received waits in *Pending wallet assignments* until they choose the wallet. A contact that already has debts or groups can be linked too: the user accepts a **link request** (with a preview) and the shared history is copied into their books. |
 | Summary | Per currency: wallets, owed to me, I owe, pending and **net**, with a breakdown per wallet and per person or group; plus the investments' market value and the **total**. |
 | History | Transactions newest first, paginated, filterable by wallet, category, contact and date range. |
 | Investments | Assets (shares, ETFs, crypto…) in any quote currency. **Buy** from a wallet (any currency), **sell** into a wallet and record holdings **already owned**; quantities with up to 12 decimals and unit prices with up to 8. The ledger records **cost** (average cost on sales, realized gains in *Investment gains*); holdings are valued at the latest **sell** price, which can be updated anytime without moving money. |
@@ -149,7 +149,8 @@ All endpoints need a Keycloak access token. Explore them with Scalar at `/scalar
 | GET | `/api/summary` | Totals per currency, per wallet and per person or group |
 | GET | `/api/reports?from&to&currency&timeZone` | Figures for charts (daily up to 62 days, monthly above) |
 | GET/POST | `/api/pending-assignments`, `/{id}/assign` | Choose the wallet for money others recorded for me |
-| GET/POST | `/api/contacts`, `/{id}/link` | Contacts |
+| GET/POST | `/api/contacts`, `/{id}/link` | Contacts (linking a used contact sends a link request) |
+| GET/POST/DELETE | `/api/contacts/link-requests`, `/{id}/accept`, `/{id}/reject`, `DELETE /{id}`; GET `/api/debts/link-requests/{id}/preview` | Link requests and their preview |
 | GET/POST/DELETE | `/api/groups`, `/{id}`, `/{id}/members`, `/{id}/members/{personId}` | Groups |
 | GET | `/api/groups/{id}/balances` | Balances, simplified payments and raw debts |
 | GET | `/api/debts` | My debts and the net per contact |
@@ -194,5 +195,5 @@ Every module owns its migrations (`src/Modules/<Module>/Ledger.Modules.<Module>.
 * Mirrored debts are applied automatically. Letting the other user cancel or dispute them is future work.
 * Totals are not converted between currencies.
 * Investments: no fees or dividends, trades are append-only (no edits or backdating), prices are entered by hand.
-* A contact can only be linked to a user before it is used in debts or groups.
+* A contact can be merged into one user only; unlinking is not supported.
 * MediatR 12 and MassTransit 8 are the last Apache-licensed versions. MassTransit 8 receives security fixes until the end of 2026.

@@ -22,6 +22,7 @@ For a quick start see the [root README](../README.md). For database migrations s
 14. [Dates, opening balances, adjustments, existing debts and reports](#14-dates-opening-balances-adjustments-existing-debts-and-reports)
 15. [Editable, auditable ledger](#15-editable-auditable-ledger)
 16. [Investments](#16-investments)
+17. [Linking contacts that are already in use](#17-linking-contacts-that-are-already-in-use)
 
 ---
 
@@ -238,7 +239,7 @@ Pairwise who-owes-whom debts are still computed and stored in Debts, and shown i
 
 * A registered user's **person id is their user id**.
 * A non-registered contact gets a person id the first time it is added (its contact id). If somebody else's debt is mirrored to a linked user, the auto-created contact on their side reuses that person id.
-* Linking a contact to a user **changes its person id** to the user id, so it is only allowed while the contact is **unused** (not in any debt or group). Otherwise, create a new contact with the user's email.
+* Linking a contact to a user **changes its person id** to the user id. An **unused** contact (no debt or group) is linked right away. A contact that is **in use** sends a **link request** the user must accept; accepting merges the old person into the user everywhere and copies the shared history into the user's books ([section 17](#17-linking-contacts-that-are-already-in-use)).
 
 ### 4.6 Pending wallet assignments
 
@@ -800,3 +801,75 @@ Error codes: `investment.trade_pending`, `investment.backdated`, `investment.ins
 * Prices are manual. A market feed can later add `AssetPrice` rows (source `Feed`) by symbol without touching the ledger.
 * Average cost only (no FIFO lots for taxes); one holding per asset (no brokers/locations).
 * The ledger's descriptions of trades without one are generated in English ("Buy 0.5 BTC").
+
+## 17. Linking contacts that are already in use
+
+Added on branch `feature/link-used-contacts`, to the API, the web app and the console. Use case: I have debts with a contact who later creates a Ledger account; I want my contact to become their account. Before, linking was refused once the contact took part in a debt or a group (`contact.in_use`), because the contact's **person id** (minted for them) is stored in ledger postings, debts, operations, group members and other users' mirrored contacts.
+
+### 17.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| Consent | Linking a **used** contact creates a **link request**; the user sees it in *Changes to review* with a **preview** of what their books will get, and accepts or rejects it. Nothing changes until they accept. The owner can cancel it. Unused contacts are still linked right away. |
+| History in their books | **Every current operation** involving the person (loans, existing debts, splits, settlements, group expenses and payments) is **copied** into the user's books as an existing debt: their positions against **Opening balances** (neither income nor expense, no wallet), with the **original date**, correlated to the original operation. Settled pairs cancel out. |
+| Duplicates | If the owner already had another contact for that user (e.g. the old workaround), the old contact is **merged** into it: one person, one balance; the old one is hidden but its history kept. |
+| Ledger immutability | Old postings keep the old person id. In Transactions it becomes an **alias** of the user (`counterparties.MergedIntoPersonId`): the summary and the contact filter resolve it. No posting is rewritten. |
+
+### 17.2 Flow
+
+```text
+POST /api/contacts/{id}/link (used contact) → Contacts: ContactLinkRequest(Pending) ──ContactLinkRequested──► Debts (who may see the preview)
+GET  /api/debts/link-requests/{id}/preview → what the user would owe or be owed, per person or group and currency
+POST /api/contacts/link-requests/{id}/accept → Contacts: Applying ──PersonMergeRequested──► Debts
+  Debts: refuses (→ PersonMergeFailed) if an operation with the person is still pending, has a pending change, a debt is being
+         settled, the user already takes part in one of those operations or groups as themselves, or another merge is running.
+         Stores a PersonMerge (operations and changes involving the person are refused meanwhile: contact.link_pending) and builds one
+         copy per operation ──LedgerOpeningsRequested──► Transactions: one InitialDebt transaction per copy, all or nothing, through
+         LedgerWriter (the user's lock date applies)
+     ├─ OK   ──LedgerOpeningsCompleted──► Debts: re-keys the person to the user in debts, operations (sides, payers, shares), contact and
+     │        group-member projections ──PersonMerged──► Contacts: request Applied; every contact of that person (the owner's and
+     │        other users' mirrored ones) is linked to the user or merged into an existing contact for them ──ContactLinked──►
+     │        Transactions (alias), Groups, Debts; the user gets contacts for the people they now share debts with.
+     │        Groups: memberships of the person become the user ──GroupMemberAdded──► the usual consumers (the group is shared)
+     └─ fail ──LedgerOpeningsRejected──► Debts ──PersonMergeFailed(reason)──► Contacts: request Failed, contact unchanged
+```
+
+* Because each copy is correlated to its operation, a later **edit, delete or restore** of that operation reverses the copy in the user's books like any version, and the user now confirms changes like any linked user. A deleted settlement reopens debts in both books.
+* Person-id re-keying uses explicit SQL (`IDebtsDbContext.ReplacePersonAsync`, `IGroupsDbContext.ReplaceMemberAsync`): those ids are part of keys (group members) or owned rows (payers, shares).
+
+### 17.3 Accounting (the user's books)
+
+| Shared operation (from the owner's books) | Copy in the linked user's books |
+| --- | --- |
+| Alice lent 50 to Pedro | Opening balances +50 · I owe [Alice] −50 |
+| Alice paid a 60 dinner, split equally with Pedro | Opening balances +30 · I owe [Alice] −30 |
+| Pedro paid Alice back 50 (settlement) | I owe [Alice] +50 · Opening balances −50 |
+| Group hotel 100 paid by Alice, Pedro's share 50 | Opening balances +50 · I owe [Trip] −50 |
+
+### 17.4 API
+
+| Method | Route | Description |
+| --- | --- | --- |
+| POST | `/api/contacts/{id}/link` | Unused contact: linked now. Used contact: `pendingLinkRequestId` (a request) |
+| GET | `/api/contacts/link-requests?includeClosed` | Requests I sent (`Outgoing`) or have to answer (`Incoming`) |
+| POST / DELETE | `/api/contacts/link-requests/{id}/accept`, `/reject`; `DELETE /{id}` | Answer (target user) or cancel (owner); accepting returns `Applying`, then `Applied` or `Failed` with a reason |
+| GET | `/api/debts/link-requests/{id}/preview` | Operations copied and balances per person or group |
+
+Error codes: `contact.link_pending`, `contact.merged`, `link.answered`, `link.not_for_you`, `link.not_yours`.
+
+### 17.5 Clients
+
+* **Web:** *Link* is available on used contacts (the dialog explains the request; *Waiting for them to accept* badge and *Cancel request*). *Changes to review* lists link requests with the preview and Accept / Reject; the menu badge counts them; accepting waits for the result (toast). English and Spanish.
+* **Console:** *Contacts* links used contacts (sends the request) and cancels requests; *Changes to review* shows incoming link requests with the preview first.
+
+### 17.6 Verification
+
+* **Unit:** request lifecycle (one pending, who may answer or cancel, answered once, failure frees the contact), merge into an existing contact, copies (loan, split, settlement, group expense and payment; every copy balances against Opening balances).
+* **Integration:** loan + split with an unregistered contact, the person registers, link request, preview (−80), accept: the user's books owe 80 as two existing debts with the original dates and no income/expense; the owner sees one balance and the contact filter finds the old postings; the owner edits the old loan and the user confirms (both books change); the user settles from a wallet and both reach zero. Plus: reject and cancel; a closed period in the user's books makes it fail; merging into an existing contact for the user; a group member gets the group and their position.
+* **Real stack** (copy of the development database, isolated vhost, API on 5219): migrations applied; Playwright (link request, preview, accept) and the full E2E suite; scripted console run; the ledger checked row by row (the owner's postings untouched, the user's copies new, the old person id kept as an alias).
+
+### 17.7 Known limitations
+
+* Copies have no wallet or category in the user's books (they are existing debts). Later edits of those operations post the full new version (including the user's share as an expense), like any shared change.
+* A person can be merged into one user only, and unlinking is not supported.
+* Refused when the user already appears as themselves in an operation or group with that contact (the merge would make them their own debtor).
