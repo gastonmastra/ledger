@@ -64,7 +64,17 @@ export class Shell {
     stream: () => this.api.changes(),
   });
 
-  protected readonly toReviewCount = computed(() => this.toReview.value()?.length ?? 0);
+  /** Link requests waiting for my answer also show in "Changes to review". */
+  private readonly linkRequests = rxResource({
+    params: () => this.changes.version(),
+    stream: () => this.api.linkRequests(),
+  });
+
+  protected readonly toReviewCount = computed(
+    () =>
+      (this.toReview.value()?.length ?? 0) +
+      (this.linkRequests.value()?.filter((r) => r.direction === 'Incoming' && r.status === 'Pending').length ?? 0),
+  );
 
   protected readonly themeIcon = computed<IconName>(() =>
     this.theme.mode() === 'system' ? 'computer' : this.theme.mode() === 'dark' ? 'moon' : 'sun',

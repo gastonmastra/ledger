@@ -42,6 +42,43 @@ export interface Contact {
   isLinked: boolean;
   origin: ContactOrigin;
   isInUse: boolean;
+  /** A link request waiting for the user's answer (only for contacts already used in debts or groups). */
+  pendingLinkRequestId: string | null;
+}
+
+export type LinkRequestStatus = 'Pending' | 'Applying' | 'Applied' | 'Rejected' | 'Cancelled' | 'Failed';
+
+/** Linking a contact that already has debts or groups: the user must accept it. */
+export interface LinkRequest {
+  id: string;
+  /** Incoming: somebody wants to link one of their contacts to me. Outgoing: I asked. */
+  direction: 'Incoming' | 'Outgoing';
+  contactId: string;
+  contactName: string;
+  ownerId: string;
+  ownerName: string;
+  targetUserId: string;
+  targetName: string;
+  status: LinkRequestStatus;
+  failureReason: string | null;
+  createdAt: string;
+  answeredAt: string | null;
+}
+
+export interface LinkPreviewBalance {
+  counterpartyId: string;
+  name: string;
+  kind: 'Person' | 'Group';
+  currency: Currency;
+  /** Positive: owed to the user; negative: the user owes it. */
+  amount: number;
+}
+
+/** What accepting a link request copies into the user's books. */
+export interface LinkPreview {
+  requestId: string;
+  operations: number;
+  balances: LinkPreviewBalance[];
 }
 
 export interface GroupMember {

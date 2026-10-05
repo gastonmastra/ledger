@@ -7,6 +7,7 @@ import {
   ChangeKind,
   ChangeStatus,
   DebtStatus,
+  LinkRequestStatus,
   OperationKind,
   OperationStatus,
   Posting,
@@ -213,4 +214,17 @@ export function valuationSourceLabel(source: ValuationSource): string {
 
 export function priceSideLabel(side: 'Buy' | 'Sell'): string {
   return side === 'Buy' ? $localize`:@@priceSide.buy:Buy price` : $localize`:@@priceSide.sell:Sell price`;
+}
+
+export function linkRequestStatusLabel(status: LinkRequestStatus): string {
+  const labels: Record<LinkRequestStatus, () => string> = {
+    Pending: () => $localize`:@@changeStatus.pending:Waiting for confirmation`,
+    Applying: () => $localize`:@@changeStatus.applying:Updating the books`,
+    Applied: () => $localize`:@@linkStatus.applied:Linked`,
+    Rejected: () => $localize`:@@approval.rejected:Rejected`,
+    Cancelled: () => $localize`:@@linkStatus.cancelled:Cancelled`,
+    Failed: () => $localize`:@@changeStatus.failed:Failed`,
+  };
+
+  return labels[status]();
 }

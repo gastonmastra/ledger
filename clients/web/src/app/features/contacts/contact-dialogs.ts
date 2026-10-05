@@ -60,14 +60,13 @@ export class ContactDialog {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <form [formGroup]="form" (ngSubmit)="save()">
-      <ui-dialog i18n-heading="@@contacts.linkTitle" heading="Link to a Ledger user"
-                 i18n-description="@@contacts.linkDescription" description="Debts you share with this contact will also appear in their account.">
+      <ui-dialog i18n-heading="@@contacts.linkTitle" heading="Link to a Ledger user" [description]="description">
         <ui-form-field i18n-label="@@contacts.userEmail" label="Email of the user">
           <input uiInput type="email" formControlName="email" />
         </ui-form-field>
         <div dialog-actions class="contents">
           <button uiButton variant="secondary" type="button" (click)="ref.close()" i18n="@@ui.cancel">Cancel</button>
-          <button uiButton type="submit" [disabled]="form.invalid" [loading]="saving()" i18n="@@contacts.link">Link</button>
+          <button uiButton type="submit" [disabled]="form.invalid" [loading]="saving()">{{ submitLabel }}</button>
         </div>
       </ui-dialog>
     </form>
@@ -76,8 +75,16 @@ export class ContactDialog {
 export class LinkContactDialog {
   private readonly api = inject(LedgerApi);
   private readonly contact = inject<Contact>(DIALOG_DATA);
-  protected readonly ref = inject<DialogRef<boolean>>(DialogRef);
+  protected readonly ref = inject<DialogRef<Contact>>(DialogRef);
   protected readonly saving = signal(false);
+
+  /** A contact already used in debts or groups needs the user's approval: their books get the shared history. */
+  protected readonly description = this.contact.isInUse
+    ? $localize`:@@contacts.linkRequestDescription:${this.contact.name}:name: already has debts or groups with you. They will be asked to accept: once they do, that history is copied into their account and you share everything from then on.`
+    : $localize`:@@contacts.linkDescription:Debts you share with this contact will also appear in their account.`;
+  protected readonly submitLabel = this.contact.isInUse
+    ? $localize`:@@contacts.sendLinkRequest:Send request`
+    : $localize`:@@contacts.link:Link`;
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     email: [this.contact.email ?? '', [Validators.required, Validators.email]],
@@ -89,8 +96,7 @@ export class LinkContactDialog {
     this.saving.set(true);
 
     try {
-      await firstValueFrom(this.api.linkContact(this.contact.id, this.form.getRawValue().email.trim()));
-      this.ref.close(true);
+      this.ref.close(await firstValueFrom(this.api.linkContact(this.contact.id, this.form.getRawValue().email.trim())));
     } catch {
       this.saving.set(false);
     }

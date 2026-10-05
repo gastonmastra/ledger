@@ -48,6 +48,10 @@ const byCode: Record<string, () => string> = {
   'investment.quantity_too_many_decimals': () =>
     $localize`:@@error.quantityDecimals:The quantity can have at most 12 decimals.`,
   'investment.price_too_many_decimals': () => $localize`:@@error.priceDecimals:The price can have at most 8 decimals.`,
+  'contact.link_pending': () =>
+    $localize`:@@error.linkPending:This contact is being linked to their Ledger account. Try again in a moment.`,
+  'contact.merged': () => $localize`:@@error.contactMerged:This contact was merged into another one.`,
+  'link.answered': () => $localize`:@@error.linkAnswered:This link request was already answered.`,
   'books.locked': () =>
     $localize`:@@error.booksLocked:Your books are closed for that date. Move the lock date back in Settings to change it.`,
   'books.locked_for_other': () =>

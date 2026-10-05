@@ -8,6 +8,8 @@ import {
   CreateAssetRequest,
   InvestmentsReport,
   InvestmentsTotal,
+  LinkPreview,
+  LinkRequest,
   Category,
   ChangeResult,
   CategoryType,
@@ -192,8 +194,29 @@ export class LedgerApi {
     return this.http.post<Contact>(`${this.base}/contacts`, { name, email });
   }
 
+  /** Links right away when the contact is not used yet; otherwise sends a link request (`pendingLinkRequestId`). */
   linkContact(id: string, email: string): Observable<Contact> {
     return this.http.post<Contact>(`${this.base}/contacts/${id}/link`, { email });
+  }
+
+  linkRequests(includeClosed = false): Observable<LinkRequest[]> {
+    return this.http.get<LinkRequest[]>(`${this.base}/contacts/link-requests`, { params: { includeClosed } });
+  }
+
+  acceptLinkRequest(id: string): Observable<LinkRequest> {
+    return this.http.post<LinkRequest>(`${this.base}/contacts/link-requests/${id}/accept`, null);
+  }
+
+  rejectLinkRequest(id: string): Observable<LinkRequest> {
+    return this.http.post<LinkRequest>(`${this.base}/contacts/link-requests/${id}/reject`, null);
+  }
+
+  cancelLinkRequest(id: string): Observable<LinkRequest> {
+    return this.http.delete<LinkRequest>(`${this.base}/contacts/link-requests/${id}`);
+  }
+
+  linkPreview(id: string): Observable<LinkPreview> {
+    return this.http.get<LinkPreview>(`${this.base}/debts/link-requests/${id}/preview`);
   }
 
   // Groups

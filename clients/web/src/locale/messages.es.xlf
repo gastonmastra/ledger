@@ -4038,6 +4038,98 @@
         <source>Hide amounts (Shift+H)</source>
         <target state="translated">Ocultar montos (Shift+H)</target>
       </trans-unit>
+      <trans-unit id="error.linkPending" datatype="html">
+        <source>This contact is being linked to their Ledger account. Try again in a moment.</source>
+        <target state="translated">Este contacto se está vinculando a su cuenta de Ledger. Probá de nuevo en un momento.</target>
+      </trans-unit>
+      <trans-unit id="error.contactMerged" datatype="html">
+        <source>This contact was merged into another one.</source>
+        <target state="translated">Este contacto se unificó con otro.</target>
+      </trans-unit>
+      <trans-unit id="error.linkAnswered" datatype="html">
+        <source>This link request was already answered.</source>
+        <target state="translated">Esta solicitud de vínculo ya fue respondida.</target>
+      </trans-unit>
+      <trans-unit id="linkStatus.applied" datatype="html">
+        <source>Linked</source>
+        <target state="translated">Vinculado</target>
+      </trans-unit>
+      <trans-unit id="linkStatus.cancelled" datatype="html">
+        <source>Cancelled</source>
+        <target state="translated">Cancelada</target>
+      </trans-unit>
+      <trans-unit id="links.badge" datatype="html">
+        <source>Link request</source>
+        <target state="translated">Solicitud de vínculo</target>
+      </trans-unit>
+      <trans-unit id="links.incoming" datatype="html">
+        <source> <x id="OWNER" equiv-text="{{ req.ownerName // i18n(ph=&quot;owner&quot;) }}"/> had you as the contact &quot;<x id="CONTACT" equiv-text="{{ req.contactName // i18n(ph=&quot;contact&quot;) }}"/>&quot; before you joined and wants to link it to your account. </source>
+        <target state="translated"> <x id="OWNER" equiv-text="{{ req.ownerName // i18n(ph=&quot;owner&quot;) }}"/> te tenía como el contacto &quot;<x id="CONTACT" equiv-text="{{ req.contactName // i18n(ph=&quot;contact&quot;) }}"/>&quot; antes de que te unieras y quiere vincularlo a tu cuenta. </target>
+      </trans-unit>
+      <trans-unit id="links.youWillSee" datatype="html">
+        <source>If you accept, your books get</source>
+        <target state="translated">Si aceptás, tus libros reciben</target>
+      </trans-unit>
+      <trans-unit id="links.youOwe" datatype="html">
+        <source>you owe <x id="INTERPOLATION" equiv-text="{{ -balance.amount | money: balance.currency }}"/></source>
+        <target state="translated">le debés <x id="INTERPOLATION" equiv-text="{{ -balance.amount | money: balance.currency }}"/></target>
+      </trans-unit>
+      <trans-unit id="links.owesYou" datatype="html">
+        <source>owes you <x id="INTERPOLATION" equiv-text="{{ balance.amount | money: balance.currency }}"/></source>
+        <target state="translated">te debe <x id="INTERPOLATION" equiv-text="{{ balance.amount | money: balance.currency }}"/></target>
+      </trans-unit>
+      <trans-unit id="links.nothingOpen" datatype="html">
+        <source>Nothing open: you are even.</source>
+        <target state="translated">Nada pendiente: están a mano.</target>
+      </trans-unit>
+      <trans-unit id="links.copied" datatype="html">
+        <source> <x id="COUNT" equiv-text="{{ data.operations // i18n(ph=&quot;count&quot;) }}"/> operation(s) copied as existing debts (neither income nor expense), with their original dates. From then on you share every change with <x id="OWNER" equiv-text="{{ req.ownerName // i18n(ph=&quot;owner&quot;) }}"/>. </source>
+        <target state="translated"> <x id="COUNT" equiv-text="{{ data.operations // i18n(ph=&quot;count&quot;) }}"/> operación(es) copiadas como deudas existentes (ni ingreso ni gasto), con sus fechas originales. Desde entonces compartís cada cambio con <x id="OWNER" equiv-text="{{ req.ownerName // i18n(ph=&quot;owner&quot;) }}"/>. </target>
+      </trans-unit>
+      <trans-unit id="links.rejectTitle" datatype="html">
+        <source>Reject the link?</source>
+        <target state="translated">¿Rechazar el vínculo?</target>
+      </trans-unit>
+      <trans-unit id="links.rejectMessage" datatype="html">
+        <source>Nothing is copied into your books and the contact stays unlinked.</source>
+        <target state="translated">No se copia nada en tus libros y el contacto queda sin vincular.</target>
+      </trans-unit>
+      <trans-unit id="links.applied" datatype="html">
+        <source>Linked. The shared history is now in your books.</source>
+        <target state="translated">Vinculado. El historial compartido ya está en tus libros.</target>
+      </trans-unit>
+      <trans-unit id="links.failed" datatype="html">
+        <source>The link could not be applied: <x id="reason" equiv-text="request.failureReason"/></source>
+        <target state="translated">No se pudo aplicar el vínculo: <x id="reason" equiv-text="request.failureReason"/></target>
+      </trans-unit>
+      <trans-unit id="links.outgoing" datatype="html">
+        <source> You asked <x id="USER" equiv-text="{{ request.targetName // i18n(ph=&quot;user&quot;) }}"/> to link your contact &quot;<x id="CONTACT" equiv-text="{{ request.contactName // i18n(ph=&quot;contact&quot;) }}"/>&quot; to their account. </source>
+        <target state="translated"> Le pediste a <x id="USER" equiv-text="{{ request.targetName // i18n(ph=&quot;user&quot;) }}"/> vincular tu contacto &quot;<x id="CONTACT" equiv-text="{{ request.contactName // i18n(ph=&quot;contact&quot;) }}"/>&quot; a su cuenta. </target>
+      </trans-unit>
+      <trans-unit id="contacts.linkRequestDescription" datatype="html">
+        <source><x id="name" equiv-text="this.contact.name"/> already has debts or groups with you. They will be asked to accept: once they do, that history is copied into their account and you share everything from then on.</source>
+        <target state="translated"><x id="name" equiv-text="this.contact.name"/> ya tiene deudas o grupos con vos. Se le va a pedir que acepte: cuando lo haga, ese historial se copia en su cuenta y desde entonces comparten todo.</target>
+      </trans-unit>
+      <trans-unit id="contacts.sendLinkRequest" datatype="html">
+        <source>Send request</source>
+        <target state="translated">Enviar solicitud</target>
+      </trans-unit>
+      <trans-unit id="contacts.linkPending" datatype="html">
+        <source>Waiting for them to accept</source>
+        <target state="translated">Esperando que acepte</target>
+      </trans-unit>
+      <trans-unit id="contacts.cancelLink" datatype="html">
+        <source>Cancel request</source>
+        <target state="translated">Cancelar solicitud</target>
+      </trans-unit>
+      <trans-unit id="contacts.linkRequested" datatype="html">
+        <source>Request sent. <x id="name" equiv-text="contact.name"/> is linked once they accept it.</source>
+        <target state="translated">Solicitud enviada. <x id="name" equiv-text="contact.name"/> queda vinculado cuando la acepte.</target>
+      </trans-unit>
+      <trans-unit id="contacts.linkCancelled" datatype="html">
+        <source>Link request cancelled.</source>
+        <target state="translated">Solicitud de vínculo cancelada.</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>

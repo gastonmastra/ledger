@@ -32,4 +32,20 @@ describe('LedgerApi', () => {
     expect(request.request.body).toEqual({ scope: 'Debt', debtId: 'd1', walletId: 'w1' });
     request.flush({ id: 'op', kind: 'Settlement', status: 'Pending' });
   });
+
+  it('answers and cancels link requests, and asks Debts for the preview', () => {
+    api.linkRequests(true).subscribe();
+    const list = http.expectOne((r) => r.url === '/api/contacts/link-requests');
+    expect(list.request.params.get('includeClosed')).toBe('true');
+    list.flush([]);
+
+    api.acceptLinkRequest('r1').subscribe();
+    expect(http.expectOne('/api/contacts/link-requests/r1/accept').request.method).toBe('POST');
+
+    api.cancelLinkRequest('r1').subscribe();
+    expect(http.expectOne('/api/contacts/link-requests/r1').request.method).toBe('DELETE');
+
+    api.linkPreview('r1').subscribe();
+    expect(http.expectOne('/api/debts/link-requests/r1/preview').request.method).toBe('GET');
+  });
 });

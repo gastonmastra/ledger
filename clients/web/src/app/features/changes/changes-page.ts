@@ -15,6 +15,7 @@ import { ToastService } from '../../core/notifications/toast.service';
 import { OperationTracker } from '../../core/operations/operation-tracker';
 import { Badge, Button, Card, ConfirmService, EmptyState, Icon, MoneyPipe, PageHeader, Spinner } from '../../ui';
 import { OperationActions } from '../debts/operation-actions';
+import { LinkRequests } from './link-requests';
 
 /**
  * Changes to shared operations (loans, splits, settlements, existing debts) that need my answer.
@@ -22,7 +23,7 @@ import { OperationActions } from '../debts/operation-actions';
  */
 @Component({
   selector: 'app-changes-page',
-  imports: [DatePipe, NgTemplateOutlet, PageHeader, Card, Badge, Button, Icon, EmptyState, Spinner, MoneyPipe],
+  imports: [DatePipe, NgTemplateOutlet, PageHeader, Card, Badge, Button, Icon, EmptyState, Spinner, MoneyPipe, LinkRequests],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ui-page-header i18n-heading="@@changes.title" heading="Changes to review"
@@ -32,6 +33,8 @@ import { OperationActions } from '../debts/operation-actions';
         <ng-container i18n="@@changes.showAll">Also answered and mine</ng-container>
       </label>
     </ui-page-header>
+
+    <app-link-requests [showAll]="showAll()" />
 
     @if (changes.isLoading() && !changes.value()) {
       <div class="flex justify-center py-16"><ui-spinner /></div>

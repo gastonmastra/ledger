@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { firstValueFrom } from 'rxjs';
 import { LedgerApi } from '../../core/api/ledger-api';
 import { Contact } from '../../core/api/models';
 import { DataChanges } from '../../core/data-changes';
@@ -47,12 +48,16 @@ import { ContactDialog, LinkContactDialog } from './contact-dialogs';
                 <td>
                   @if (contact.isLinked) {
                     <ui-badge tone="success" i18n="@@contacts.linked">Linked</ui-badge>
+                  } @else if (contact.pendingLinkRequestId) {
+                    <ui-badge tone="warning" i18n="@@contacts.linkPending">Waiting for them to accept</ui-badge>
                   } @else {
                     <ui-badge i18n="@@contacts.notLinked">Not linked</ui-badge>
                   }
                 </td>
                 <td class="text-right">
-                  @if (!contact.isLinked && !contact.isInUse) {
+                  @if (contact.pendingLinkRequestId) {
+                    <button uiButton variant="ghost" size="sm" type="button" (click)="cancelLink(contact)" i18n="@@contacts.cancelLink">Cancel request</button>
+                  } @else if (!contact.isLinked) {
                     <button uiButton variant="ghost" size="sm" type="button" (click)="link(contact)" i18n="@@contacts.link">Link</button>
                   }
                 </td>
@@ -89,9 +94,20 @@ export class ContactsPage {
   }
 
   protected async link(contact: Contact): Promise<void> {
-    if (await this.dialogs.open<boolean, Contact>(LinkContactDialog, contact)) {
-      this.toasts.success($localize`:@@contacts.linkedSaved:${contact.name}:name: is now linked.`);
-      this.changes.notify();
-    }
+    const result = await this.dialogs.open<Contact, Contact>(LinkContactDialog, contact);
+    if (!result) return;
+
+    this.toasts.success(
+      result.pendingLinkRequestId
+        ? $localize`:@@contacts.linkRequested:Request sent. ${contact.name}:name: is linked once they accept it.`
+        : $localize`:@@contacts.linkedSaved:${contact.name}:name: is now linked.`,
+    );
+    this.changes.notify();
+  }
+
+  protected async cancelLink(contact: Contact): Promise<void> {
+    await firstValueFrom(this.api.cancelLinkRequest(contact.pendingLinkRequestId!));
+    this.toasts.success($localize`:@@contacts.linkCancelled:Link request cancelled.`);
+    this.changes.notify();
   }
 }
