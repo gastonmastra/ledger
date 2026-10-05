@@ -28,7 +28,9 @@ public sealed class App(
         while (!cancellationToken.IsCancellationRequested)
         {
             var pendingCount = (await api.PendingAssignmentsAsync(cancellationToken)).Count;
-            var toReview = (await api.ChangesAsync(all: false, cancellationToken)).Count;
+            var toReview = (await api.ChangesAsync(all: false, cancellationToken)).Count
+                           + (await api.LinkRequestsAsync(includeClosed: false, cancellationToken))
+                               .Count(r => r.Direction == "Incoming" && r.Status == "Pending");
 
             var option = ConsoleUi.ShowMenu(
                 "LEDGER",

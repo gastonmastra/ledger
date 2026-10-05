@@ -8,7 +8,21 @@ public sealed record Wallet(Guid Id, string Name, string Currency, decimal Balan
 
 public sealed record Category(Guid Id, string Name, string Type, bool IsArchived);
 
-public sealed record Contact(Guid Id, Guid PersonId, string Name, string? Email, Guid? LinkedUserId, bool IsLinked, string Origin, bool IsInUse);
+/// <param name="PendingLinkRequestId">A link request waiting for the user's answer (contacts already in use).</param>
+public sealed record Contact(
+    Guid Id, Guid PersonId, string Name, string? Email, Guid? LinkedUserId, bool IsLinked, string Origin, bool IsInUse,
+    Guid? PendingLinkRequestId = null);
+
+/// <param name="Direction">Incoming (I have to answer) or Outgoing (I asked).</param>
+/// <param name="Status">Pending, Applying, Applied, Rejected, Cancelled or Failed.</param>
+public sealed record LinkRequest(
+    Guid Id, string Direction, Guid ContactId, string ContactName, Guid OwnerId, string OwnerName, Guid TargetUserId,
+    string TargetName, string Status, string? FailureReason, DateTimeOffset CreatedAt, DateTimeOffset? AnsweredAt);
+
+/// <param name="Amount">Positive: owed to the user; negative: the user owes it.</param>
+public sealed record LinkPreviewBalance(Guid CounterpartyId, string Name, string Kind, string Currency, decimal Amount);
+
+public sealed record LinkPreview(Guid RequestId, int Operations, IReadOnlyList<LinkPreviewBalance> Balances);
 
 public sealed record GroupMember(Guid PersonId, string DisplayName, Guid? UserId, bool IsMe, bool HasActivity);
 

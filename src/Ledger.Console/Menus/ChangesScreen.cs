@@ -11,6 +11,8 @@ public sealed class ChangesScreen(LedgerApiClient api, OperationsScreen operatio
 {
     public async Task RunAsync(CancellationToken ct)
     {
+        await AnswerLinkRequestsAsync(ct);
+
         while (!ct.IsCancellationRequested)
         {
             var changes = await api.ChangesAsync(all: false, ct);
@@ -78,4 +80,67 @@ public sealed class ChangesScreen(LedgerApiClient api, OperationsScreen operatio
     private static string Snapshot(ChangeSnapshot s)
         => $"{ConsoleUi.Money(s.Total, s.Currency)} on {s.OccurredAt.ToLocalTime():yyyy-MM-dd HH:mm} {s.Description}" +
            (s.Shares.Count == 0 ? $" ({s.FromName} → {s.ToName})" : $" (shares: {string.Join(", ", s.Shares.Select(x => $"{x.Name} {ConsoleUi.Amount(x.Amount)}"))})");
+
+    /// <summary>Somebody wants to link one of their contacts (that already has debts) to my account.</summary>
+    private async Task AnswerLinkRequestsAsync(CancellationToken ct)
+    {
+        var requests = (await api.LinkRequestsAsync(includeClosed: false, ct))
+            .Where(r => r.Direction == "Incoming" && r.Status == "Pending")
+            .ToList();
+
+        foreach (var request in requests)
+        {
+            ConsoleUi.Header("LINK REQUEST");
+            SystemConsole.WriteLine(
+                $"{request.OwnerName} had you as the contact \"{request.ContactName}\" before you joined and wants to link it to your account.");
+
+            var preview = await api.LinkPreviewAsync(request.Id, ct);
+            SystemConsole.WriteLine("\nIf you accept, your books get:");
+
+            if (preview.Balances.Count == 0)
+                SystemConsole.WriteLine("  nothing open: you are even.");
+
+            foreach (var balance in preview.Balances)
+            {
+                SystemConsole.WriteLine(balance.Amount < 0
+                    ? $"  {balance.Name}: you owe {ConsoleUi.Money(-balance.Amount, balance.Currency)}"
+                    : $"  {balance.Name}: owes you {ConsoleUi.Money(balance.Amount, balance.Currency)}");
+            }
+
+            SystemConsole.WriteLine(
+                $"\n{preview.Operations} operation(s) copied as existing debts (neither income nor expense), with their original dates.");
+
+            var answer = ConsoleUi.Choose("Answer", ["Accept", "Reject", "Later"], a => a);
+
+            try
+            {
+                switch (answer)
+                {
+                    case "Accept":
+                        await api.AcceptLinkRequestAsync(request.Id, ct);
+                        var result = await api.WaitForLinkAsync(request.Id, ct);
+
+                        if (result?.Status == "Applied")
+                            ConsoleUi.Success("Linked. The shared history is now in your books.");
+                        else if (result?.Status == "Failed")
+                        {
+                            ConsoleUi.Error($"The link could not be applied: {result.FailureReason}");
+                            ConsoleUi.Pause();
+                        }
+                        else
+                            ConsoleUi.Success("It is taking longer than usual. Check again in a moment.");
+                        break;
+                    case "Reject":
+                        await api.RejectLinkRequestAsync(request.Id, ct);
+                        ConsoleUi.Success("Rejected. Nothing was copied into your books.");
+                        break;
+                }
+            }
+            catch (ApiException ex)
+            {
+                ConsoleUi.Error(ex.Message);
+                ConsoleUi.Pause();
+            }
+        }
+    }
 }

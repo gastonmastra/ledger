@@ -10,7 +10,8 @@ public sealed class ContactsMenu(LedgerApiClient api) : Menu
     [
         ("List contacts", ListAsync),
         ("Add contact", AddAsync),
-        ("Link contact to a registered user", LinkAsync)
+        ("Link contact to a registered user", LinkAsync),
+        ("Cancel a link request", CancelLinkAsync)
     ];
 
     private async Task ListAsync(CancellationToken ct)
@@ -18,7 +19,7 @@ public sealed class ContactsMenu(LedgerApiClient api) : Menu
         ConsoleUi.Table(await api.ContactsAsync(ct),
             ("Name", c => c.Name),
             ("Email", c => c.Email),
-            ("Registered user", c => c.IsLinked ? "yes" : "no"),
+            ("Registered user", c => c.IsLinked ? "yes" : c.PendingLinkRequestId is not null ? "waiting for them to accept" : "no"),
             ("Added", c => c.Origin == "Mirrored" ? "automatically" : "by me"));
         ConsoleUi.Pause();
     }
@@ -37,15 +38,32 @@ public sealed class ContactsMenu(LedgerApiClient api) : Menu
 
     private async Task LinkAsync(CancellationToken ct)
     {
-        var candidates = (await api.ContactsAsync(ct)).Where(c => !c.IsLinked).ToList();
+        var candidates = (await api.ContactsAsync(ct)).Where(c => !c.IsLinked && c.PendingLinkRequestId is null).ToList();
 
-        if (ConsoleUi.Choose("Contact", candidates, c => c.Name) is not { } contact)
+        if (ConsoleUi.Choose("Contact", candidates, c => c.IsInUse ? $"{c.Name} (has debts or groups: they must accept)" : c.Name) is not { } contact)
         {
             ConsoleUi.Pause();
             return;
         }
 
-        await api.LinkContactAsync(contact.Id, ConsoleUi.ReadText("Email of the registered user: "), ct);
-        ConsoleUi.Success($"{contact.Name} is now linked.");
+        var linked = await api.LinkContactAsync(contact.Id, ConsoleUi.ReadText("Email of the registered user: "), ct);
+
+        ConsoleUi.Success(linked.PendingLinkRequestId is not null
+            ? $"Request sent. Once they accept it, your history with {contact.Name} is copied into their account and you share everything from then on."
+            : $"{contact.Name} is now linked.");
+    }
+
+    private async Task CancelLinkAsync(CancellationToken ct)
+    {
+        var pending = (await api.ContactsAsync(ct)).Where(c => c.PendingLinkRequestId is not null).ToList();
+
+        if (ConsoleUi.Choose("Contact", pending, c => c.Name) is not { } contact)
+        {
+            ConsoleUi.Pause();
+            return;
+        }
+
+        await api.CancelLinkRequestAsync(contact.PendingLinkRequestId!.Value, ct);
+        ConsoleUi.Success("Link request cancelled.");
     }
 }

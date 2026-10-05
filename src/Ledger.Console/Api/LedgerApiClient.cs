@@ -175,6 +175,35 @@ public sealed class LedgerApiClient(HttpClient http)
     public Task<Contact> LinkContactAsync(Guid id, string email, CancellationToken ct)
         => SendAsync<Contact>(HttpMethod.Post, $"api/contacts/{id}/link", new { email }, ct);
 
+    public Task<List<LinkRequest>> LinkRequestsAsync(bool includeClosed, CancellationToken ct)
+        => GetAsync<List<LinkRequest>>($"api/contacts/link-requests?includeClosed={includeClosed}", ct);
+
+    public Task<LinkRequest> AcceptLinkRequestAsync(Guid id, CancellationToken ct)
+        => SendAsync<LinkRequest>(HttpMethod.Post, $"api/contacts/link-requests/{id}/accept", null, ct);
+
+    public Task<LinkRequest> RejectLinkRequestAsync(Guid id, CancellationToken ct)
+        => SendAsync<LinkRequest>(HttpMethod.Post, $"api/contacts/link-requests/{id}/reject", null, ct);
+
+    public Task<LinkRequest> CancelLinkRequestAsync(Guid id, CancellationToken ct)
+        => SendAsync<LinkRequest>(HttpMethod.Delete, $"api/contacts/link-requests/{id}", null, ct);
+
+    public Task<LinkPreview> LinkPreviewAsync(Guid id, CancellationToken ct)
+        => GetAsync<LinkPreview>($"api/debts/link-requests/{id}/preview", ct);
+
+    /// <summary>Accepting starts a merge in the background: wait until it is applied or fails.</summary>
+    public async Task<LinkRequest?> WaitForLinkAsync(Guid id, CancellationToken ct)
+    {
+        LinkRequest? request = null;
+
+        for (var attempt = 0; attempt < 40 && request?.Status is null or "Applying"; attempt++)
+        {
+            await Task.Delay(250, ct);
+            request = (await LinkRequestsAsync(includeClosed: true, ct)).FirstOrDefault(r => r.Id == id);
+        }
+
+        return request;
+    }
+
     // Groups
     public Task<List<Group>> GroupsAsync(CancellationToken ct) => GetAsync<List<Group>>("api/groups", ct);
 
