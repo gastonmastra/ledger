@@ -1004,7 +1004,7 @@ Added on branch `feature/vps-deployment`. The proof of concept runs on **one ser
 
 | Topic | Decision |
 | --- | --- |
-| Server | **Hetzner CPX32** (4 AMD vCPU, 8 GB, x86-64), Ubuntu 24.04. The cheaper CX/CAX lines were sold out (October 2026). |
+| Server | **Hetzner CX23** (2 shared vCPU, 4 GB, 40 GB NVMe, x86-64), Ubuntu 24.04. Enough for one user plus a few friends: the stack uses ~1.5 GB, and 2 GB of swap is a safety net. If it gets tight, resize the server in the Hetzner console (same disk and IP). |
 | Setup | **cloud-init** (`deploy/vps/cloud-init.yaml`, pasted when creating the server) plus the runbook below. |
 | HTTPS | **Caddy** with automatic Let's Encrypt certificates, for `ledger.<domain>` and `auth.<domain>` (a domain you buy; DNS anywhere). |
 | Images | Built by GitHub Actions for `linux/amd64` and pushed to **GitHub Container Registry**; the server only pulls. |
@@ -1012,7 +1012,7 @@ Added on branch `feature/vps-deployment`. The proof of concept runs on **one ser
 | Backups | **Hetzner server backups** (7 daily) **and** a nightly **`pg_dump`** of both databases, kept 14 days on the server and 30 days in **Hetzner Object Storage**. |
 | AWS | `.github/workflows/deploy-aws.yml` only runs by hand; nothing deploys to AWS when `main` changes. |
 
-Approximate cost (excluding VAT): CPX32 €35.49 + backups (20 %) €7.10 + Object Storage ~€5 + IPv4 ~€0.50 + domain ~€1 ≈ **€49 a month**.
+Approximate cost (excluding VAT): CX23 €5.99 + backups (20 %) €1.20 + Object Storage ~€5 + IPv4 ~€0.50 + domain ~€1 ≈ **€14 a month**.
 
 ### 19.2 Architecture
 
@@ -1031,6 +1031,7 @@ Volumes: postgres_data, rabbitmq_data, caddy_data (certificates), caddy_config
 * Create **A records only** (no AAAA): Docker doesn't keep the client's IPv6 address, so IPv6 visitors would always fail the admin allowlist.
 * RabbitMQ has a fixed host name, so its queues (in `rabbitmq_data`) survive a new container.
 * Container logs are rotated (10 MB × 5 per container); the backup log is in `/var/log/ledger/backup.log`.
+* Memory limits (for a 4 GB server): keycloak 1 GB (Java heap ~700 MB), api 768 MB, postgres 512 MB, rabbitmq 384 MB, web 128 MB. Check real use with `docker stats --no-stream`.
 
 ### 19.3 Files
 
@@ -1048,7 +1049,7 @@ Volumes: postgres_data, rabbitmq_data, caddy_data (certificates), caddy_config
 
 1. **Domain**: buy one (any registrar).
 2. **SSH keys**: you need two key pairs: yours, and one for GitHub Actions (`ssh-keygen -t ed25519 -f ledger-deploy -N ""`).
-3. **Server**: in Hetzner Cloud, create a **CPX32**, Ubuntu 24.04, location Nuremberg/Falkenstein/Helsinki.
+3. **Server**: in Hetzner Cloud, create a **CX23**, Ubuntu 24.04, location Nuremberg/Falkenstein/Helsinki (the CX line is only sold in Germany and Finland).
    - Paste `deploy/vps/cloud-init.yaml` as *Cloud config* after replacing the two `ssh_authorized_keys` placeholders with the public keys.
    - Turn on **Backups**.
    - Add a **Firewall** allowing TCP 22, 80, 443 and UDP 443.

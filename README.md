@@ -188,7 +188,7 @@ dotnet test Ledger.slnx
 
 ## Deployment
 
-* **Now (proof of concept): one VPS** (Hetzner CPX32) with Docker Compose: Caddy (Let's Encrypt), web, API, Keycloak, PostgreSQL and RabbitMQ at `ledger.<domain>` and `auth.<domain>`, with nightly backups. Every push to `main` runs the tests, pushes the images to GitHub Container Registry and deploys over SSH (`.github/workflows/deploy-vps.yml`). Setup and operations: [documentation §19](documentation/README.md#19-deployment-vps), files in `deploy/vps/`.
+* **Now (proof of concept): one VPS** (Hetzner CX23) with Docker Compose: Caddy (Let's Encrypt), web, API, Keycloak, PostgreSQL and RabbitMQ at `ledger.<domain>` and `auth.<domain>`, with nightly backups. Every push to `main` runs the tests, pushes the images to GitHub Container Registry and deploys over SSH (`.github/workflows/deploy-vps.yml`). Setup and operations: [documentation §19](documentation/README.md#19-deployment-vps), files in `deploy/vps/`.
 * **Later: AWS** (eu-west-1): ECS Fargate, RDS PostgreSQL, RabbitMQ on EFS and Keycloak behind one HTTPS load balancer, with Terraform (`infra/terraform`). Its workflow (`.github/workflows/deploy-aws.yml`) only runs by hand. See [documentation §18](documentation/README.md#18-deployment-aws).
 
 ## Database migrations
