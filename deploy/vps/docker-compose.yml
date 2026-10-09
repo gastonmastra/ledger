@@ -4,6 +4,7 @@
 # Run it as: docker compose --env-file .env --env-file release.env <command>
 #
 # Only Caddy publishes ports (80, 443). Everything else stays on the internal network.
+# Memory limits are sized for a 4 GB server (Hetzner CX23) with 2 GB swap; typical use is ~1.5 GB in total.
 name: ledger
 
 x-app: &app
@@ -68,7 +69,7 @@ services:
       timeout: 5s
       retries: 12
       start_period: 20s
-    mem_limit: 1g
+    mem_limit: 768m
 
   keycloak:
     <<: *app
@@ -90,7 +91,8 @@ services:
       timeout: 5s
       retries: 30
       start_period: 60s
-    mem_limit: 1536m
+    # Keycloak sizes its Java heap to 70 % of this limit (~700 MB).
+    mem_limit: 1g
 
   postgres:
     <<: *app
@@ -108,8 +110,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
-    shm_size: 256m
-    mem_limit: 1g
+    shm_size: 128m
+    mem_limit: 512m
 
   rabbitmq:
     <<: *app
@@ -126,7 +128,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 20
-    mem_limit: 512m
+    mem_limit: 384m
 
   # One-off: `docker compose run --rm migrator` (every deploy, before starting the new API).
   migrator:
