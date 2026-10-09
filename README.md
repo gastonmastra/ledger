@@ -186,6 +186,10 @@ dotnet test Ledger.slnx
 * **Architecture**: a module only references other modules' `Contracts`, the Domain is free of EF, MassTransit and ASP.NET, Application does not depend on infrastructure, and contracts are immutable.
 * **Integration** (needs Docker): the real API with PostgreSQL and RabbitMQ in Testcontainers, and a test authentication scheme in place of Keycloak. It covers transfers and overdraft, a split mirrored to a linked user and settled, a rejected loan, group simplification and settlement, and investments (buy, sell, prices, cross-currency, already owned).
 
+## Deployment
+
+The app can run on AWS (eu-west-1): ECS Fargate, RDS PostgreSQL, RabbitMQ on EFS, Keycloak in production mode, behind one HTTPS load balancer at `ledger.<domain>` and `auth.<domain>`. Infrastructure is Terraform (`infra/terraform`); every push to `main` runs the tests and deploys with GitHub Actions (`.github/workflows/deploy.yml`). Setup, costs and operations: [documentation §18](documentation/README.md#18-deployment-aws).
+
 ## Database migrations
 
 Every module owns its migrations (`src/Modules/<Module>/Ledger.Modules.<Module>.Infrastructure/Migrations`). See [Migrations.md](Migrations.md).

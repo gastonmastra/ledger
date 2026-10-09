@@ -23,6 +23,7 @@ For a quick start see the [root README](../README.md). For database migrations s
 15. [Editable, auditable ledger](#15-editable-auditable-ledger)
 16. [Investments](#16-investments)
 17. [Linking contacts that are already in use](#17-linking-contacts-that-are-already-in-use)
+18. [Deployment (AWS)](#18-deployment-aws)
 
 ---
 
@@ -514,7 +515,7 @@ Configuration:
 * Deleting a wallet right after creating it relies on retries while the account is still being created.
 * **Licensing:** MediatR 12 and MassTransit 8 are the last Apache versions. MassTransit 8 gets security fixes until the end of 2026; plan a move (to MassTransit 9 with a license, Wolverine, or plain RabbitMQ.Client, since the outbox and inbox are already ours).
 * **Operations:** no outbox/inbox cleanup job yet, no dead-letter dashboard, no metrics or tracing. Adding OpenTelemetry and periodic cleanup of processed outbox and inbox rows is recommended.
-* Production concerns not addressed in the MVP: HTTPS, secrets management, Keycloak in production mode, and running the migrator as a pipeline step (see Migrations.md).
+* Production (HTTPS, secrets, Keycloak in production mode, migrations as a pipeline step) is covered by the AWS deployment in §18. Still missing there: alarms on errors or dead-lettered messages, a staging environment, and email (password reset, invitations).
 
 ## 12. Reference
 
@@ -873,3 +874,119 @@ Error codes: `contact.link_pending`, `contact.merged`, `link.answered`, `link.no
 * Copies have no wallet or category in the user's books (they are existing debts). Later edits of those operations post the full new version (including the user's share as an expense), like any shared change.
 * A person can be merged into one user only, and unlinking is not supported.
 * Refused when the user already appears as themselves in an operation or group with that contact (the merge would make them their own debtor).
+
+---
+
+## 18. Deployment (AWS)
+
+Added on branch `feature/aws-deployment`. Goal: use the app from the internet (phone included) over HTTPS. One user for now, maybe some invited friends later. Everything is in `infra/terraform` (infrastructure), `infra/keycloak-prod` (Keycloak image and realm) and `.github/workflows` (CI and deploy).
+
+### 18.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| Where | AWS **eu-west-1 (Ireland)**: the cheapest European region with every service, ~40 ms from Spain. |
+| Compute | **ECS Fargate**, ARM64 (cheaper), one task per service. No servers to patch. |
+| Database | **RDS PostgreSQL 17, db.t4g.micro**. Aurora Serverless v2 was considered, but its auto-pause never kicks in here: every module's `OutboxProcessor` polls every 250 ms and Keycloak keeps connections open, so it would sit at its ~$50/month floor. Moving to Aurora later is a snapshot restore. |
+| Messaging | **RabbitMQ in a container** (same broker as local and tests). SQS would save ~$8/month but needs a second MassTransit transport that the tests don't cover. Its data lives on **EFS**, so queued messages survive a new task. |
+| Users | **Invite only**: no self-registration, no test users. You create users in the Keycloak admin console. |
+| Data | Production **starts empty**. |
+| Infrastructure | **Terraform**, applied by hand. State in S3 (lock file, no DynamoDB). |
+| Deploys | **GitHub Actions** on every push to `main`: tests, images, migrations, rolling update. |
+| Domain | Bought in **Route 53**: the app at `ledger.<domain>`, Keycloak at `auth.<domain>`. |
+
+Approximate cost: **$90–100 a month**. Fargate ~$35 (api and keycloak 0.5 vCPU / 1 GB, web and rabbitmq 0.25 vCPU / 0.5 GB), public IPv4 addresses ~$20 (AWS charges each one), load balancer ~$20, RDS ~$16 (free for the first 12 months on a new account), plus Route 53, CloudWatch, ECR and EFS (a few dollars). A budget alert emails you at 80 % of `monthly_budget_usd` (default $120) and when the forecast exceeds it.
+
+### 18.2 Architecture
+
+```text
+Route 53  ledger.<domain>, auth.<domain> ──► ALB (HTTPS with ACM; HTTP redirects to HTTPS)
+  ledger.<domain>  /api/*, /health ─► api       (Ledger.Api, ASPNETCORE_ENVIRONMENT=Production)
+  ledger.<domain>  anything else   ─► web       (nginx: /en/, /es/, /config.json)
+  auth.<domain>    /admin/*, /realms/master/* ─► keycloak, only from admin_cidrs (others get 403)
+  auth.<domain>    anything else   ─► keycloak  (Keycloak 26, `start --optimized`)
+Private DNS (Cloud Map): rabbitmq.ledger.internal:5672, keycloak.ledger.internal:8080
+rabbitmq (no load balancer) + EFS at /var/lib/rabbitmq (node name fixed to rabbit@localhost)
+RDS PostgreSQL (private subnets): databases "ledger" (module schemas) and "keycloak"
+One-off tasks: db-init (creates the keycloak database if missing) and migrator, run by every deploy
+```
+
+* **No NAT gateway** (~$35/month): tasks run in public subnets with a public IP so they can pull images, and their security group accepts traffic only from the load balancer and from other tasks. RDS is private and only accepts the tasks.
+* **Tokens**: Keycloak issues them for `https://auth.<domain>/realms/ledger` (its public URL). The API validates that issuer but downloads the signing keys from `http://keycloak.ledger.internal:8080` (`Authentication__MetadataAddress` + `KC_HOSTNAME_BACKCHANNEL_DYNAMIC`), the same pattern as `docker-compose.yml`.
+* **Secrets**: generated by Terraform and stored in SSM Parameter Store (SecureString) under `/ledger/...`: database password and connection string, RabbitMQ password and URL, Keycloak bootstrap admin password. ECS injects them as environment variables. They are also in the Terraform state (S3, encrypted, private).
+* **Connections**: db.t4g.micro allows about 80. The API's connection string has `Maximum Pool Size=30` and Keycloak uses `KC_DB_POOL_MAX_SIZE=15`.
+* **Backups**: RDS automated backups, 7 days, point-in-time restore. Deletion protection on, final snapshot on destroy.
+
+### 18.3 What changed in the app
+
+| Area | Change |
+| --- | --- |
+| API image | `src/Ledger.Api/Dockerfile` has a `production` target (Release, no debugger, non-root). The default target is still the Debug + vsdbg image used by compose. |
+| Images | Build stages run on the build machine's architecture (`--platform=$BUILDPLATFORM`, `dotnet publish -a $TARGETARCH`), so CI builds ARM64 images on an x64 runner without emulation. |
+| Web | The Keycloak issuer is no longer built in: `AuthService` reads `/config.json` at startup. In development it is `public/config.json`; in the container nginx generates it from `KEYCLOAK_ISSUER`. `nginx.conf` became `nginx.conf.template` (`API_UPSTREAM`, `KEYCLOAK_ISSUER`, defaults in the Dockerfile). `requireHttps` is on when the issuer is HTTPS. |
+| Keycloak | `infra/keycloak-prod`: optimized image for PostgreSQL with health checks (port 9000) and a production realm: same clients and mappers, no users, no self-registration, no password reset (no email yet), brute-force protection, `sslRequired: external`, no `ledger-scalar` (Scalar is development only). `ledger-web` redirect URIs come from `LEDGER_WEB_URL` (Keycloak replaces `${...}` when importing). |
+| Console | No change: point it at production with `Api__BaseUrl=https://ledger.<domain> Keycloak__Authority=https://auth.<domain>/realms/ledger`. |
+
+The realm is imported only when it doesn't exist. After the first start, change it in the admin console (or update the file and import it by hand).
+
+### 18.4 First deployment
+
+1. **AWS account**: create it, turn on MFA for the root user, and create an administrator user (IAM Identity Center or IAM) for the CLI (`aws configure` / `aws sso login`).
+2. **Domain**: buy it in Route 53 (Registered domains). This creates its hosted zone.
+3. **Bootstrap** (state bucket and the deploy role for GitHub):
+   ```bash
+   cd infra/terraform/bootstrap
+   terraform init && terraform apply
+   ```
+   Keep `bootstrap/terraform.tfstate` safe (it is git-ignored). In GitHub, add the repository **variable** `AWS_DEPLOY_ROLE_ARN` = the `deploy_role_arn` output.
+4. **Infrastructure**:
+   ```bash
+   cd infra/terraform
+   cp terraform.tfvars.example terraform.tfvars    # domain, admin_cidrs (your IP), alert_email
+   terraform init -backend-config="bucket=<state_bucket output>"
+   terraform apply
+   ```
+   The services start without images and keep retrying until the first deploy pushes them. Confirm the budget alert email AWS sends you.
+5. **First deploy**: push to `main` (or run the *Deploy* workflow by hand).
+6. **Keycloak**: open `https://auth.<domain>/admin/` from an address in `admin_cidrs`. Log in as `admin` with the password from
+   `aws ssm get-parameter --with-decryption --name /ledger/keycloak/admin-password --query Parameter.Value --output text`.
+   Create a permanent admin user in the *master* realm, add OTP to it, log in with it and delete the bootstrap `admin`. Then, in realm **ledger**, create your user (*Users → Add user*, then *Credentials → Set password*).
+7. Open `https://ledger.<domain>` (phone included) and log in.
+
+**Inviting a friend**: in realm `ledger`, *Users → Add user*, set a **temporary** password and send it to them; Keycloak asks them to change it at their first login.
+
+### 18.5 Every deploy
+
+`.github/workflows/deploy.yml`, on every push to `main` (one at a time):
+
+1. Runs CI (`ci.yml`: build, unit, architecture and integration tests, web tests, EN/ES build). CI also runs on pull requests.
+2. Assumes the AWS role through GitHub OIDC (no AWS keys in GitHub; the role only trusts `main`).
+3. Builds the api (`--target production`), migrator, web and keycloak images for ARM64 and pushes them to ECR as `<commit sha>` and `latest`.
+4. Runs **db-init** and then the **migrator** as one-off tasks; the deploy stops if either fails (their logs are printed).
+5. Forces a new deployment of keycloak, api and web (they use `:latest`) and waits until they are stable. RabbitMQ (public image) is not restarted.
+
+Terraform is never run by the pipeline. Changing the infrastructure (sizes, environment variables, new secrets) is `terraform plan` / `terraform apply` by hand. Because task definitions reference `:latest`, Terraform and deploys never undo each other.
+
+**Rolling back**: point `latest` at an earlier commit and force a new deployment:
+```bash
+aws ecr batch-get-image --repository-name ledger/api --image-ids imageTag=<sha> --query 'images[0].imageManifest' --output text > manifest.json
+aws ecr put-image --repository-name ledger/api --image-tag latest --image-manifest file://manifest.json
+aws ecs update-service --cluster ledger --service api --force-new-deployment
+```
+Migrations are not rolled back automatically: write a new migration instead (Migrations.md).
+
+### 18.6 Operating it
+
+* **Logs**: CloudWatch log group `/ecs/ledger` (14 days), one stream prefix per service: `aws logs tail /ecs/ledger --follow --log-stream-name-prefix api`.
+* **Shell in a task** (ECS Exec is on): `aws ecs execute-command --cluster ledger --task <id> --container api --interactive --command sh`.
+* **Dead-lettered messages**: the management UI is not exposed. Use ECS Exec on the rabbitmq task: `rabbitmqctl list_queues name messages | grep _error`.
+* **Restore**: RDS console → *Restore to point in time* creates a new instance; point the connection strings at it (or swap it in with Terraform).
+* **Updating Keycloak**: change `KEYCLOAK_VERSION` in `infra/keycloak-prod/Dockerfile` and deploy.
+* **Removing everything**: turn off `deletion_protection` on the database, then `terraform destroy` (a final snapshot is kept).
+
+### 18.7 Verified before merging
+
+* The production Keycloak image starts against a new PostgreSQL database, imports the realm with the `LEDGER_WEB_URL` redirect URIs, keeps the public issuer and serves its keys on the internal address.
+* The production API image (`ASPNETCORE_ENVIRONMENT=Production`) on a scratch database and vhost: `/health` 200, `/api/...` 401 without a token and 200 with a token issued by that Keycloak (public issuer, keys downloaded internally), Scalar not exposed.
+* The web image serves `/config.json` from `KEYCLOAK_ISSUER`; the migrator image cross-builds for another architecture; `terraform validate` passes for both stacks.
+* Not verified yet: a real `terraform apply` and a full pipeline run (they need the AWS account and the domain).
