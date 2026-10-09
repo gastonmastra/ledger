@@ -1,0 +1,26 @@
+# HTTPS with automatic Let's Encrypt certificates for both hosts (DNS A records must point at the server).
+# Caddy adds X-Forwarded-For/Proto/Host, which Keycloak trusts (KC_PROXY_HEADERS=xforwarded).
+
+ledger.{$DOMAIN} {
+	encode zstd gzip
+	# nginx serves /en/ and /es/ and proxies /api to the API.
+	reverse_proxy web:80
+}
+
+auth.{$DOMAIN} {
+	encode zstd gzip
+
+	# Admin console and the master realm only from ADMIN_CIDRS (space separated); everyone else gets 403.
+	@admin path /admin /admin/* /realms/master /realms/master/*
+	handle @admin {
+		@allowed remote_ip {$ADMIN_CIDRS}
+		handle @allowed {
+			reverse_proxy keycloak:8080
+		}
+		respond "Forbidden" 403
+	}
+
+	handle {
+		reverse_proxy keycloak:8080
+	}
+}

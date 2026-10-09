@@ -1,0 +1,145 @@
+# Production stack on one server (documentation §19). Lives in /opt/ledger on the VPS, next to:
+#   .env          secrets and settings, created by hand (see .env.example), mode 600
+#   release.env   LEDGER_TAG=<commit sha>, written by every deploy
+# Run it as: docker compose --env-file .env --env-file release.env <command>
+#
+# Only Caddy publishes ports (80, 443). Everything else stays on the internal network.
+name: ledger
+
+x-app: &app
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "5"
+
+services:
+  caddy:
+    <<: *app
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?}
+      ADMIN_CIDRS: ${ADMIN_CIDRS:?}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - keycloak
+
+  web:
+    <<: *app
+    image: ghcr.io/gastonmastra/ledger-web:${LEDGER_TAG:?}
+    environment:
+      KEYCLOAK_ISSUER: https://auth.${DOMAIN}/realms/ledger
+      API_UPSTREAM: http://api:8080
+    depends_on:
+      - api
+    mem_limit: 128m
+
+  api:
+    <<: *app
+    image: ghcr.io/gastonmastra/ledger-api:${LEDGER_TAG:?}
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=ledger;Username=postgres;Password=${POSTGRES_PASSWORD:?};Maximum Pool Size=50
+      ConnectionStrings__RabbitMq: amqp://ledger:${RABBITMQ_PASSWORD:?}@rabbitmq:5672/
+      # Tokens carry the public issuer; the signing keys are read through the internal address.
+      Authentication__Authority: https://auth.${DOMAIN}/realms/ledger
+      Authentication__MetadataAddress: http://keycloak:8080/realms/ledger/.well-known/openid-configuration
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    healthcheck:
+      # The production image has no curl: bash's /dev/tcp is enough to know Kestrel is listening.
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf \"GET /health HTTP/1.0\\r\\n\\r\\n\" >&3 && grep -q \"200 OK\" <&3'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    mem_limit: 1g
+
+  keycloak:
+    <<: *app
+    image: ghcr.io/gastonmastra/ledger-keycloak:${LEDGER_TAG:?}
+    environment:
+      KC_HOSTNAME: https://auth.${DOMAIN}
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?}
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?}
+      LEDGER_WEB_URL: https://ledger.${DOMAIN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9000 && printf \"GET /health/ready HTTP/1.0\\r\\n\\r\\n\" >&3 && grep -q \"200 OK\" <&3'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    mem_limit: 1536m
+
+  postgres:
+    <<: *app
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ledger
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # First start only: creates the keycloak database.
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ledger"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    shm_size: 256m
+    mem_limit: 1g
+
+  rabbitmq:
+    <<: *app
+    image: rabbitmq:4.2-alpine
+    # Fixed host name: RabbitMQ names its data directory after it, so queues survive a new container.
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ledger
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+    mem_limit: 512m
+
+  # One-off: `docker compose run --rm migrator` (every deploy, before starting the new API).
+  migrator:
+    image: ghcr.io/gastonmastra/ledger-migrator:${LEDGER_TAG:?}
+    profiles: ["migrate"]
+    environment:
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=ledger;Username=postgres;Password=${POSTGRES_PASSWORD:?}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  caddy_data:
+  caddy_config:
