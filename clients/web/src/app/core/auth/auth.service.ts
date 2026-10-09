@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { AuthConfig, OAuthService } from 'angular-oauth2-oidc';
-import { appSettings } from '../../app.settings';
+import { RuntimeConfig, appSettings } from '../../app.settings';
 
 /** Keycloak login with the authorization code flow + PKCE, and automatic token refresh. */
 @Injectable({ providedIn: 'root' })
@@ -17,15 +17,18 @@ export class AuthService {
 
   /** Runs before the app starts: returns only once the user is logged in (otherwise redirects to Keycloak). */
   async init(): Promise<void> {
+    const { keycloakIssuer } = await loadRuntimeConfig();
+
     // document.baseURI includes the locale base href (/en/ or /es/), so we come back to the same language.
     const config: AuthConfig = {
-      issuer: appSettings.keycloak.issuer,
+      issuer: keycloakIssuer,
       clientId: appSettings.keycloak.clientId,
       responseType: 'code',
       scope: 'openid profile email',
       redirectUri: document.baseURI,
       postLogoutRedirectUri: document.baseURI,
-      requireHttps: false,
+      // Plain HTTP only for a local Keycloak; a deployed one must be HTTPS.
+      requireHttps: keycloakIssuer.startsWith('https:'),
       useSilentRefresh: false,
       sessionChecksEnabled: false,
       clearHashAfterLogin: true,
@@ -46,4 +49,11 @@ export class AuthService {
   logout(): void {
     this.oauth.logOut();
   }
+}
+
+async function loadRuntimeConfig(): Promise<RuntimeConfig> {
+  const response = await fetch(appSettings.runtimeConfigUrl, { cache: 'no-store' });
+  if (!response.ok)
+    throw new Error(`Could not load ${appSettings.runtimeConfigUrl} (HTTP ${response.status}).`);
+  return (await response.json()) as RuntimeConfig;
 }

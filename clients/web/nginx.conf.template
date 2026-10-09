@@ -1,9 +1,17 @@
 # Serves the English (/en/) and Spanish (/es/) builds and proxies the API (same origin, no CORS).
+# Template: the nginx image replaces ${API_UPSTREAM} and ${KEYCLOAK_ISSUER} with environment variables
+# at startup (defaults in the Dockerfile); nginx variables like $host are left as they are.
 
 # Language chosen in the app (cookie set by the language switcher); English by default.
 map $cookie_ledger_locale $ledger_locale {
     default en;
     es      es;
+}
+
+# Behind a load balancer that terminates HTTPS, keep the scheme the browser used.
+map $http_x_forwarded_proto $forwarded_proto {
+    default $http_x_forwarded_proto;
+    ''      $scheme;
 }
 
 server {
@@ -14,14 +22,21 @@ server {
     absolute_redirect off;
 
     location /api/ {
-        proxy_pass http://api:8080;
+        proxy_pass ${API_UPSTREAM};
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
     }
 
     location = /health {
-        proxy_pass http://api:8080;
+        proxy_pass ${API_UPSTREAM};
+    }
+
+    # Per-environment settings read by the app at startup (see app.settings.ts).
+    location = /config.json {
+        default_type application/json;
+        add_header Cache-Control "no-store";
+        return 200 '{"keycloakIssuer":"${KEYCLOAK_ISSUER}"}';
     }
 
     # Each language is a single-page app: unknown paths fall back to its index.html.
