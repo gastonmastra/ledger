@@ -34,7 +34,7 @@ npm run e2e                                           # Playwright; needs API + 
 cd infra/terraform && terraform plan                  # AWS infrastructure (applied by hand, never by CI)
 ```
 
-Production (documentation §18): AWS eu-west-1, ECS Fargate + RDS PostgreSQL + RabbitMQ on EFS + Keycloak (`infra/keycloak-prod`, realm without users, invite only) behind one ALB at `ledger.<domain>` / `auth.<domain>`. Every push to `main` runs `.github/workflows/deploy.yml` (CI → arm64 images to ECR as `<sha>` + `latest` → db-init + migrator tasks → force new deployment). The web app reads the Keycloak issuer from `/config.json` at startup (`public/config.json` in dev, nginx `KEYCLOAK_ISSUER` in the container).
+AWS deployment (documentation §18, kept for the future, deployed **by hand only**): eu-west-1, ECS Fargate + RDS PostgreSQL + RabbitMQ on EFS + Keycloak (`infra/keycloak-prod`, realm without users, invite only) behind one ALB at `ledger.<domain>` / `auth.<domain>`. *Actions → Deploy (AWS) → Run workflow* runs `.github/workflows/deploy-aws.yml` (CI → arm64 images to ECR as `<sha>` + `latest` → db-init + migrator tasks → force new deployment). The web app reads the Keycloak issuer from `/config.json` at startup (`public/config.json` in dev, nginx `KEYCLOAK_ISSUER` in the container).
 
 Keycloak realm `ledger` (`infra/keycloak`), users `alice`/`alice` and `bob`/`bob`. Clients: `ledger-web` (redirects :4200 and :4201 only), `ledger-console` (127.0.0.1:7890), `ledger-scalar`.
 

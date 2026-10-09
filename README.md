@@ -188,7 +188,7 @@ dotnet test Ledger.slnx
 
 ## Deployment
 
-The app can run on AWS (eu-west-1): ECS Fargate, RDS PostgreSQL, RabbitMQ on EFS, Keycloak in production mode, behind one HTTPS load balancer at `ledger.<domain>` and `auth.<domain>`. Infrastructure is Terraform (`infra/terraform`); every push to `main` runs the tests and deploys with GitHub Actions (`.github/workflows/deploy.yml`). Setup, costs and operations: [documentation §18](documentation/README.md#18-deployment-aws).
+The app can run on AWS (eu-west-1): ECS Fargate, RDS PostgreSQL, RabbitMQ on EFS, Keycloak in production mode, behind one HTTPS load balancer at `ledger.<domain>` and `auth.<domain>`. Infrastructure is Terraform (`infra/terraform`); the *Deploy (AWS)* GitHub Actions workflow (`.github/workflows/deploy-aws.yml`) runs the tests and deploys; it is started by hand, since the PoC runs elsewhere for now. Setup, costs and operations: [documentation §18](documentation/README.md#18-deployment-aws).
 
 ## Database migrations
 

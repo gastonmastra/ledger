@@ -881,6 +881,8 @@ Error codes: `contact.link_pending`, `contact.merged`, `link.answered`, `link.no
 
 Added on branch `feature/aws-deployment`. Goal: use the app from the internet (phone included) over HTTPS. One user for now, maybe some invited friends later. Everything is in `infra/terraform` (infrastructure), `infra/keycloak-prod` (Keycloak image and realm) and `.github/workflows` (CI and deploy).
 
+> **Status:** kept for the future. The proof of concept runs on a single VPS instead (cheaper and simpler), so this deploy is **only started by hand**; nothing deploys to AWS when `main` changes.
+
 ### 18.1 Decisions (asked before building)
 
 | Topic | Decision |
@@ -892,7 +894,7 @@ Added on branch `feature/aws-deployment`. Goal: use the app from the internet (p
 | Users | **Invite only**: no self-registration, no test users. You create users in the Keycloak admin console. |
 | Data | Production **starts empty**. |
 | Infrastructure | **Terraform**, applied by hand. State in S3 (lock file, no DynamoDB). |
-| Deploys | **GitHub Actions** on every push to `main`: tests, images, migrations, rolling update. |
+| Deploys | **GitHub Actions**, started by hand (*Deploy (AWS)*): tests, images, migrations, rolling update. It used to run on every push to `main`; it became manual when the PoC moved to a VPS. |
 | Domain | Bought in **Route 53**: the app at `ledger.<domain>`, Keycloak at `auth.<domain>`. |
 
 Approximate cost: **$90–100 a month**. Fargate ~$35 (api and keycloak 0.5 vCPU / 1 GB, web and rabbitmq 0.25 vCPU / 0.5 GB), public IPv4 addresses ~$20 (AWS charges each one), load balancer ~$20, RDS ~$16 (free for the first 12 months on a new account), plus Route 53, CloudWatch, ECR and EFS (a few dollars). A budget alert emails you at 80 % of `monthly_budget_usd` (default $120) and when the forecast exceeds it.
@@ -947,7 +949,7 @@ The realm is imported only when it doesn't exist. After the first start, change 
    terraform apply
    ```
    The services start without images and keep retrying until the first deploy pushes them. Confirm the budget alert email AWS sends you.
-5. **First deploy**: push to `main` (or run the *Deploy* workflow by hand).
+5. **First deploy**: *Actions → Deploy (AWS) → Run workflow* on `main`.
 6. **Keycloak**: open `https://auth.<domain>/admin/` from an address in `admin_cidrs`. Log in as `admin` with the password from
    `aws ssm get-parameter --with-decryption --name /ledger/keycloak/admin-password --query Parameter.Value --output text`.
    Create a permanent admin user in the *master* realm, add OTP to it, log in with it and delete the bootstrap `admin`. Then, in realm **ledger**, create your user (*Users → Add user*, then *Credentials → Set password*).
@@ -957,7 +959,7 @@ The realm is imported only when it doesn't exist. After the first start, change 
 
 ### 18.5 Every deploy
 
-`.github/workflows/deploy.yml`, on every push to `main` (one at a time):
+`.github/workflows/deploy-aws.yml`, run by hand from `main` (*Actions → Deploy (AWS) → Run workflow*; one at a time). The AWS role only trusts `main`, so run it from that branch:
 
 1. Runs CI (`ci.yml`: build, unit, architecture and integration tests, web tests, EN/ES build). CI also runs on pull requests.
 2. Assumes the AWS role through GitHub OIDC (no AWS keys in GitHub; the role only trusts `main`).

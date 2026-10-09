@@ -1,14 +1,13 @@
-name: Deploy
+name: Deploy (AWS)
 
-# main -> tests -> images (arm64) -> keycloak database + migrations -> roll the services.
+# Run by hand only (Actions -> Deploy (AWS) -> Run workflow, from main): the PoC runs on the VPS for now.
+# tests -> images (arm64) -> keycloak database + migrations -> roll the services.
 # Infrastructure changes are not made here: run terraform in infra/terraform by hand.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: deploy
+  group: deploy-aws
   cancel-in-progress: false
 
 permissions:
