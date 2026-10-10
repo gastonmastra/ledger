@@ -1064,9 +1064,11 @@ Volumes: postgres_data, rabbitmq_data, caddy_data (certificates), caddy_config
    nano .env && chmod 600 .env       # DOMAIN, ADMIN_CIDRS, passwords (openssl rand -hex 24), BACKUP_S3_*
    ```
    The passwords are only used to create the database, the broker user and the Keycloak bootstrap admin on the first start. Changing them later means changing them inside those services too.
-7. **GitHub** (*Settings → Secrets and variables → Actions*):
-   - secrets: `VPS_HOST` (IP or host name), `VPS_SSH_KEY` (the private GitHub Actions key), `VPS_KNOWN_HOSTS` (`ssh-keyscan -t ed25519 <ip>`)
-   - variable: `VPS_DOMAIN`
+7. **GitHub**: create the environment **`development`** (*Settings → Environments*; the deploy job uses it) and add to it:
+   - secrets: `VPS_HOST` (the server's IP or host name only), `VPS_SSH_KEY` (the whole private GitHub Actions key), `VPS_KNOWN_HOSTS` (`ssh-keyscan -t ed25519 <ip>`)
+   - variable: `VPS_DOMAIN` (the bare domain, e.g. `example.com`)
+
+   The job checks the four values first and stops with a clear message if one is missing. GitHub turns a missing secret into an empty string, which otherwise fails later with errors like `Could not resolve hostname`. Optional: under the environment's *Deployment branches*, allow only `main`.
 8. **First deploy**: merge into `main` or run *Actions → Deploy (VPS) → Run workflow*. Caddy gets the certificates in the first minute.
 9. **Keycloak**: open `https://auth.<domain>/admin/` from an address in `ADMIN_CIDRS` and log in as `admin` with `KEYCLOAK_ADMIN_PASSWORD`.
    - Create your own admin in the *master* realm, add OTP, log in with it and delete `admin`.
@@ -1081,7 +1083,7 @@ Volumes: postgres_data, rabbitmq_data, caddy_data (certificates), caddy_config
 
 1. CI (`ci.yml`): .NET build and every test, web unit tests and the EN/ES build.
 2. Builds api, migrator, web and keycloak for `linux/amd64` and pushes them to `ghcr.io/<owner>/ledger-<name>` as `<commit sha>` and `latest`.
-3. Over SSH as `deploy`:
+3. In the GitHub environment `development` (its secrets, and the deployment history on the repository page), over SSH as `deploy`:
    - copies the stack files to `/opt/ledger`
    - logs in to ghcr.io with the job's token (sent through stdin) and runs `./deploy.sh <sha>`
    - logs out
