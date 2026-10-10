@@ -1,8 +1,9 @@
 name: Deploy (VPS)
 
 # main -> tests -> images (amd64) to GitHub Container Registry -> over SSH: migrate and restart (deploy/vps/deploy.sh).
-# Repository secrets: VPS_HOST, VPS_SSH_KEY (private key of the "deploy" user), VPS_KNOWN_HOSTS (ssh-keyscan of the host).
-# Repository variable: VPS_DOMAIN (the app is at https://ledger.<VPS_DOMAIN>). Documentation §19.
+# Secrets of the GitHub environment "development": VPS_HOST, VPS_SSH_KEY (private key of the "deploy" user),
+# VPS_KNOWN_HOSTS (ssh-keyscan of the host).
+# Variable of the same environment: VPS_DOMAIN (the app is at https://ledger.<VPS_DOMAIN>). Documentation §19.
 on:
   push:
     branches: [main]
@@ -71,11 +72,32 @@ jobs:
   deploy:
     needs: images
     runs-on: ubuntu-latest
+    # VPS_HOST, VPS_SSH_KEY, VPS_KNOWN_HOSTS and VPS_DOMAIN live in this GitHub environment.
+    environment:
+      name: development
+      url: https://ledger.${{ vars.VPS_DOMAIN }}
     permissions:
       contents: read
       packages: read
     steps:
       - uses: actions/checkout@v4
+
+      # A missing secret or variable is an empty string in GitHub Actions: fail here with a clear message.
+      - name: Check the deployment settings
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          VPS_DOMAIN: ${{ vars.VPS_DOMAIN }}
+        run: |
+          missing=0
+          for name in VPS_HOST VPS_SSH_KEY VPS_KNOWN_HOSTS VPS_DOMAIN; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is empty: add it to the \"development\" environment (Settings → Environments)"
+              missing=1
+            fi
+          done
+          exit $missing
 
       - name: SSH key
         env:
