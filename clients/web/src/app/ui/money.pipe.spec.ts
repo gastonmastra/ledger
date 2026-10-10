@@ -8,6 +8,8 @@ function pipeFor(locale: string): MoneyPipe {
 }
 
 describe('MoneyPipe', () => {
+  // "Hide amounts" is remembered in localStorage, which other spec files may have left set.
+  beforeEach(() => localStorage.clear());
   afterEach(() => TestBed.resetTestingModule());
 
   it('formats amounts following the English conventions', () => {
