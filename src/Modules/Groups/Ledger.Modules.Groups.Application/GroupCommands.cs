@@ -29,6 +29,9 @@ public sealed record ProjectUserCommand(Guid UserId, string DisplayName) : IComm
 
 public sealed record MarkGroupActivityCommand(Guid GroupId, IReadOnlyList<Guid> PersonIds) : ICommand;
 
+/// <summary>Internal: a person was merged into a registered user; group memberships follow.</summary>
+public sealed record MergeGroupMemberCommand(Guid PreviousPersonId, Guid UserId, string DisplayName) : ICommand;
+
 internal sealed class CreateGroupValidator : AbstractValidator<CreateGroupCommand>
 {
     public CreateGroupValidator()
@@ -47,6 +50,7 @@ internal sealed class GroupHandlers(
       ICommandHandler<ProjectContactLinkCommand>,
       ICommandHandler<ProjectUserCommand>,
       ICommandHandler<MarkGroupActivityCommand>,
+      ICommandHandler<MergeGroupMemberCommand>,
       IQueryHandler<GetGroupsQuery, IReadOnlyList<GroupDto>>,
       IQueryHandler<GetGroupQuery, GroupDto>
 {
@@ -124,6 +128,41 @@ internal sealed class GroupHandlers(
             return;
 
         dbContext.KnownUsers.Add(KnownUser.Create(command.UserId, command.DisplayName));
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task Handle(MergeGroupMemberCommand command, CancellationToken cancellationToken)
+    {
+        var groupIds = await dbContext.Groups
+            .Where(g => g.Members.Any(m => m.PersonId == command.PreviousPersonId))
+            .Select(g => g.Id)
+            .ToListAsync(cancellationToken);
+
+        if (groupIds.Count == 0)
+            return;
+
+        var name = await dbContext.KnownUsers.AsNoTracking()
+            .Where(u => u.UserId == command.UserId)
+            .Select(u => u.DisplayName)
+            .SingleOrDefaultAsync(cancellationToken) ?? command.DisplayName;
+
+        await dbContext.ReplaceMemberAsync(command.PreviousPersonId, command.UserId, name, cancellationToken);
+
+        // The groups are now shared with the user: the other modules learn about the new member as usual.
+        var groups = await dbContext.Groups.AsNoTracking()
+            .Include(g => g.Members)
+            .Where(g => groupIds.Contains(g.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var group in groups)
+        {
+            var member = group.Members.Single(m => m.PersonId == command.UserId);
+
+            await eventBus.PublishAsync(
+                new GroupMemberAdded(group.Id, group.Name, ToInfo(member), group.Members.Select(ToInfo).ToList()),
+                cancellationToken);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 

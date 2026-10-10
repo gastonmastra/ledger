@@ -32,6 +32,29 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
         builder.Property(x => x.CreatedAt)
             .IsRequired();
 
+        builder.Property(x => x.EntryId)
+            .HasConversion(id => id.Value, value => new TransactionId(value))
+            .IsRequired();
+
+        builder.Property(x => x.Revision)
+            .IsRequired();
+
+        builder.Property(x => x.ReversalOfId)
+            .HasConversion(id => id!.Value.Value, value => new TransactionId(value));
+
+        builder.Property(x => x.ReversedById)
+            .HasConversion(id => id!.Value.Value, value => new TransactionId(value));
+
+        builder.Property(x => x.ChangeAction)
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        builder.Property(x => x.ChangeReason)
+            .HasMaxLength(Transaction.ReasonMaxLength);
+
+        builder.Ignore(x => x.IsReversal);
+        builder.Ignore(x => x.IsCurrent);
+
         builder.HasMany(x => x.Postings)
             .WithOne()
             .HasForeignKey(x => x.TransactionId)
@@ -42,6 +65,8 @@ internal sealed class TransactionConfiguration : IEntityTypeConfiguration<Transa
 
         builder.HasIndex(x => new { x.OwnerId, x.OccurredAt });
         builder.HasIndex(x => x.CorrelationId);
+        builder.HasIndex(x => x.EntryId);
+        builder.HasIndex(x => x.ReversedById);
     }
 }
 
@@ -164,5 +189,15 @@ internal sealed class CounterpartyConfiguration : IEntityTypeConfiguration<Count
             .IsRequired();
 
         builder.HasIndex(x => new { x.OwnerId, x.SourceId });
+    }
+}
+
+internal sealed class BooksLockConfiguration : IEntityTypeConfiguration<BooksLock>
+{
+    public void Configure(EntityTypeBuilder<BooksLock> builder)
+    {
+        builder.ToTable("books_locks");
+        builder.HasKey(x => x.OwnerId);
+        builder.Property(x => x.UpdatedAt).IsRequired();
     }
 }

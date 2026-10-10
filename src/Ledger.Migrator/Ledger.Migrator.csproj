@@ -20,6 +20,7 @@
     <ProjectReference Include="..\Modules\Contacts\Ledger.Modules.Contacts.Infrastructure\Ledger.Modules.Contacts.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Groups\Ledger.Modules.Groups.Infrastructure\Ledger.Modules.Groups.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Debts\Ledger.Modules.Debts.Infrastructure\Ledger.Modules.Debts.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Investments\Ledger.Modules.Investments.Infrastructure\Ledger.Modules.Investments.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

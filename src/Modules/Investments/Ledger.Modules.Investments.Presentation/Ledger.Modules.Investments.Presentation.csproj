@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ledger.Modules.Investments.Application\Ledger.Modules.Investments.Application.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Ledger.BuildingBlocks.Presentation\Ledger.BuildingBlocks.Presentation.csproj" />
+  </ItemGroup>
+
+</Project>

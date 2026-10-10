@@ -10,16 +10,25 @@ It is a **.NET 10 modular monolith**: one deployable application made of indepen
 
 | Feature | How |
 | --- | --- |
-| Wallets | Create (with an opening balance), rename, archive (only when empty) and delete (only without transactions). EUR, USD and ARS. |
+| Wallets | Create (with an opening balance and its date), rename, archive (only when empty) and delete (only without transactions). EUR, USD and ARS. |
+| Fix balances | **Change the opening balance** (amount and date): the old one is reversed, never edited. **Adjust a wallet to its real balance**: the difference goes to *Balance adjustments*. |
+| Dates | Every operation takes a **date and time** (stored in UTC, any offset accepted); future dates are rejected. |
 | Income and expenses | Record money in or out of a wallet, optionally in a user-defined category. Without a category it goes to *Uncategorized* (expenses) or *Uncategorized income* (income). |
 | Transfers | Between two of my wallets. Across currencies I type the amount received, and the ledger balances each currency through a *Currency exchange* account. A wallet can never go below zero. |
 | Loans | Lend money from a wallet to a contact. The contact now owes me. |
+| Existing debts | Record a debt from before using Ledger ("I already owed Sofi 50", or the other way round). It is neither income nor expense (it comes from *Opening balances*), is mirrored to linked users and is settled like any debt. |
+| Corrections | **Edit, delete and restore** anything (income, expenses, transfers, loans, existing debts, splits, settlements) with a required reason. Nothing is edited in place: a reversal cancels the old version, so the history keeps everything and charts count only the current one. |
+| Shared changes | Linked users involved **confirm** changes to what they share; whoever rejects keeps the old version and the operation is marked *disputed*. Settled debts change only after undoing the settlement. |
+| Lock date | Close your books up to a date: nothing in that period can be recorded or changed (also by shared changes). Can be moved back. |
+| Activity | Who changed, deleted or restored what, and why. |
 | Splits | Split an expense among me, my contacts or a group: equally, by amount or by percentage, with **any number of payers**. "A friend paid for me" is a split where the friend pays and I consume. |
 | Groups | Shared with every member who is a registered user. Group balances are **simplified** into the fewest payments. |
 | Settlements | Full settlement of one debt, of everything with a contact, or of one suggested group payment. |
-| Linked contacts | A contact with a registered user's email is linked. Debts are then mirrored into that user's books automatically, with contacts created for them. Money they paid or received waits in *Pending wallet assignments* until they choose the wallet. |
-| Summary | Per currency: wallets, owed to me, I owe, pending and **net**, with a breakdown per wallet and per person or group. |
+| Linked contacts | A contact with a registered user's email is linked. Debts are then mirrored into that user's books automatically, with contacts created for them. Money they paid or received waits in *Pending wallet assignments* until they choose the wallet. A contact that already has debts or groups can be linked too: the user accepts a **link request** (with a preview) and the shared history is copied into their books. |
+| Summary | Per currency: wallets, owed to me, I owe, pending and **net**, with a breakdown per wallet and per person or group; plus the investments' market value and the **total**. |
 | History | Transactions newest first, paginated, filterable by wallet, category, contact and date range. |
+| Investments | Assets (shares, ETFs, crypto…) in any quote currency. **Buy** from a wallet (any currency), **sell** into a wallet and record holdings **already owned**; quantities with up to 12 decimals and unit prices with up to 8. The ledger records **cost** (average cost on sales, realized gains in *Investment gains*); holdings are valued at the latest **sell** price, which can be updated anytime without moving money. |
+| Reports | Per period (month, year or custom) and currency: income vs expenses, spending by category, net worth over time (money and investments stacked), investments over time and balance per wallet. Charts in the web dashboard, tables in the console. |
 
 ## Architecture
 
@@ -41,6 +50,8 @@ Ledger.slnx
 │   ├── Ledger.Api        Host: composes the modules, JWT (Keycloak), OpenAPI + Scalar
 │   ├── Ledger.Migrator   Applies the migrations of every module, then exits
 │   └── Ledger.Console    Terminal client of the HTTP API (Keycloak login)
+├── clients
+│   └── web               Angular web client (Tailwind, EN/ES, light/dark) — see clients/web/README.md
 ├── tests
 │   ├── Ledger.UnitTests           Domain rules and split math
 │   ├── Ledger.ArchitectureTests   Module boundaries and layer rules (NetArchTest)
@@ -59,6 +70,7 @@ Ledger.slnx
 | Contacts | `contacts` | People of each user, linked to registered users by email | User registered, debt operation completed, group created/member added |
 | Groups | `groups` | Groups and members | User registered, contacts, debt operation completed |
 | Debts | `debts` | Loans, splits, settlements, who-owes-whom, group balances | Users, contacts, groups, wallets, ledger posting completed/rejected |
+| Investments | `investments` | Assets, holdings (quantity, cost basis, realized gains), trades and prices | Investment posting completed/rejected |
 
 ### How modules communicate
 
@@ -106,18 +118,19 @@ dotnet run --project src/Ledger.Console                       # in another termi
 docker compose --profile full up -d --build
 ```
 
-The migrator container runs once, then the API starts on `http://localhost:8081` (Scalar at `/scalar`). To debug it, use the **Docker: attach to API** launch configuration (the image ships `vsdbg`).
+The migrator container runs once, then the API starts on `http://localhost:8081` (Scalar at `/scalar`) and the web app on `http://localhost:4201`. To debug it, use the **Docker: attach to API** launch configuration (the image ships `vsdbg`).
 
 ### Local services
 
 | Service | URL | Credentials |
 | --- | --- | --- |
 | API (IDE) / API (container) | http://localhost:5209 / http://localhost:8081 | Keycloak login |
+| Web app (`ng serve`) / (container) | http://localhost:4200 / http://localhost:4201 | Keycloak login |
 | Keycloak | http://localhost:8080 | admin / admin |
 | RabbitMQ management | http://localhost:15672 | guest / guest |
 | PostgreSQL | localhost:5432, database `ledger` | postgres / postgres |
 
-The `ledger` realm is imported on Keycloak startup with two users, **alice / alice** and **bob / bob**. Use both to try linked contacts: log in once as each of them, then add the other as a contact using their email (`bob@ledger.local`). Clients: `ledger-api` (the token audience), `ledger-console` (PKCE, loopback redirect on port 7890) and `ledger-scalar`.
+The `ledger` realm is imported on Keycloak startup with two users, **alice / alice** and **bob / bob**. Use both to try linked contacts: log in once as each of them, then add the other as a contact using their email (`bob@ledger.local`). Clients: `ledger-api` (the token audience), `ledger-console` (PKCE, loopback redirect on port 7890), `ledger-web` (PKCE, ports 4200/4201) and `ledger-scalar`.
 
 ## HTTP API
 
@@ -131,20 +144,37 @@ All endpoints need a Keycloak access token. Explore them with Scalar at `/scalar
 | GET | `/api/transactions?page&pageSize&walletId&categoryId&contactId&from&to` | History, newest first |
 | GET | `/api/transactions/{id}` | One transaction with its postings |
 | POST | `/api/transactions/income`, `/expense`, `/transfer` | Record money in, out, or between wallets |
+| GET/PUT | `/api/transactions/opening-balance/{walletId}`, `/api/transactions/opening-balance` | Read or replace a wallet's opening balance (PUT needs a `reason`) |
+| POST | `/api/transactions/balance-adjustment` | Set a wallet to its real balance |
 | GET | `/api/summary` | Totals per currency, per wallet and per person or group |
+| GET | `/api/reports?from&to&currency&timeZone` | Figures for charts (daily up to 62 days, monthly above) |
 | GET/POST | `/api/pending-assignments`, `/{id}/assign` | Choose the wallet for money others recorded for me |
-| GET/POST | `/api/contacts`, `/{id}/link` | Contacts |
+| GET/POST | `/api/contacts`, `/{id}/link` | Contacts (linking a used contact sends a link request) |
+| GET/POST/DELETE | `/api/contacts/link-requests`, `/{id}/accept`, `/{id}/reject`, `DELETE /{id}`; GET `/api/debts/link-requests/{id}/preview` | Link requests and their preview |
 | GET/POST/DELETE | `/api/groups`, `/{id}`, `/{id}/members`, `/{id}/members/{personId}` | Groups |
 | GET | `/api/groups/{id}/balances` | Balances, simplified payments and raw debts |
 | GET | `/api/debts` | My debts and the net per contact |
-| POST | `/api/debts/loans`, `/api/debts/splits`, `/api/debts/settlements` | Asynchronous: `202` plus an operation |
-| GET | `/api/debts/operations/{id}` | `Pending`, `Completed` or `Rejected` (with the reason) |
+| POST | `/api/debts/loans`, `/api/debts/splits`, `/api/debts/settlements`, `/api/debts/initial` | Asynchronous: `202` plus an operation |
+| GET | `/api/debts/operations/{id}` | An operation: `Pending`, `Completed`, `Rejected` (with the reason), `Superseded` or `Deleted` |
+| PUT/DELETE | `/api/transactions/{id}`, POST `/api/transactions/{id}/restore` | Correct, delete or restore a transaction (with a `reason`) |
+| GET | `/api/transactions/{id}/history`, `/api/transactions/activity` | Versions of a transaction; my recent changes |
+| GET/PUT | `/api/settings/books-lock` | Lock date |
+| GET | `/api/debts/operations?kind&groupId&personId&includeHistory`, `/{id}/history` | Loans, splits, settlements and existing debts, and their versions |
+| PUT/DELETE | `/api/debts/operations/{id}`, POST `/{id}/restore` | Request a change (linked users confirm it) |
+| GET/POST | `/api/debts/changes`, `/{id}/accept`, `/{id}/reject`; GET `/api/debts/activity` | Review changes; shared activity |
+| GET/POST/PUT | `/api/investments/assets`, `/{id}`, POST `/{id}/archive`, GET/POST `/{id}/prices` | Assets with holdings and valuation; prices |
+| POST | `/api/investments/trades/buy`, `/sell`, `/opening` | Asynchronous: `202` plus a trade |
+| GET | `/api/investments/trades?assetId&page`, `/{id}`, `/api/investments/summary`, `/api/investments/report?from&to&currency&timeZone` | Trades; totals per currency; value over time |
 
 Errors are RFC 7807 problem details. Business rule violations return `400` with a `code`, for example `ledger.insufficient_funds`.
 
+## Web client
+
+`clients/web` is an Angular app covering every feature, in English and Spanish, with light and dark themes, on desktop and mobile. How to run, debug, theme, translate and test it: [clients/web/README.md](clients/web/README.md). In VS Code, **API + Web** debugs both.
+
 ## Console client
 
-`Ledger.Console` is a client of the HTTP API. On start it opens the browser on the Keycloak login page (authorization code + PKCE) and receives the result on `http://127.0.0.1:7890/callback/`. Then it waits up to 30 seconds for the API (`/health`); if the API is not running it tells you how to start it. Menus: summary, wallets, transactions, categories, contacts, groups, debts and splits, and pending wallet assignments. The API URL and Keycloak settings are in `src/Ledger.Console/appsettings.json` (use `Api__BaseUrl=http://localhost:8081` for the containerised API).
+`Ledger.Console` is a client of the HTTP API. On start it opens the browser on the Keycloak login page (authorization code + PKCE) and receives the result on `http://127.0.0.1:7890/callback/`. Then it waits up to 30 seconds for the API (`/health`); if the API is not running it tells you how to start it. Menus: summary, wallets, transactions, categories, contacts, groups, debts and splits, investments, pending wallet assignments and reports. Every operation asks "When" (ENTER = now). The API URL and Keycloak settings are in `src/Ledger.Console/appsettings.json` (use `Api__BaseUrl=http://localhost:8081` for the containerised API).
 
 ## Tests
 
@@ -154,7 +184,11 @@ dotnet test Ledger.slnx
 
 * **Unit**: transaction balancing per currency, overdraft, split math (rounding, multiple payers, simplification), wallet, contact and group rules, ledger legs.
 * **Architecture**: a module only references other modules' `Contracts`, the Domain is free of EF, MassTransit and ASP.NET, Application does not depend on infrastructure, and contracts are immutable.
-* **Integration** (needs Docker): the real API with PostgreSQL and RabbitMQ in Testcontainers, and a test authentication scheme in place of Keycloak. It covers transfers and overdraft, a split mirrored to a linked user and settled, a rejected loan, and group simplification and settlement.
+* **Integration** (needs Docker): the real API with PostgreSQL and RabbitMQ in Testcontainers, and a test authentication scheme in place of Keycloak. It covers transfers and overdraft, a split mirrored to a linked user and settled, a rejected loan, group simplification and settlement, and investments (buy, sell, prices, cross-currency, already owned).
+
+## Deployment
+
+The app can run on AWS (eu-west-1): ECS Fargate, RDS PostgreSQL, RabbitMQ on EFS, Keycloak in production mode, behind one HTTPS load balancer at `ledger.<domain>` and `auth.<domain>`. Infrastructure is Terraform (`infra/terraform`); the *Deploy (AWS)* GitHub Actions workflow (`.github/workflows/deploy-aws.yml`) runs the tests and deploys; it is started by hand, since the PoC runs elsewhere for now. Setup, costs and operations: [documentation §18](documentation/README.md#18-deployment-aws).
 
 ## Database migrations
 
@@ -164,5 +198,6 @@ Every module owns its migrations (`src/Modules/<Module>/Ledger.Modules.<Module>.
 
 * Mirrored debts are applied automatically. Letting the other user cancel or dispute them is future work.
 * Totals are not converted between currencies.
-* A contact can only be linked to a user before it is used in debts or groups.
+* Investments: no fees or dividends, trades are append-only (no edits or backdating), prices are entered by hand.
+* A contact can be merged into one user only; unlinking is not supported.
 * MediatR 12 and MassTransit 8 are the last Apache-licensed versions. MassTransit 8 receives security fixes until the end of 2026.

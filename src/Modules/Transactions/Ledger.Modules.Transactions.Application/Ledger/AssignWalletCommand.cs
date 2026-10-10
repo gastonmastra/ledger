@@ -1,3 +1,4 @@
+using FluentValidation;
 using Ledger.BuildingBlocks.Application;
 using Ledger.BuildingBlocks.Application.Exceptions;
 using Ledger.BuildingBlocks.Domain;
@@ -6,7 +7,17 @@ using Ledger.Modules.Transactions.Domain;
 namespace Ledger.Modules.Transactions.Application.Ledger;
 
 /// <summary>Moves money waiting in "pending settlements" into (or out of) a real wallet.</summary>
-public sealed record AssignWalletCommand(Guid UserId, Guid AssignmentId, Guid WalletId) : ICommand<Guid>;
+/// <param name="OccurredAt">When the money reached or left the wallet (default: the date of the operation).</param>
+public sealed record AssignWalletCommand(Guid UserId, Guid AssignmentId, Guid WalletId, DateTimeOffset? OccurredAt = null)
+    : ICommand<Guid>;
+
+internal sealed class AssignWalletValidator : AbstractValidator<AssignWalletCommand>
+{
+    public AssignWalletValidator()
+    {
+        RuleFor(x => x.OccurredAt).NotInFuture();
+    }
+}
 
 internal sealed class AssignWalletHandler(
     ITransactionsDbContext dbContext,
@@ -38,7 +49,7 @@ internal sealed class AssignWalletHandler(
             var transaction = TransactionBuilder
                 .Create(
                     command.UserId,
-                    assignment.OccurredAt,
+                    command.OccurredAt ?? assignment.OccurredAt,
                     TransactionKind.WalletAssignment,
                     assignment.Description,
                     assignment.OperationId)

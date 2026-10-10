@@ -1,0 +1,3 @@
+{
+  "keycloakIssuer": "http://localhost:8080/realms/ledger"
+}

@@ -16,7 +16,11 @@ public sealed record OpenWalletAccountCommand(
     Guid UserId,
     string Name,
     string Currency,
-    decimal OpeningBalance) : ICommand;
+    decimal OpeningBalance,
+    DateTimeOffset? OpeningBalanceAt = null) : ICommand;
+
+/// <summary>Owners of any account: used to give existing users the system accounts added later.</summary>
+public sealed record GetAccountOwnersQuery : IQuery<IReadOnlyList<Guid>>;
 
 public sealed record RenameWalletAccountCommand(Guid WalletId, string Name) : ICommand;
 
@@ -31,8 +35,12 @@ internal sealed class SystemAccountHandlers(
       ICommandHandler<OpenWalletAccountCommand>,
       ICommandHandler<RenameWalletAccountCommand>,
       ICommandHandler<ArchiveWalletAccountCommand>,
-      ICommandHandler<DeleteWalletAccountCommand>
+      ICommandHandler<DeleteWalletAccountCommand>,
+      IQueryHandler<GetAccountOwnersQuery, IReadOnlyList<Guid>>
 {
+    public async Task<IReadOnlyList<Guid>> Handle(GetAccountOwnersQuery query, CancellationToken cancellationToken)
+        => await dbContext.Accounts.Select(x => x.OwnerId).Distinct().ToListAsync(cancellationToken);
+
     public async Task Handle(ProvisionUserAccountsCommand command, CancellationToken cancellationToken)
     {
         var existing = await dbContext.Accounts
@@ -62,7 +70,9 @@ internal sealed class SystemAccountHandlers(
             Currencies.Parse(command.Currency));
 
         dbContext.Accounts.Add(account);
-        await eventBus.PublishAsync(AccountEvents.Created(account, command.OpeningBalance), cancellationToken);
+        await eventBus.PublishAsync(
+            AccountEvents.Created(account, command.OpeningBalance, command.OpeningBalanceAt),
+            cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 

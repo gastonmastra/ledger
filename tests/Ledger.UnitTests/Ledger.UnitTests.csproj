@@ -20,7 +20,9 @@
     <ProjectReference Include="..\..\src\Modules\Accounts\Ledger.Modules.Accounts.Domain\Ledger.Modules.Accounts.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Contacts\Ledger.Modules.Contacts.Domain\Ledger.Modules.Contacts.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Groups\Ledger.Modules.Groups.Domain\Ledger.Modules.Groups.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Investments\Ledger.Modules.Investments.Domain\Ledger.Modules.Investments.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Debts\Ledger.Modules.Debts.Application\Ledger.Modules.Debts.Application.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Ledger.BuildingBlocks.Application\Ledger.BuildingBlocks.Application.csproj" />
   </ItemGroup>
 
 </Project>

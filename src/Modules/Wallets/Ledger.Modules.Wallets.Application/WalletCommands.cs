@@ -17,8 +17,13 @@ public sealed record WalletDto(
     DateTimeOffset CreatedAt,
     bool IsReady);
 
-public sealed record CreateWalletCommand(Guid UserId, string Name, string Currency, decimal OpeningBalance)
-    : ICommand<WalletDto>;
+/// <param name="OpeningBalanceAt">When the opening balance was there (default: now).</param>
+public sealed record CreateWalletCommand(
+    Guid UserId,
+    string Name,
+    string Currency,
+    decimal OpeningBalance,
+    DateTimeOffset? OpeningBalanceAt = null) : ICommand<WalletDto>;
 
 public sealed record RenameWalletCommand(Guid UserId, Guid WalletId, string Name) : ICommand;
 
@@ -43,6 +48,7 @@ internal sealed class CreateWalletValidator : AbstractValidator<CreateWalletComm
             .Must(Currencies.IsSupported)
             .WithMessage($"Currency must be one of: {string.Join(", ", Enum.GetNames<Currency>())}.");
         RuleFor(x => x.OpeningBalance).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.OpeningBalanceAt).NotInFuture();
     }
 }
 
@@ -82,7 +88,8 @@ internal sealed class WalletHandlers(
                 wallet.Name,
                 wallet.Currency.ToString(),
                 command.OpeningBalance,
-                wallet.CreatedAt),
+                wallet.CreatedAt,
+                command.OpeningBalanceAt ?? wallet.CreatedAt),
             cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);

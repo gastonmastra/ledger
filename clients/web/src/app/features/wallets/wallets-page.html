@@ -1,0 +1,63 @@
+<ui-page-header i18n-heading="@@wallets.title" heading="Wallets"
+                i18n-subtitle="@@wallets.subtitle" subtitle="Where you keep your money.">
+  <button uiButton type="button" (click)="create()">
+    <ui-icon name="plus" size="sm" />
+    <ng-container i18n="@@wallets.new">New wallet</ng-container>
+  </button>
+</ui-page-header>
+
+<ui-card [padded]="false">
+  <div class="flex items-center justify-end border-b border-border px-4 py-2">
+    <label class="flex cursor-pointer items-center gap-2 text-sm text-muted">
+      <input type="checkbox" class="accent-primary" [checked]="showArchived()" (change)="showArchived.set(!showArchived())" />
+      <span i18n="@@wallets.showArchived">Show archived</span>
+    </label>
+  </div>
+
+  @if (wallets.isLoading() && !wallets.value()) {
+    <div class="flex justify-center py-10"><ui-spinner /></div>
+  } @else if (!wallets.value()?.length) {
+    <ui-empty-state i18n-message="@@wallets.empty" message="No wallets yet.">
+      <button uiButton type="button" (click)="create()" i18n="@@wallets.createFirst">Create your first wallet</button>
+    </ui-empty-state>
+  } @else {
+    <ui-table>
+      <thead>
+        <tr>
+          <th i18n="@@wallets.name">Name</th>
+          <th class="text-right" i18n="@@wallets.balance">Balance</th>
+          <th i18n="@@wallets.status">Status</th>
+          <th><span class="sr-only" i18n="@@ui.actions">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (wallet of wallets.value(); track wallet.id) {
+          <tr>
+            <td class="font-medium">{{ wallet.name }}</td>
+            <td class="text-right tabular-nums">{{ wallet.balance | money: wallet.currency }}</td>
+            <td>
+              @if (!wallet.isReady) {
+                <ui-badge tone="warning" i18n="@@wallets.settingUp">Setting up…</ui-badge>
+              } @else {
+                <ui-badge [tone]="wallet.status === 'Active' ? 'success' : 'neutral'">{{ statusLabel(wallet.status) }}</ui-badge>
+              }
+            </td>
+            <td class="text-right">
+              @if (wallet.status === 'Active') {
+                <div class="flex flex-wrap justify-end gap-1">
+                  @if (wallet.isReady) {
+                    <button uiButton variant="ghost" size="sm" type="button" (click)="openingBalance(wallet)" i18n="@@wallets.openingAction">Opening balance</button>
+                    <button uiButton variant="ghost" size="sm" type="button" (click)="adjust(wallet)" i18n="@@wallets.adjustAction">Adjust balance</button>
+                  }
+                  <button uiButton variant="ghost" size="sm" type="button" (click)="rename(wallet)" i18n="@@ui.rename">Rename</button>
+                  <button uiButton variant="ghost" size="sm" type="button" (click)="archive(wallet)" i18n="@@wallets.archive">Archive</button>
+                  <button uiButton variant="ghost" size="sm" type="button" (click)="remove(wallet)" i18n="@@ui.delete">Delete</button>
+                </div>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </ui-table>
+  }
+</ui-card>

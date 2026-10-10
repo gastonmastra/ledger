@@ -12,7 +12,12 @@ public sealed class App(
     ContactsMenu contacts,
     GroupsMenu groups,
     DebtsMenu debts,
-    PendingMenu pending)
+    InvestmentsMenu investments,
+    PendingMenu pending,
+    ReportsMenu reports,
+    ChangesScreen changes,
+    ActivityScreen activity,
+    SettingsMenu settings)
 {
     public async Task RunAsync(CancellationToken cancellationToken)
     {
@@ -23,6 +28,9 @@ public sealed class App(
         while (!cancellationToken.IsCancellationRequested)
         {
             var pendingCount = (await api.PendingAssignmentsAsync(cancellationToken)).Count;
+            var toReview = (await api.ChangesAsync(all: false, cancellationToken)).Count
+                           + (await api.LinkRequestsAsync(includeClosed: false, cancellationToken))
+                               .Count(r => r.Direction == "Incoming" && r.Status == "Pending");
 
             var option = ConsoleUi.ShowMenu(
                 "LEDGER",
@@ -34,8 +42,13 @@ public sealed class App(
                     new Option(5, "Contacts"),
                     new Option(6, "Groups"),
                     new Option(7, "Debts & splits"),
-                    new Option(8, pendingCount == 0 ? "Pending wallet assignments" : $"Pending wallet assignments ({pendingCount})"),
-                    new Option(9, "Exit")
+                    new Option(8, "Investments"),
+                    new Option(9, pendingCount == 0 ? "Pending wallet assignments" : $"Pending wallet assignments ({pendingCount})"),
+                    new Option(10, "Reports"),
+                    new Option(11, toReview == 0 ? "Changes to review" : $"Changes to review ({toReview})"),
+                    new Option(12, "Activity"),
+                    new Option(13, "Settings"),
+                    new Option(14, "Exit")
                 ],
                 subtitle: $"Logged in as {me.DisplayName} ({me.Email})");
 
@@ -50,8 +63,13 @@ public sealed class App(
                     case 5: await contacts.RunAsync(cancellationToken); break;
                     case 6: await groups.RunAsync(cancellationToken); break;
                     case 7: await debts.RunAsync(cancellationToken); break;
-                    case 8: await pending.RunAsync(cancellationToken); break;
-                    case 9: return;
+                    case 8: await investments.RunAsync(cancellationToken); break;
+                    case 9: await pending.RunAsync(cancellationToken); break;
+                    case 10: await reports.RunAsync(cancellationToken); break;
+                    case 11: await changes.RunAsync(cancellationToken); break;
+                    case 12: await activity.ShowAsync(cancellationToken); break;
+                    case 13: await settings.RunAsync(cancellationToken); break;
+                    case 14: return;
                 }
             }
             catch (ApiException ex)

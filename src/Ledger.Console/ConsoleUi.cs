@@ -99,6 +99,61 @@ public static class ConsoleUi
         }
     }
 
+    /// <summary>
+    /// Asks for a local date and time ("yyyy-MM-dd HH:mm" or "yyyy-MM-dd"); ENTER = now.
+    /// Returns it in UTC; future dates are not accepted.
+    /// </summary>
+    public static DateTimeOffset ReadWhen(string prompt = "When (yyyy-MM-dd HH:mm, ENTER = now): ", DateTimeOffset? defaultValue = null)
+    {
+        while (true)
+        {
+            var input = ReadText(prompt, optional: true);
+
+            if (input.Length == 0)
+                return (defaultValue ?? DateTimeOffset.Now).ToUniversalTime();
+
+            string[] formats = ["yyyy-MM-dd HH:mm", "yyyy-MM-dd H:mm", "yyyy-MM-dd"];
+
+            if (DateTime.TryParseExact(input, formats, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var local))
+            {
+                var when = new DateTimeOffset(local, TimeZoneInfo.Local.GetUtcOffset(local)).ToUniversalTime();
+
+                if (when <= DateTimeOffset.UtcNow.AddMinutes(1))
+                    return when;
+
+                Error("The date cannot be in the future.");
+                continue;
+            }
+
+            Error("Use the format yyyy-MM-dd HH:mm (e.g. 2026-09-30 18:45).");
+        }
+    }
+
+    /// <summary>Why something is edited, deleted or restored: required and kept in the history.</summary>
+    public static string ReadReason(string prompt = "Why? (kept in the history): ")
+    {
+        while (true)
+        {
+            var reason = ReadText(prompt);
+
+            if (reason.Length <= 500)
+                return reason;
+
+            Error("Use at most 500 characters.");
+        }
+    }
+
+    /// <summary>Text with a current value: ENTER keeps it, "-" clears it.</summary>
+    public static string? ReadTextOrKeep(string label, string? current)
+    {
+        var input = ReadText($"{label} [{current ?? ""}] (ENTER = keep, - = clear): ", optional: true);
+        return input.Length == 0 ? current : input == "-" ? null : input;
+    }
+
+    /// <summary>Amount with a current value: ENTER keeps it.</summary>
+    public static decimal ReadDecimalOrKeep(string label, decimal current)
+        => ReadOptionalDecimal($"{label} [{Amount(current)}] (ENTER = keep): ") ?? current;
+
     public static bool Confirm(string prompt)
         => ReadText($"{prompt} (y/n): ").Equals("y", StringComparison.OrdinalIgnoreCase);
 

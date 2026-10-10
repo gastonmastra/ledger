@@ -1,0 +1,125 @@
+<ui-page-header i18n-heading="@@investments.title" heading="Investments"
+                i18n-subtitle="@@investments.subtitle" subtitle="Shares, ETFs, crypto… what you hold and what it is worth.">
+  <div class="flex flex-wrap gap-2">
+    <button uiButton type="button" (click)="trade('Buy')">
+      <ui-icon name="plus" size="sm" />
+      <ng-container i18n="@@trade.buyTitle">Buy</ng-container>
+    </button>
+    <button uiButton variant="secondary" type="button" (click)="trade('Sell')" i18n="@@trade.sellTitle">Sell</button>
+    <button uiButton variant="ghost" type="button" (click)="trade('Opening')" i18n="@@investments.alreadyOwned">I already own some</button>
+    <button uiButton variant="ghost" type="button" (click)="create()" i18n="@@asset.newTitle">New asset</button>
+  </div>
+</ui-page-header>
+
+@if (totals.value()?.length) {
+  <section class="mb-6 grid gap-4 md:grid-cols-2">
+    @for (total of totals.value(); track total.currency) {
+      <ui-card>
+        <div class="mb-4"><ui-badge tone="primary">{{ total.currency }}</ui-badge></div>
+        <div class="grid grid-cols-2 gap-4">
+          <ui-stat class="col-span-2" i18n-label="@@investments.value" label="Market value"
+                   [value]="total.value | money: total.currency" [emphasis]="true" />
+          <ui-stat i18n-label="@@investments.cost" label="Cost" [value]="total.cost | money: total.currency" />
+          <ui-stat i18n-label="@@investments.unrealized" label="Unrealized gain" [value]="total.unrealizedGain | money: total.currency: true"
+                   [tone]="amountTone(total.unrealizedGain)" />
+          <ui-stat i18n-label="@@investments.realizedTotal" label="Realized gains" [value]="total.realizedGain | money: total.currency: true"
+                   [tone]="amountTone(total.realizedGain)" />
+        </div>
+      </ui-card>
+    }
+  </section>
+}
+
+<ui-card i18n-heading="@@investments.holdings" heading="Holdings" [padded]="false">
+  <label card-actions class="flex cursor-pointer items-center gap-2 text-sm text-muted">
+    <input type="checkbox" class="accent-primary" [checked]="showArchived()" (change)="showArchived.set(!showArchived())" />
+    <span i18n="@@wallets.showArchived">Show archived</span>
+  </label>
+
+  @if (assets.isLoading() && !assets.value()) {
+    <div class="flex justify-center py-10"><ui-spinner /></div>
+  } @else if (!assets.value()?.length) {
+    <ui-empty-state i18n-message="@@investments.empty" message="No investments yet. Record a purchase, or a holding you already own.">
+      <button uiButton type="button" (click)="trade('Buy')" i18n="@@investments.buyFirst">Record a purchase</button>
+    </ui-empty-state>
+  } @else {
+    <ui-table>
+      <thead>
+        <tr>
+          <th i18n="@@trade.asset">Asset</th>
+          <th class="text-right" i18n="@@trade.quantity">Quantity</th>
+          <th class="text-right" i18n="@@investments.avgCost">Average cost</th>
+          <th class="text-right" i18n="@@investments.price">Valued at</th>
+          <th class="text-right" i18n="@@investments.value">Market value</th>
+          <th class="text-right" i18n="@@investments.unrealized">Unrealized gain</th>
+          <th><span class="sr-only" i18n="@@ui.actions">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (asset of assets.value(); track asset.id) {
+          <tr>
+            <td>
+              <div class="font-medium">
+                {{ asset.name }}
+                @if (asset.symbol) {
+                  <span class="text-muted">{{ asset.symbol }}</span>
+                }
+              </div>
+              <div class="flex flex-wrap items-center gap-1 text-xs text-muted">
+                {{ typeLabel(asset.type) }} · {{ asset.currency }}
+                @if (asset.hasPendingTrade) {
+                  <ui-badge tone="warning" i18n="@@opStatus.pending">Being recorded</ui-badge>
+                }
+                @if (asset.status === 'Archived') {
+                  <ui-badge i18n="@@walletStatus.archived">Archived</ui-badge>
+                }
+              </div>
+            </td>
+            <td class="text-right tabular-nums">{{ asset.quantity | quantity }}</td>
+            <td class="text-right tabular-nums">{{ asset.averageCost | price: asset.currency }}</td>
+            <td class="text-right tabular-nums">
+              @if (asset.valuationSource) {
+                <span [attr.title]="valuationLabel(asset.valuationSource)">{{ asset.valuationPrice | price: asset.currency }}</span>
+                @if (asset.valuationSource !== 'Sell') {
+                  <div class="text-xs text-muted">{{ valuationLabel(asset.valuationSource) }}</div>
+                }
+              }
+            </td>
+            <td class="text-right font-medium tabular-nums">{{ asset.marketValue | money: asset.currency }}</td>
+            <td class="text-right tabular-nums" [class]="amountClass(asset.unrealizedGain)">
+              @if (asset.quantity > 0) {
+                {{ asset.unrealizedGain | money: asset.currency: true }}
+              }
+            </td>
+            <td class="text-right">
+              @if (asset.status === 'Active') {
+                <div class="flex flex-wrap justify-end gap-1">
+                  <button uiButton variant="ghost" size="sm" type="button" (click)="trade('Buy', asset)" i18n="@@trade.buyTitle">Buy</button>
+                  @if (asset.quantity > 0) {
+                    <button uiButton variant="ghost" size="sm" type="button" (click)="trade('Sell', asset)" i18n="@@trade.sellTitle">Sell</button>
+                  }
+                  <button uiButton variant="ghost" size="sm" type="button" (click)="updatePrice(asset)" i18n="@@price.title">Update price</button>
+                  <button uiButton variant="ghost" size="sm" type="button" (click)="history(asset)">
+                    <ui-icon name="clock" size="sm" /><ng-container i18n="@@history.title">History</ng-container>
+                  </button>
+                  <button uiButton variant="ghost" size="sm" type="button" (click)="edit(asset)" i18n="@@ui.edit">Edit</button>
+                  @if (asset.quantity === 0 && !asset.hasPendingTrade) {
+                    <button uiButton variant="ghost" size="sm" type="button" (click)="archive(asset)" i18n="@@wallets.archive">Archive</button>
+                  }
+                </div>
+              } @else {
+                <button uiButton variant="ghost" size="sm" type="button" (click)="history(asset)">
+                  <ui-icon name="clock" size="sm" /><ng-container i18n="@@history.title">History</ng-container>
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </ui-table>
+  }
+</ui-card>
+
+<ui-card class="mt-6 block" i18n-heading="@@investments.trades" heading="Trades" [padded]="false">
+  <app-trades-table />
+</ui-card>

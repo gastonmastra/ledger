@@ -1,12 +1,15 @@
 using Ledger.BuildingBlocks.Application.Exceptions;
 using Ledger.Modules.Transactions.Contracts;
 using Ledger.Modules.Transactions.Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ledger.Modules.Transactions.Application.Ledger;
 
 /// <summary>
-/// Persists balanced transactions: locks the wallet accounts involved, enforces the
-/// no-overdraft rule, updates the wallet running balances and reports them to other modules.
+/// Persists balanced transactions as one batch: locks the wallet accounts involved, checks the
+/// books lock of every owner, enforces the no-overdraft rule on the <b>final</b> balance of each
+/// wallet (so a reversal and its replacement are judged together), updates the running balances
+/// and reports them to other modules.
 /// Must be called inside <see cref="ITransactionsDbContext.InTransactionAsync{T}"/>.
 /// </summary>
 internal sealed class LedgerWriter(
@@ -32,27 +35,36 @@ internal sealed class LedgerWriter(
             throw new NotYetAvailableException(
                 $"Ledger accounts {string.Join(", ", missing)} are not known yet.");
 
-        var touchedWallets = new HashSet<LedgerAccount>();
+        await EnsureBooksOpenAsync(transactions, cancellationToken);
 
         foreach (var transaction in transactions)
         {
             transaction.Validate();
 
             foreach (var accountId in transaction.Postings.Select(p => p.AccountId).Distinct())
-                accounts[accountId].EnsureUsableBy(transaction.OwnerId);
-
-            var walletMovements = transaction.Postings
-                .Where(p => accounts[p.AccountId].IsWallet)
-                .GroupBy(p => (p.AccountId, p.Currency));
-
-            foreach (var movement in walletMovements)
             {
-                var wallet = accounts[movement.Key.AccountId];
-                wallet.ApplyToWallet(movement.Sum(p => p.Amount), movement.Key.Currency);
-                touchedWallets.Add(wallet);
+                // Reversals may cancel postings on an archived account; new entries may not.
+                if (!transaction.IsReversal)
+                    accounts[accountId].EnsureUsableBy(transaction.OwnerId);
             }
 
             dbContext.Transactions.Add(transaction);
+        }
+
+        var walletMovements = transactions
+            .SelectMany(t => t.Postings.Select(p => (Transaction: t, Posting: p)))
+            .Where(x => accounts[x.Posting.AccountId].IsWallet)
+            .GroupBy(x => (x.Posting.AccountId, x.Posting.Currency));
+
+        var touchedWallets = new List<LedgerAccount>();
+
+        foreach (var movement in walletMovements)
+        {
+            var wallet = accounts[movement.Key.AccountId];
+            var count = movement.Select(x => x.Transaction.Id).Distinct().Count();
+
+            wallet.ApplyToWallet(movement.Sum(x => x.Posting.Amount), movement.Key.Currency, count);
+            touchedWallets.Add(wallet);
         }
 
         foreach (var wallet in touchedWallets)
@@ -63,5 +75,21 @@ internal sealed class LedgerWriter(
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task EnsureBooksOpenAsync(IReadOnlyCollection<Transaction> transactions, CancellationToken cancellationToken)
+    {
+        var owners = transactions.Select(t => t.OwnerId).Distinct().ToList();
+
+        var locks = await dbContext.BooksLocks
+            .AsNoTracking()
+            .Where(l => owners.Contains(l.OwnerId) && l.LockedUntil != null)
+            .ToDictionaryAsync(l => l.OwnerId, cancellationToken);
+
+        foreach (var transaction in transactions)
+        {
+            if (locks.TryGetValue(transaction.OwnerId, out var booksLock))
+                booksLock.EnsureOpen(transaction.OccurredAt);
+        }
     }
 }

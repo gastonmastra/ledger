@@ -1,0 +1,120 @@
+<ui-dialog [heading]="heading" [description]="subheading">
+  <div class="grid gap-5">
+    <div class="grid gap-4 sm:grid-cols-3">
+      <ui-form-field class="sm:col-span-2" i18n-label="@@split.what" label="What was it?">
+        <input uiInput [ngModel]="description()" (ngModelChange)="description.set($event)" maxlength="500" />
+      </ui-form-field>
+      <ui-form-field i18n-label="@@split.total" label="Total">
+        <input uiInput type="number" min="0.01" step="0.01" [ngModel]="total()" (ngModelChange)="total.set($event)" />
+      </ui-form-field>
+    </div>
+
+    @if (!myWalletPayer()) {
+      <ui-form-field i18n-label="@@split.currency" label="Currency">
+        <select uiInput [ngModel]="chosenCurrency()" (ngModelChange)="chosenCurrency.set($event)" [disabled]="!mine">
+          @for (currency of currencies; track currency) {
+            <option [value]="currency">{{ currency }}</option>
+          }
+        </select>
+      </ui-form-field>
+    }
+
+    <fieldset class="grid gap-3">
+      <legend class="mb-2 text-sm font-medium" i18n="@@split.whoPaid">Who paid?</legend>
+      @for (payer of payers(); track $index; let i = $index) {
+        <div class="grid items-end gap-2 rounded-ui border border-border p-3 sm:grid-cols-[1fr_8rem_auto]">
+          <ui-form-field i18n-label="@@split.payer" label="Payer">
+            <select uiInput [ngModel]="payer.personId" (ngModelChange)="updatePayer(i, { personId: $event, walletId: '' })">
+              <option [value]="payer.personId">{{ personName(payer.personId) }}</option>
+              @for (person of availablePayers(); track person.personId) {
+                <option [value]="person.personId">{{ person.isMe ? personName(person.personId) : person.name }}</option>
+              }
+            </select>
+          </ui-form-field>
+          @if (payers().length > 1) {
+            <ui-form-field i18n-label="@@split.paid" label="Paid">
+              <input uiInput type="number" min="0.01" step="0.01" [ngModel]="payer.amount" (ngModelChange)="updatePayer(i, { amount: $event })" />
+            </ui-form-field>
+            <button uiButton variant="ghost" size="sm" type="button" (click)="removePayer(i)" i18n-aria-label="@@split.removePayer" aria-label="Remove payer">
+              <ui-icon name="close" size="sm" />
+            </button>
+          }
+          @if (payer.personId === me?.personId && mine) {
+            <ui-form-field class="sm:col-span-3" i18n-label="@@split.paidFrom" label="Paid from">
+              <select uiInput [ngModel]="payer.walletId" (ngModelChange)="updatePayer(i, { walletId: $event })">
+                <option value="" disabled i18n="@@ui.choose">Choose…</option>
+                @for (wallet of wallets.value(); track wallet.id) {
+                  <option [value]="wallet.id">{{ wallet.name }} · {{ wallet.balance | money: wallet.currency }}</option>
+                }
+              </select>
+            </ui-form-field>
+          }
+        </div>
+      }
+      @if (availablePayers().length) {
+        <button uiButton variant="ghost" size="sm" type="button" class="justify-self-start" (click)="addPayer()">
+          <ui-icon name="plus" size="sm" /><ng-container i18n="@@split.addPayer">Someone else also paid</ng-container>
+        </button>
+      }
+    </fieldset>
+
+    <fieldset class="grid gap-3">
+      <legend class="mb-2 text-sm font-medium" i18n="@@split.howToSplit">How to split</legend>
+      <div class="inline-flex w-full rounded-ui border border-border p-1 sm:w-auto" role="radiogroup">
+        @for (option of methods; track option) {
+          <button type="button" role="radio" [attr.aria-checked]="method() === option"
+                  class="flex-1 rounded-ui px-3 py-1.5 text-sm cursor-pointer"
+                  [class]="method() === option ? 'bg-primary text-primary-foreground' : 'text-muted hover:text-foreground'"
+                  (click)="method.set(option)">
+            {{ methodLabel(option) }}
+          </button>
+        }
+      </div>
+      <ul class="grid gap-2">
+        @for (participant of participants(); track participant.personId; let i = $index) {
+          <li class="flex items-center gap-3">
+            <label class="flex flex-1 cursor-pointer items-center gap-2 text-sm">
+              <input type="checkbox" class="accent-primary" [checked]="participant.selected"
+                     (change)="updateParticipant(i, { selected: !participant.selected })" />
+              {{ personName(participant.personId) }}
+            </label>
+            @if (participant.selected && method() !== 'Equal') {
+              <input uiInput class="max-w-32" type="number" min="0" step="0.01" [ngModel]="participant.value"
+                     (ngModelChange)="updateParticipant(i, { value: $event })"
+                     [attr.aria-label]="personName(participant.personId)"
+                     [placeholder]="method() === 'Percent' ? '%' : currency()" />
+            }
+          </li>
+        }
+      </ul>
+    </fieldset>
+
+    @if (iParticipate() && mine) {
+      <ui-form-field i18n-label="@@split.myCategory" label="Category of my share">
+        <select uiInput [ngModel]="categoryId()" (ngModelChange)="categoryId.set($event)">
+          <option value="" i18n="@@movement.uncategorized">Uncategorized</option>
+          @for (category of categories(); track category.id) {
+            <option [value]="category.id">{{ category.name }}</option>
+          }
+        </select>
+      </ui-form-field>
+    }
+
+    <ui-form-field i18n-label="@@ui.when" label="When">
+      <ui-datetime-input [ngModel]="occurredAt()" (ngModelChange)="occurredAt.set($event)" />
+    </ui-form-field>
+
+    @if (edit) {
+      <ui-reason-field [ngModel]="reason()" (ngModelChange)="reason.set($event)" />
+    }
+
+    @if (problem()) {
+      <p class="rounded-ui bg-warning-soft px-3 py-2 text-sm text-warning" role="alert">{{ problem() }}</p>
+    }
+  </div>
+
+  <div dialog-actions class="contents">
+    <button uiButton variant="secondary" type="button" (click)="ref.close()" i18n="@@ui.cancel">Cancel</button>
+    <button uiButton type="button" [disabled]="!canSave()" [loading]="saving()" (click)="save()">{{ submitLabel }}</button>
+  </div>
+</ui-dialog>

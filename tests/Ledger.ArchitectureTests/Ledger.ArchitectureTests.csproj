@@ -30,6 +30,8 @@
     <ProjectReference Include="..\..\src\Modules\Groups\Ledger.Modules.Groups.Presentation\Ledger.Modules.Groups.Presentation.csproj" />
     <ProjectReference Include="..\..\src\Modules\Debts\Ledger.Modules.Debts.Infrastructure\Ledger.Modules.Debts.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Modules\Debts\Ledger.Modules.Debts.Presentation\Ledger.Modules.Debts.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Investments\Ledger.Modules.Investments.Infrastructure\Ledger.Modules.Investments.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Investments\Ledger.Modules.Investments.Presentation\Ledger.Modules.Investments.Presentation.csproj" />
   </ItemGroup>
 
 </Project>

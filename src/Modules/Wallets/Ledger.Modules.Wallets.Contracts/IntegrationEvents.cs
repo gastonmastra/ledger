@@ -6,7 +6,8 @@ public sealed record WalletCreated(
     string Name,
     string Currency,
     decimal OpeningBalance,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? OpeningBalanceAt = null);
 
 public sealed record WalletRenamed(Guid WalletId, Guid UserId, string Name);
 

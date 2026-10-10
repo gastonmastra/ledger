@@ -9,7 +9,7 @@ namespace Ledger.ArchitectureTests;
 /// </summary>
 public class ModuleBoundaryTests
 {
-    public static readonly string[] Modules = ["Identity", "Accounts", "Wallets", "Transactions", "Contacts", "Groups", "Debts"];
+    public static readonly string[] Modules = ["Identity", "Accounts", "Wallets", "Transactions", "Contacts", "Groups", "Debts", "Investments"];
 
     private static readonly string[] InternalLayers = ["Domain", "Application", "Infrastructure", "Presentation"];
 
@@ -119,6 +119,17 @@ public class ModuleBoundaryTests
     {
         // Positive control: Debts asks the ledger to post entries through the Transactions contracts.
         var dependents = Types.InAssembly(Layer("Debts", "Application"))
+            .That()
+            .HaveDependencyOnAny("Ledger.Modules.Transactions.Contracts")
+            .GetTypes();
+
+        Assert.NotEmpty(dependents);
+    }
+
+    [Fact]
+    public void Investments_asks_the_ledger_through_the_transactions_contracts()
+    {
+        var dependents = Types.InAssembly(Layer("Investments", "Application"))
             .That()
             .HaveDependencyOnAny("Ledger.Modules.Transactions.Contracts")
             .GetTypes();

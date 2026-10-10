@@ -11,6 +11,12 @@ public interface IGroupsDbContext
     DbSet<KnownUser> KnownUsers { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// A member without an account turned out to be a registered user: every membership of
+    /// <paramref name="previousPersonId"/> becomes the user (member keys include the person id, so it is a SQL update).
+    /// </summary>
+    Task ReplaceMemberAsync(Guid previousPersonId, Guid userId, string displayName, CancellationToken cancellationToken);
 }
 
 public interface IGroupsEventBus : IEventBus;

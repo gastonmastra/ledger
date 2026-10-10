@@ -34,7 +34,23 @@ public static class ContactsEndpoints
 
         group.MapPost("/{id:guid}/link", async (Guid id, LinkContactRequest request, ICurrentUser user, ISender sender, CancellationToken ct) =>
                 Results.Ok(await sender.Send(new LinkContactCommand(user.UserId, id, request.Email), ct)))
-            .WithSummary("Link a contact (not used yet) to a registered user");
+            .WithSummary("Link a contact to a registered user: right away if it is not used yet, otherwise a link request the user accepts (pendingLinkRequestId)");
+
+        group.MapGet("/link-requests", async (bool? includeClosed, ICurrentUser user, ISender sender, CancellationToken ct) =>
+                Results.Ok(await sender.Send(new GetLinkRequestsQuery(user.UserId, includeClosed ?? false), ct)))
+            .WithSummary("Link requests I sent (Outgoing) or have to answer (Incoming)");
+
+        group.MapPost("/link-requests/{id:guid}/accept", async (Guid id, ICurrentUser user, ISender sender, CancellationToken ct) =>
+                Results.Ok(await sender.Send(new AcceptLinkRequestCommand(user.UserId, id), ct)))
+            .WithSummary("Accept being linked: the shared history is copied into my books (status Applying, then Applied or Failed)");
+
+        group.MapPost("/link-requests/{id:guid}/reject", async (Guid id, ICurrentUser user, ISender sender, CancellationToken ct) =>
+                Results.Ok(await sender.Send(new RejectLinkRequestCommand(user.UserId, id), ct)))
+            .WithSummary("Reject a link request");
+
+        group.MapDelete("/link-requests/{id:guid}", async (Guid id, ICurrentUser user, ISender sender, CancellationToken ct) =>
+                Results.Ok(await sender.Send(new CancelLinkRequestCommand(user.UserId, id), ct)))
+            .WithSummary("Cancel a link request I sent");
 
         return endpoints;
     }

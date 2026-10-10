@@ -18,6 +18,12 @@ For a quick start see the [root README](../README.md). For database migrations s
 10. [Troubleshooting](#10-troubleshooting)
 11. [Known limitations and next steps](#11-known-limitations-and-next-steps)
 12. [Reference: versions, conventions, commits](#12-reference)
+13. [Web client](#13-web-client)
+14. [Dates, opening balances, adjustments, existing debts and reports](#14-dates-opening-balances-adjustments-existing-debts-and-reports)
+15. [Editable, auditable ledger](#15-editable-auditable-ledger)
+16. [Investments](#16-investments)
+17. [Linking contacts that are already in use](#17-linking-contacts-that-are-already-in-use)
+18. [Deployment (AWS)](#18-deployment-aws)
 
 ---
 
@@ -172,6 +178,7 @@ Application handlers access data through an interface of their module (`IWallets
 | **Contacts** | `contacts` | `contacts` (person id, optional link to a user), `registered_users` projection | `ContactCreated`, `ContactLinked` | `UserRegistered`, `DebtOperationCompleted`, `GroupCreated`, `GroupMemberAdded` |
 | **Groups** | `groups` | `groups`, `group_members`, projections of contacts and users | `GroupCreated`, `GroupMemberAdded`, `GroupMemberRemoved` | `UserRegistered`, `ContactCreated/Linked`, `DebtOperationCompleted` |
 | **Debts** | `debts` | `operations` (with payers and shares), `debts`, projections of contacts, users, group members and wallets | `LedgerPostingRequested`, `DebtOperationCompleted` | `UserRegistered`, `ContactCreated/Linked`, `GroupCreated`, `GroupMemberAdded/Removed`, `WalletCreated/Deleted`, `LedgerPostingCompleted/Rejected` |
+| **Investments** | `investments` | `assets` (with the holding: quantity, cost basis, realized gain), `trades`, `asset_prices` | `AssetCreated/Renamed/Archived`, `InvestmentPostingRequested` | `InvestmentPostingCompleted/Rejected` |
 
 Every schema also holds `__EFMigrationsHistory`, `integration_outbox` and `inbox_messages`.
 
@@ -214,6 +221,8 @@ Error mapping (RFC 7807):
 | Uncategorized | Expense | `Uncategorized` | the user registers |
 | Uncategorized income | Income | `UncategorizedIncome` | the user registers |
 | Pending settlements | Asset | `PendingSettlements` | the user registers |
+| *(asset name)* | Asset | `Investment` (one currency; holds the **cost** of an investment asset) | an asset is added ([section 16](#16-investments)) |
+| Investment gains | Equity | `InvestmentGains` (realized gains and losses; neither income nor expense) | the user registers (existing users: startup backfill) |
 
 ### 4.3 Debts: counterparty dimension
 
@@ -231,7 +240,7 @@ Pairwise who-owes-whom debts are still computed and stored in Debts, and shown i
 
 * A registered user's **person id is their user id**.
 * A non-registered contact gets a person id the first time it is added (its contact id). If somebody else's debt is mirrored to a linked user, the auto-created contact on their side reuses that person id.
-* Linking a contact to a user **changes its person id** to the user id, so it is only allowed while the contact is **unused** (not in any debt or group). Otherwise, create a new contact with the user's email.
+* Linking a contact to a user **changes its person id** to the user id. An **unused** contact (no debt or group) is linked right away. A contact that is **in use** sends a **link request** the user must accept; accepting merges the old person into the user everywhere and copies the shared history into the user's books ([section 17](#17-linking-contacts-that-are-already-in-use)).
 
 ### 4.6 Pending wallet assignments
 
@@ -506,7 +515,7 @@ Configuration:
 * Deleting a wallet right after creating it relies on retries while the account is still being created.
 * **Licensing:** MediatR 12 and MassTransit 8 are the last Apache versions. MassTransit 8 gets security fixes until the end of 2026; plan a move (to MassTransit 9 with a license, Wolverine, or plain RabbitMQ.Client, since the outbox and inbox are already ours).
 * **Operations:** no outbox/inbox cleanup job yet, no dead-letter dashboard, no metrics or tracing. Adding OpenTelemetry and periodic cleanup of processed outbox and inbox rows is recommended.
-* Production concerns not addressed in the MVP: HTTPS, secrets management, Keycloak in production mode, and running the migrator as a pipeline step (see Migrations.md).
+* Production (HTTPS, secrets, Keycloak in production mode, migrations as a pipeline step) is covered by the AWS deployment in §18. Still missing there: alarms on errors or dead-lettered messages, a staging environment, and email (password reset, invitations).
 
 ## 12. Reference
 
@@ -547,3 +556,439 @@ Package versions are managed centrally in `Directory.Packages.props`.
 | `11e7520` | Unit, architecture and integration tests |
 | `afd511d` | README and Migrations.md |
 | `0b64f45` | Console waits for the API before its first call |
+
+## 13. Web client
+
+An Angular client in `clients/web`. How to run, debug, theme, translate and test it is in [clients/web/README.md](../clients/web/README.md); this section records the decisions and what building it changed in the backend.
+
+### 13.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| Branch | `feature/web-client`, based on `feature/mvp` |
+| Location | `clients/web` |
+| Screens | All of them: dashboard, wallets, transactions, categories, contacts, debts and splits, groups, pending assignments |
+| Languages | English and Spanish; English by default |
+| i18n | **Angular built-in i18n** (one build per language at `/en/` and `/es/`; switching reloads the page; `ng serve` serves one language) |
+| Amounts and dates | Formatted according to the language |
+| Auth | **angular-oauth2-oidc** (authorization code + PKCE) with a new Keycloak client `ledger-web` |
+| API access | **Same-origin proxy** (Angular dev server / nginx) instead of CORS |
+| Styling | Tailwind CSS 4; palette = neutral (slate) + one accent (**indigo**); every color is a token |
+| Theme | Light and dark, **following the OS**, with a manual override |
+| Devices | Desktop and mobile (sidebar ↔ bottom bar and menu) |
+| Components | Own UI kit, with the **Angular CDK** only for behaviour (dialogs) |
+| State | Angular signals + services |
+| Asynchronous operations | **Fire and notify**: the dialog closes right away and a toast reports the outcome |
+| Running | `ng serve` (VS Code launch configurations) **and** an nginx container in the compose `full` profile, on port **4201** |
+| Tests | Vitest (unit) and Playwright (end-to-end) |
+
+### 13.2 Backend changes it required
+
+Building and testing the web client surfaced these backend issues, fixed on the same branch:
+
+| Problem | Fix |
+| --- | --- |
+| `GET /api/me` without a token returned **500** (it was the only endpoint without `RequireAuthorization`) | Requires authorization and returns **401**. There's an integration test. |
+| A wallet created with an opening balance was announced as ready with a **balance of 0**, and the real balance arrived in a second event, so a page could show 0 | The ledger announces a new wallet **once**, already including its opening balance |
+| Debts answered **404** for a wallet or contact created a moment before (not yet projected there) | **503 Not available yet** (clients retry). It is still 404 when the wallet or contact belongs to someone else. There's an integration test. |
+| A consumer that depends on another module's event could run out of retries (about 19 s) on a cold start and be dead-lettered | Exponential retry, about 3 minutes in total |
+| EF warning for aggregates with several owned collections | Split queries for the module DbContexts |
+| The web app needed a Keycloak client | `ledger-web` added to `infra/keycloak/ledger-realm.json` (and to the running Keycloak with `kcadm`) |
+
+### 13.3 UI lessons
+
+* **CDK overlay styles:** the CDK injects its overlay CSS at runtime, unlayered, so it overrides Tailwind's layered utilities (e.g. `max-w-*` on the dialog pane). Dialog sizes are therefore passed through the CDK config (`maxWidth`), not classes.
+* **`<select [value]>`** is applied before its options render, so options use `[selected]`.
+* **Eventual consistency in the UI:** after every change the pages reload now and once more 1.5 s later, because projections in other modules (e.g. wallet balances) update a moment after the change.
+
+## 14. Dates, opening balances, adjustments, existing debts and reports
+
+Added on branch `feature/ledger-enhancements`, to the API, the web app and the console.
+
+### 14.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| Dated operations | Income, expense, transfer, loans, splits, settlements, wallet opening balance, pending wallet assignments |
+| Precision | Date **and time**; stored as `DateTimeOffset` in **UTC**; the clients show local time; default now |
+| Future dates | Rejected (`NotInFuture`, 1 minute of clock skew) |
+| Wallet initial amount | **Both**: edit the opening balance (amount and date; append-only) and a balance adjustment to the real balance |
+| Adjustments | New system account **Balance adjustments** (Equity), **excluded** from income and expenses in reports |
+| Existing debts | Both directions, **contacts only**; **mirrored** to linked users. First recorded as expense (I owed) or income (they owed me); **changed in [section 15](#15-editable-auditable-ledger)** to neither (Opening balances) |
+| Charts | Spending by category, income vs expenses, net worth over time, balance per wallet; Month / Year / **Custom**; currency selector; **Chart.js** |
+| Console | Same features, plus a **text Reports menu** |
+
+### 14.2 Accounting
+
+| Operation | Postings |
+| --- | --- |
+| Replace an opening balance of 100 with 250 | New: Wallet +250 · Opening balances −250 (new date). Reversal of the old one (dated like it): Wallet −100 · Opening balances +100. The new entry is written first, so the no-overdraft rule only fails if the **final** balance would be negative. |
+| Adjust a wallet from 100 to 87.50 | Wallet −12.50 · Balance adjustments +12.50 |
+| "I already owed Sofi 50" | Me: Uncategorized (or a chosen expense category) +50 · I owe [Sofi] −50. Sofi, if linked: Owed to me [me] +50 · Uncategorized income −50 |
+| "Sofi already owed me 50" | Me: Owed to me [Sofi] +50 · income category −50. Sofi, if linked: expense +50 · I owe [me] −50 |
+
+* The active opening entry is the `OpeningBalance` transaction of the wallet that no `OpeningBalanceReversal` points to (the reversal's `CorrelationId` is the replaced transaction's id).
+* `LedgerLeg` gained `IncomeAmount` (credited to an income category) so the ledger can post the income side of existing debts.
+* Existing users got the new system account through a startup backfill that runs the idempotent provisioning for every owner.
+
+### 14.3 Reports
+
+`GET /api/reports?from&to&currency&timeZone` is computed in memory from the user's postings in one currency:
+* **Buckets:** days when the range is 62 days or shorter, months when it is longer, cut in the given IANA time zone.
+* **Income and expenses:** only Income and Expense accounts, so opening balances, currency exchange and balance adjustments are excluded.
+* **Net worth:** the cumulative wallets + owed to me − I owe + pending at the end of each bucket, including history before the period.
+* **Spending by category**, and the **balance per wallet** at the end of the period.
+
+### 14.4 Problems found and fixed
+
+| Problem | Fix |
+| --- | --- |
+| A date with a non-UTC offset (e.g. `+02:00`) made PostgreSQL reject the value (500). The console's reports sent local offsets; the web app always sends UTC. | EF convention in every module: `DateTimeOffset` values are converted to UTC (same instant) when written and in queries. No schema change. Integration test added. |
+| While testing, the developer's API from a VS Code debug session ran old code on the same database and queues | Tests ran against an **isolated** copy: database `ledger_enh`, RabbitMQ virtual host `ledger-enh`, API on port 5219 and a temporary dev-server proxy |
+
+## 15. Editable, auditable ledger
+
+Added on branch `feature/ledger-edits`, to the API, the web app and the console. Users can correct or delete past income, expenses, transfers, loans, existing debts, splits (also group expenses) and settlements, restore what they deleted, see every version, close past periods, and review changes other people make to what they share. It also fixes the bug report "the income vs expense chart shows a debt as income".
+
+### 15.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| Edit model | **Reverse + replace.** Posted entries are never modified. An edit posts a reversal of the current version (same date, so both cancel out) and the corrected entry; a delete posts only the reversal. Lists, balances and charts show the **current** version only; a **History** shows every version. |
+| Reason | **Required** for every edit, delete and restore (max 500 characters); kept in the history. |
+| What can change | Income, expense, transfer (and delete/restore of balance adjustments); loans and existing debts; splits, including group expenses; settlements (date, description, wallet: the amount comes from the debts it paid). |
+| Settled debts | **Blocked**: undo (delete) the settlement first. Deleting a settlement reopens its debts. |
+| Shared with linked users | **They confirm.** Until everybody involved answers, everybody keeps the old version, the operation shows *change pending* and it cannot be settled. **Each user decides for their own books**: the author and those who accept get the new version; those who reject keep the old one and the operation is marked **disputed**. Contacts without an account need no confirmation. |
+| Who may change a shared operation | Any **registered user involved** (for group operations, any member). The contact, wallets, category and currency belong to whoever recorded it; others keep them. |
+| Existing debts | **Neither income nor expense**: posted against *Opening balances*, like a wallet's starting amount. Old ones were migrated with reverse + replace, marked as a **system** change. |
+| Extras | **Restore** deleted items; a **lock date** per user ("my books are closed up to X", can be moved back); a shared change that touches a linked user's locked period is **refused** for the author; an **Activity** feed. |
+| Console | Everything the web app has. |
+
+### 15.2 Ledger (Transactions module)
+
+* `Transaction` gained `EntryId` (the logical entry: its first version's id), `Revision`, `ReversalOfId`, `ReversedById`, `ChangedByUserId`, `ChangeAction` (`Edit`, `Delete`, `Restore`, `System`) and `ChangeReason`. Kind `Reversal` was added. Setting `ReversedById` on the original is the only change ever made to a posted row, and it is metadata.
+* **Current** = not reversed and not a reversal. Lists show only current transactions unless `includeHistory=true` (statuses `Current`, `Changed`, `Deleted`, `Reversal`). **Reports count income, expenses and spending from current transactions only**, so a correction is never counted twice; net worth and balances use every posting (a reversal and its original cancel out).
+* `LedgerWriter` checks the no-overdraft rule on each wallet's **final** balance over the whole batch (reversal + correction), not on intermediate steps.
+* **Lock date** (`books_locks`): every write checks `OccurredAt > LockedUntil` for every owner in the batch (reversals carry the original's date, so a closed period cannot be edited or deleted either). Error `books.locked`. Changes are published as `BooksLockChanged`; the Debts module keeps a copy to refuse shared changes early (`books.locked_for_other`).
+* Shared operations are revised through `LedgerRevisionRequested`: for each listed user, reverse their current transactions of **any earlier version** of the operation (so a user who kept an old version after a dispute is brought up to date by the next accepted change), cancel their open pending wallet assignments, and post their leg of the new version as the next revision. All users are updated atomically; the answer is `LedgerRevisionCompleted` or `LedgerRevisionRejected`.
+* Migration `TransactionRevisions` backfills `EntryId = Id` and `Revision = 1`, chains the successive opening balances of each wallet into one entry and links the old `OpeningBalanceReversal` rows to what they cancelled. Opening-balance changes now use the generic reversal.
+* **Existing debts migration** (`ExistingDebtsMigrationRunner`, at startup, idempotent): every current `InitialDebt` transaction with an income or expense posting is reversed and replaced by one against Opening balances, `ChangeAction = System`, reason "Existing debts no longer count as income or expenses". This fixes the "debt shown as income" report.
+
+| Operation | Postings |
+| --- | --- |
+| Correct an expense of 30 to 50 | Reversal (same date): Bank +30 · Food −30. Revision 2: Food +50 · Bank −50 |
+| Delete it | Reversal: Bank +50 · Food −50 |
+| "I already owed Sofi 50" (new rule) | Me: Opening balances +50 · I owe [Sofi] −50. Sofi, if linked: Owed to me [me] +50 · Opening balances −50 |
+
+### 15.3 Shared operations (Debts module)
+
+* `DebtOperation` gained `EntryId`, `Revision`, `ReplacesOperationId`, `PendingChangeId`, `IsDisputed` and `WalletId` (settlements: the initiator's wallet); statuses `Superseded` and `Deleted`. `Debt` gained status `Superseded`.
+* `OperationChange` (`Revise`, `Delete`, `Restore`; `Pending → Applying → Applied | Failed`) stores the requested values (`Draft`, JSON), a preview of the new version and one `ChangeApproval` per linked user involved other than the author.
+* Flow: request (validations: involved user, no pending change, debts not settled, no locked period) → approvals → when everybody answered, the new version is built **from the initiator's point of view** and the ledger is asked to update the author and those who accepted → on success the old version becomes `Superseded`/`Deleted`, its debts `Superseded`, the new one `Completed` (and `IsDisputed` if anybody rejected). On failure (e.g. not enough money, a locked period) the change is `Failed` and everything stays as it was.
+* While a change is pending, settling the debts of that operation (or anything in that group) is refused (`operation.change_pending`).
+
+### 15.4 API
+
+| Method | Route | Description |
+| --- | --- | --- |
+| PUT / DELETE | `/api/transactions/{id}` (DELETE body `{ reason }`) | Correct or delete an income, expense or transfer (delete also balance adjustments) |
+| POST | `/api/transactions/{id}/restore` | Restore a deleted one |
+| GET | `/api/transactions/{id}/history`, `/api/transactions/activity` | Versions; my recent changes |
+| GET/PUT | `/api/settings/books-lock` | Lock date (`null` = nothing locked) |
+| GET | `/api/debts/operations?kind&groupId&personId&includeHistory&page`, `/{id}`, `/{id}/history` | Operations with their flags (`canEdit`, `canDelete`, `canRestore`, `blockedReason`, `pendingChange`, `isDisputed`) |
+| PUT / DELETE | `/api/debts/operations/{id}`, POST `/{id}/restore` | Request a change; returns the change (`Pending` with who must answer, or `Applying`) |
+| GET / POST | `/api/debts/changes?filter=ToReview|All`, `/api/debts/changes/{id}/accept|reject` | Review changes |
+| GET | `/api/debts/activity` | Changes I requested or was asked about |
+
+### 15.5 Clients
+
+* **Web:** Edit / Delete / History on transactions and a *Show changes* toggle; an operations list in Debts and in each group (Edit, Delete, Restore, History, *Undo settlement*) with *Change pending* and *Disputed* badges; *Changes to review* page (badge in the menu and a banner in Debts); *Activity* and *Settings* pages; a reusable `ReasonField` and reason dialog. English and Spanish.
+* **Console:** Transactions (edit, delete, restore, history), Debts and Groups (*Loans, splits and settlements* / *Expenses and payments*), and the main menu's *Changes to review*, *Activity* and *Settings*.
+
+### 15.6 Verification
+
+* **Unit:** reversal, revisions, lock rule, change approvals (accept, reject, disputed, answered once), one pending change at a time, reopening settled debts, existing debts against Opening balances.
+* **Integration (Testcontainers):** edit/delete/restore an expense counted once in reports with a 3-row history; an overdrawing correction refused; the lock date blocks record, edit and delete; a loan change with a linked user accepted (both updated) and then rejected (disputed, books differ), and refused for a linked user's locked period; a settled loan blocked until the settlement is deleted; an existing debt not counted as income, edited, deleted and restored; a group expense edit recalculating group balances.
+* **Migrations** were run on a copy of a development database: opening-balance chains and the existing-debt migration were checked row by row.
+* **Web:** unit specs and Playwright (edit/delete/restore with history, lock date, a loan change accepted by the linked user); **console:** a scripted run of the same flows. Both against an isolated database, RabbitMQ virtual host and API (port 5219).
+
+### 15.7 Known limitations
+
+* Settlements recorded **before** this branch stored the initiator's wallet only when the initiator paid. If somebody else edits one where the initiator received the money, the initiator gets it in *Pending wallet assignments*.
+* A percentage split is shown for editing with the resulting amounts (percentages are not stored).
+* When a non-initiator edits a split outside groups, people who are only in the initiator's contacts may show as "(unknown)".
+* A disputed operation shows the version the author applied in the Debts screens; the books of whoever rejected keep the previous one.
+
+## 16. Investments
+
+Added on branch `feature/investments`, to the API, the web app and the console. A user records that they bought (or already owned) an amount of an asset (shares, ETFs, crypto…) at a price, sells it, and updates its price. Holdings count toward net worth as a separate kind of asset, with charts of how they change over time. Market prices are entered by hand for now.
+
+### 16.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| Books vs value | The **ledger records cost** (what was paid). **Market value** = quantity × valuation price, computed by the Investments module. No revaluation postings: a future real-time price feed will not create ledger entries. |
+| Valuation price at a moment | The latest **sell** price before it (what the holding would fetch), else the latest **buy** price, else the average cost. |
+| Prices | A buy records the buy price and optionally the current sell price; a sale records the sell price and optionally the current buy price. **Update price** records buy and/or sell prices without moving money. Prices can be backdated (not in the future). |
+| Precision | Quantity `numeric(28,12)`. Unit price up to **8 decimals** (some assets cost less than a cent). The total, `round(quantity × price, 2)`, is what the ledger posts. |
+| Selling | **Average cost**: the cost removed is `round(costBasis × sold / held, 2)`, or the whole cost basis when everything is sold. The difference with what was received goes to **Investment gains** (Equity), so it is not income or expense in the reports. |
+| Currency | Every asset has a **quote currency**. Any wallet can pay or receive: in another currency the user enters the wallet amount and the difference goes through **Currency exchange** (like transfers). |
+| Already owned | "Already owned" holdings are posted against **Opening balances** (no wallet), like existing debts. |
+| Edits | **Append-only** and **no backdating**: a trade can't be dated before the latest recorded trade of the asset (average costs never need recomputing); mistakes are fixed with an opposite trade. One pending trade per asset at a time. |
+| Catalogue | **Per user**: name, optional symbol, type (`Stock`, `Etf`, `Crypto`, `Bond`, `Fund`, `Other`) and quote currency (fixed). Assets can be renamed and archived once nothing is held. One holding per asset (no broker/location). |
+| Fees | Not modelled yet (record a normal expense). |
+| Dashboard | Per currency: **Money (net)** (the ledger's net, which excludes investments), **Investments** (market value) and **Total**. The net-worth chart stacks money and investments; an *Investments over time* chart shows value against cost. |
+
+### 16.2 Accounting
+
+T = total in the asset currency, C = cost removed (average cost of the units sold).
+
+| Operation | Postings |
+| --- | --- |
+| Buy 2 BTC at 100 USD from a USD wallet | Investment[BTC] +200 · Wallet −200 |
+| Buy 1.5 AAPL at 200 USD paying 360,000 ARS | Investment +300 USD · Currency exchange −300 USD · Currency exchange +360,000 ARS · Wallet −360,000 ARS |
+| Sell 1 BTC at 150 (average cost 100) | Wallet +150 · Investment −100 · Investment gains −50 (a loss is a debit; omitted when 0) |
+| Sell into a wallet in another currency (R received) | Investment −C · Investment gains −(T−C) · Currency exchange +T · Currency exchange −R · Wallet +R |
+| Already owned 3 ETF units at 10.50 EUR | Investment +31.50 · Opening balances −31.50 |
+
+* The Transactions summary and report keep **Net = money only** (wallets, owed to me, I owe, pending): Investment and Investment gains are not in those sums. Buying moves money into the Investment account, so the ledger's net drops by T and the investments' market value (T at the purchase price) takes its place in the total.
+* Investment transactions appear in the transaction list (kinds `InvestmentBuy`, `InvestmentSell`, `InvestmentOpening`) but cannot be edited or deleted there.
+* `ReportBuckets` (days up to 62 days, months above, cut in the user's time zone) moved to `BuildingBlocks.Application` so both reports produce aligned buckets for the stacked chart.
+
+### 16.3 Flow
+
+```text
+POST /api/investments/assets → Investments ──AssetCreated──► Accounts: Investment account (ReferenceId = asset) ──AccountCreated──► Transactions projection
+POST /api/investments/trades/{buy|sell|opening} → Investments: checks (asset owned and active, no pending trade, date ≥ latest trade,
+     sell quantity ≤ held), computes T and C, stores the trade (Pending) and reserves the asset
+  ──InvestmentPostingRequested──► Transactions: postings above through LedgerWriter (no overdraft, books lock, wallet ownership and currency)
+     ├─ OK   ──InvestmentPostingCompleted(walletCurrency)──► Investments: trade Completed, holding updated, trade prices recorded
+     └─ fail ──InvestmentPostingRejected(reason)──► Investments: trade Rejected, asset released
+```
+
+* The **ledger validates the wallet** (owner, archived, currency): a wallet projection in Investments would start empty for wallets created before the module existed (their `WalletCreated` events were consumed long ago). The completion event reports the wallet currency back for display.
+* A trade on a just-created asset waits (retries) until its Investment account reaches the ledger (`NotYetAvailableException`).
+* Two trades of the same asset at the same time: the `xmin` row version of the asset makes the second fail with `investment.trade_pending`.
+
+### 16.4 API
+
+| Method | Route | Description |
+| --- | --- | --- |
+| GET/POST | `/api/investments/assets?includeArchived`, `/{id}` | Assets with their holding and valuation (`quantity`, `costBasis`, `averageCost`, `buyPrice`, `sellPrice`, `valuationPrice`, `valuationSource`, `marketValue`, `unrealizedGain`, `realizedGain`) |
+| PUT / POST | `/api/investments/assets/{id}`, `/{id}/archive` | Rename or change the symbol; archive (nothing held) |
+| GET/POST | `/api/investments/assets/{id}/prices` | Known prices; record `{ buyPrice?, sellPrice?, occurredAt? }` |
+| POST | `/api/investments/trades/buy`, `/sell`, `/opening` | `202` with a `Pending` trade; `walletAmount` when the wallet's currency differs; optional `sellPrice` (buy, opening) or `buyPrice` (sell) |
+| GET | `/api/investments/trades?assetId&page&pageSize`, `/{id}` | Trades newest first; one trade (`Pending`, `Completed`, `Rejected` with the reason) |
+| GET | `/api/investments/summary` | Per currency: value, cost, unrealized and realized gains |
+| GET | `/api/investments/report?from&to&currency&timeZone` | Value and cost at the end of each bucket (same buckets as `/api/reports`), value per asset, realized gains in the period |
+
+Error codes: `investment.trade_pending`, `investment.backdated`, `investment.insufficient_quantity`, `investment.total_zero`, `investment.not_empty`, `investment.archived`, `investment.quantity_too_many_decimals`, `investment.price_too_many_decimals`, `investment.wallet_required`, `investment.opening_with_wallet`. The ledger may reject a trade with `ledger.insufficient_funds`, `ledger.currency_mismatch` or `books.locked`.
+
+### 16.5 Clients
+
+* **Web:** *Investments* page (totals per currency, holdings table with Buy / Sell / Update price / History / Edit / Archive, trades list), a trade dialog that can add a new asset on the way and shows the total, the latest price and the date limit, a price dialog and an asset history (trades and prices). Trades are tracked like debt operations (toast when recorded or refused). Dashboard cards, stacked net-worth chart, *Investments over time* and a holdings card. English and Spanish.
+* **Console:** main menu *Investments* (holdings, buy, sell, already owned, update price, trades, price history, new/edit/archive asset); the summary adds investments and the total; the reports add investments over time with the total net worth.
+
+### 16.6 Verification
+
+* **Unit:** average cost (partial and full sale), rounding of totals, losses, no backdating, insufficient quantity, one pending trade and release on rejection, precision rules, wallet rules, trade prices and counter-prices, valuation fallback (sell → buy → cost), archive rules.
+* **Integration (Testcontainers):** buy at cost with a sell price (value 190 on a cost of 200), money-only ledger net, manual price, partial sale with a realized gain that is not income, aligned report buckets, investment transactions not editable, overdraft rejected, selling too much and backdating refused; cross-currency purchase through Currency exchange (rejected without the wallet amount); already owned holding; lock date refusing a trade; archive rules.
+* **Real stack:** a copy of the development database (migration and the *Investment gains* backfill for existing users checked), an isolated RabbitMQ virtual host and API on port 5219. Web: Playwright (new asset bought, price updated, partial sale, wallet balance, dashboard) and the full E2E suite; console: a scripted run (already owned → buy → sell → update price → holdings → trades → summary).
+
+### 16.7 Known limitations and next steps
+
+* No fees, dividends, staking income or splits of shares.
+* Trades cannot be edited, deleted or backdated before the latest trade of the asset; fix mistakes with an opposite trade.
+* Prices are manual. A market feed can later add `AssetPrice` rows (source `Feed`) by symbol without touching the ledger.
+* Average cost only (no FIFO lots for taxes); one holding per asset (no brokers/locations).
+* The ledger's descriptions of trades without one are generated in English ("Buy 0.5 BTC").
+
+## 17. Linking contacts that are already in use
+
+Added on branch `feature/link-used-contacts`, to the API, the web app and the console. Use case: I have debts with a contact who later creates a Ledger account; I want my contact to become their account. Before, linking was refused once the contact took part in a debt or a group (`contact.in_use`), because the contact's **person id** (minted for them) is stored in ledger postings, debts, operations, group members and other users' mirrored contacts.
+
+### 17.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| Consent | Linking a **used** contact creates a **link request**; the user sees it in *Changes to review* with a **preview** of what their books will get, and accepts or rejects it. Nothing changes until they accept. The owner can cancel it. Unused contacts are still linked right away. |
+| History in their books | **Every current operation** involving the person (loans, existing debts, splits, settlements, group expenses and payments) is **copied** into the user's books as an existing debt: their positions against **Opening balances** (neither income nor expense, no wallet), with the **original date**, correlated to the original operation. Settled pairs cancel out. |
+| Duplicates | If the owner already had another contact for that user (e.g. the old workaround), the old contact is **merged** into it: one person, one balance; the old one is hidden but its history kept. |
+| Ledger immutability | Old postings keep the old person id. In Transactions it becomes an **alias** of the user (`counterparties.MergedIntoPersonId`): the summary and the contact filter resolve it. No posting is rewritten. |
+
+### 17.2 Flow
+
+```text
+POST /api/contacts/{id}/link (used contact) → Contacts: ContactLinkRequest(Pending) ──ContactLinkRequested──► Debts (who may see the preview)
+GET  /api/debts/link-requests/{id}/preview → what the user would owe or be owed, per person or group and currency
+POST /api/contacts/link-requests/{id}/accept → Contacts: Applying ──PersonMergeRequested──► Debts
+  Debts: refuses (→ PersonMergeFailed) if an operation with the person is still pending, has a pending change, a debt is being
+         settled, the user already takes part in one of those operations or groups as themselves, or another merge is running.
+         Stores a PersonMerge (operations and changes involving the person are refused meanwhile: contact.link_pending) and builds one
+         copy per operation ──LedgerOpeningsRequested──► Transactions: one InitialDebt transaction per copy, all or nothing, through
+         LedgerWriter (the user's lock date applies)
+     ├─ OK   ──LedgerOpeningsCompleted──► Debts: re-keys the person to the user in debts, operations (sides, payers, shares), contact and
+     │        group-member projections ──PersonMerged──► Contacts: request Applied; every contact of that person (the owner's and
+     │        other users' mirrored ones) is linked to the user or merged into an existing contact for them ──ContactLinked──►
+     │        Transactions (alias), Groups, Debts; the user gets contacts for the people they now share debts with.
+     │        Groups: memberships of the person become the user ──GroupMemberAdded──► the usual consumers (the group is shared)
+     └─ fail ──LedgerOpeningsRejected──► Debts ──PersonMergeFailed(reason)──► Contacts: request Failed, contact unchanged
+```
+
+* Because each copy is correlated to its operation, a later **edit, delete or restore** of that operation reverses the copy in the user's books like any version, and the user now confirms changes like any linked user. A deleted settlement reopens debts in both books.
+* Person-id re-keying uses explicit SQL (`IDebtsDbContext.ReplacePersonAsync`, `IGroupsDbContext.ReplaceMemberAsync`): those ids are part of keys (group members) or owned rows (payers, shares).
+
+### 17.3 Accounting (the user's books)
+
+| Shared operation (from the owner's books) | Copy in the linked user's books |
+| --- | --- |
+| Alice lent 50 to Pedro | Opening balances +50 · I owe [Alice] −50 |
+| Alice paid a 60 dinner, split equally with Pedro | Opening balances +30 · I owe [Alice] −30 |
+| Pedro paid Alice back 50 (settlement) | I owe [Alice] +50 · Opening balances −50 |
+| Group hotel 100 paid by Alice, Pedro's share 50 | Opening balances +50 · I owe [Trip] −50 |
+
+### 17.4 API
+
+| Method | Route | Description |
+| --- | --- | --- |
+| POST | `/api/contacts/{id}/link` | Unused contact: linked now. Used contact: `pendingLinkRequestId` (a request) |
+| GET | `/api/contacts/link-requests?includeClosed` | Requests I sent (`Outgoing`) or have to answer (`Incoming`) |
+| POST / DELETE | `/api/contacts/link-requests/{id}/accept`, `/reject`; `DELETE /{id}` | Answer (target user) or cancel (owner); accepting returns `Applying`, then `Applied` or `Failed` with a reason |
+| GET | `/api/debts/link-requests/{id}/preview` | Operations copied and balances per person or group |
+
+Error codes: `contact.link_pending`, `contact.merged`, `link.answered`, `link.not_for_you`, `link.not_yours`.
+
+### 17.5 Clients
+
+* **Web:** *Link* is available on used contacts (the dialog explains the request; *Waiting for them to accept* badge and *Cancel request*). *Changes to review* lists link requests with the preview and Accept / Reject; the menu badge counts them; accepting waits for the result (toast). English and Spanish.
+* **Console:** *Contacts* links used contacts (sends the request) and cancels requests; *Changes to review* shows incoming link requests with the preview first.
+
+### 17.6 Verification
+
+* **Unit:** request lifecycle (one pending, who may answer or cancel, answered once, failure frees the contact), merge into an existing contact, copies (loan, split, settlement, group expense and payment; every copy balances against Opening balances).
+* **Integration:** loan + split with an unregistered contact, the person registers, link request, preview (−80), accept: the user's books owe 80 as two existing debts with the original dates and no income/expense; the owner sees one balance and the contact filter finds the old postings; the owner edits the old loan and the user confirms (both books change); the user settles from a wallet and both reach zero. Plus: reject and cancel; a closed period in the user's books makes it fail; merging into an existing contact for the user; a group member gets the group and their position.
+* **Real stack** (copy of the development database, isolated vhost, API on 5219): migrations applied; Playwright (link request, preview, accept) and the full E2E suite; scripted console run; the ledger checked row by row (the owner's postings untouched, the user's copies new, the old person id kept as an alias).
+
+### 17.7 Known limitations
+
+* Copies have no wallet or category in the user's books (they are existing debts). Later edits of those operations post the full new version (including the user's share as an expense), like any shared change.
+* A person can be merged into one user only, and unlinking is not supported.
+* Refused when the user already appears as themselves in an operation or group with that contact (the merge would make them their own debtor).
+
+---
+
+## 18. Deployment (AWS)
+
+Added on branch `feature/aws-deployment`. Goal: use the app from the internet (phone included) over HTTPS. One user for now, maybe some invited friends later. Everything is in `infra/terraform` (infrastructure), `infra/keycloak-prod` (Keycloak image and realm) and `.github/workflows` (CI and deploy).
+
+> **Status:** kept for the future. The proof of concept runs on a single VPS instead (cheaper and simpler), so this deploy is **only started by hand**; nothing deploys to AWS when `main` changes.
+
+### 18.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| Where | AWS **eu-west-1 (Ireland)**: the cheapest European region with every service, ~40 ms from Spain. |
+| Compute | **ECS Fargate**, ARM64 (cheaper), one task per service. No servers to patch. |
+| Database | **RDS PostgreSQL 17, db.t4g.micro**. Aurora Serverless v2 was considered, but its auto-pause never kicks in here: every module's `OutboxProcessor` polls every 250 ms and Keycloak keeps connections open, so it would sit at its ~$50/month floor. Moving to Aurora later is a snapshot restore. |
+| Messaging | **RabbitMQ in a container** (same broker as local and tests). SQS would save ~$8/month but needs a second MassTransit transport that the tests don't cover. Its data lives on **EFS**, so queued messages survive a new task. |
+| Users | **Invite only**: no self-registration, no test users. You create users in the Keycloak admin console. |
+| Data | Production **starts empty**. |
+| Infrastructure | **Terraform**, applied by hand. State in S3 (lock file, no DynamoDB). |
+| Deploys | **GitHub Actions**, started by hand (*Deploy (AWS)*): tests, images, migrations, rolling update. It used to run on every push to `main`; it became manual when the PoC moved to a VPS. |
+| Domain | Bought in **Route 53**: the app at `ledger.<domain>`, Keycloak at `auth.<domain>`. |
+
+Approximate cost: **$90–100 a month**. Fargate ~$35 (api and keycloak 0.5 vCPU / 1 GB, web and rabbitmq 0.25 vCPU / 0.5 GB), public IPv4 addresses ~$20 (AWS charges each one), load balancer ~$20, RDS ~$16 (free for the first 12 months on a new account), plus Route 53, CloudWatch, ECR and EFS (a few dollars). A budget alert emails you at 80 % of `monthly_budget_usd` (default $120) and when the forecast exceeds it.
+
+### 18.2 Architecture
+
+```text
+Route 53  ledger.<domain>, auth.<domain> ──► ALB (HTTPS with ACM; HTTP redirects to HTTPS)
+  ledger.<domain>  /api/*, /health ─► api       (Ledger.Api, ASPNETCORE_ENVIRONMENT=Production)
+  ledger.<domain>  anything else   ─► web       (nginx: /en/, /es/, /config.json)
+  auth.<domain>    /admin/*, /realms/master/* ─► keycloak, only from admin_cidrs (others get 403)
+  auth.<domain>    anything else   ─► keycloak  (Keycloak 26, `start --optimized`)
+Private DNS (Cloud Map): rabbitmq.ledger.internal:5672, keycloak.ledger.internal:8080
+rabbitmq (no load balancer) + EFS at /var/lib/rabbitmq (node name fixed to rabbit@localhost)
+RDS PostgreSQL (private subnets): databases "ledger" (module schemas) and "keycloak"
+One-off tasks: db-init (creates the keycloak database if missing) and migrator, run by every deploy
+```
+
+* **No NAT gateway** (~$35/month): tasks run in public subnets with a public IP so they can pull images, and their security group accepts traffic only from the load balancer and from other tasks. RDS is private and only accepts the tasks.
+* **Tokens**: Keycloak issues them for `https://auth.<domain>/realms/ledger` (its public URL). The API validates that issuer but downloads the signing keys from `http://keycloak.ledger.internal:8080` (`Authentication__MetadataAddress` + `KC_HOSTNAME_BACKCHANNEL_DYNAMIC`), the same pattern as `docker-compose.yml`.
+* **Secrets**: generated by Terraform and stored in SSM Parameter Store (SecureString) under `/ledger/...`: database password and connection string, RabbitMQ password and URL, Keycloak bootstrap admin password. ECS injects them as environment variables. They are also in the Terraform state (S3, encrypted, private).
+* **Connections**: db.t4g.micro allows about 80. The API's connection string has `Maximum Pool Size=30` and Keycloak uses `KC_DB_POOL_MAX_SIZE=15`.
+* **Backups**: RDS automated backups, 7 days, point-in-time restore. Deletion protection on, final snapshot on destroy.
+
+### 18.3 What changed in the app
+
+| Area | Change |
+| --- | --- |
+| API image | `src/Ledger.Api/Dockerfile` has a `production` target (Release, no debugger, non-root). The default target is still the Debug + vsdbg image used by compose. |
+| Images | Build stages run on the build machine's architecture (`--platform=$BUILDPLATFORM`, `dotnet publish -a $TARGETARCH`), so CI builds ARM64 images on an x64 runner without emulation. |
+| Web | The Keycloak issuer is no longer built in: `AuthService` reads `/config.json` at startup. In development it is `public/config.json`; in the container nginx generates it from `KEYCLOAK_ISSUER`. `nginx.conf` became `nginx.conf.template` (`API_UPSTREAM`, `KEYCLOAK_ISSUER`, defaults in the Dockerfile). `requireHttps` is on when the issuer is HTTPS. |
+| Keycloak | `infra/keycloak-prod`: optimized image for PostgreSQL with health checks (port 9000) and a production realm: same clients and mappers, no users, no self-registration, no password reset (no email yet), brute-force protection, `sslRequired: external`, no `ledger-scalar` (Scalar is development only). `ledger-web` redirect URIs come from `LEDGER_WEB_URL` (Keycloak replaces `${...}` when importing). |
+| Console | No change: point it at production with `Api__BaseUrl=https://ledger.<domain> Keycloak__Authority=https://auth.<domain>/realms/ledger`. |
+
+The realm is imported only when it doesn't exist. After the first start, change it in the admin console (or update the file and import it by hand).
+
+### 18.4 First deployment
+
+1. **AWS account**: create it, turn on MFA for the root user, and create an administrator user (IAM Identity Center or IAM) for the CLI (`aws configure` / `aws sso login`).
+2. **Domain**: buy it in Route 53 (Registered domains). This creates its hosted zone.
+3. **Bootstrap** (state bucket and the deploy role for GitHub):
+   ```bash
+   cd infra/terraform/bootstrap
+   terraform init && terraform apply
+   ```
+   Keep `bootstrap/terraform.tfstate` safe (it is git-ignored). In GitHub, add the repository **variable** `AWS_DEPLOY_ROLE_ARN` = the `deploy_role_arn` output.
+4. **Infrastructure**:
+   ```bash
+   cd infra/terraform
+   cp terraform.tfvars.example terraform.tfvars    # domain, admin_cidrs (your IP), alert_email
+   terraform init -backend-config="bucket=<state_bucket output>"
+   terraform apply
+   ```
+   The services start without images and keep retrying until the first deploy pushes them. Confirm the budget alert email AWS sends you.
+5. **First deploy**: *Actions → Deploy (AWS) → Run workflow* on `main`.
+6. **Keycloak**: open `https://auth.<domain>/admin/` from an address in `admin_cidrs`. Log in as `admin` with the password from
+   `aws ssm get-parameter --with-decryption --name /ledger/keycloak/admin-password --query Parameter.Value --output text`.
+   Create a permanent admin user in the *master* realm, add OTP to it, log in with it and delete the bootstrap `admin`. Then, in realm **ledger**, create your user (*Users → Add user*, then *Credentials → Set password*).
+7. Open `https://ledger.<domain>` (phone included) and log in.
+
+**Inviting a friend**: in realm `ledger`, *Users → Add user*, set a **temporary** password and send it to them; Keycloak asks them to change it at their first login.
+
+### 18.5 Every deploy
+
+`.github/workflows/deploy-aws.yml`, run by hand from `main` (*Actions → Deploy (AWS) → Run workflow*; one at a time). The AWS role only trusts `main`, so run it from that branch:
+
+1. Runs CI (`ci.yml`: build, unit, architecture and integration tests, web tests, EN/ES build). CI also runs on pull requests.
+2. Assumes the AWS role through GitHub OIDC (no AWS keys in GitHub; the role only trusts `main`).
+3. Builds the api (`--target production`), migrator, web and keycloak images for ARM64 and pushes them to ECR as `<commit sha>` and `latest`.
+4. Runs **db-init** and then the **migrator** as one-off tasks; the deploy stops if either fails (their logs are printed).
+5. Forces a new deployment of keycloak, api and web (they use `:latest`) and waits until they are stable. RabbitMQ (public image) is not restarted.
+
+Terraform is never run by the pipeline. Changing the infrastructure (sizes, environment variables, new secrets) is `terraform plan` / `terraform apply` by hand. Because task definitions reference `:latest`, Terraform and deploys never undo each other.
+
+**Rolling back**: point `latest` at an earlier commit and force a new deployment:
+```bash
+aws ecr batch-get-image --repository-name ledger/api --image-ids imageTag=<sha> --query 'images[0].imageManifest' --output text > manifest.json
+aws ecr put-image --repository-name ledger/api --image-tag latest --image-manifest file://manifest.json
+aws ecs update-service --cluster ledger --service api --force-new-deployment
+```
+Migrations are not rolled back automatically: write a new migration instead (Migrations.md).
+
+### 18.6 Operating it
+
+* **Logs**: CloudWatch log group `/ecs/ledger` (14 days), one stream prefix per service: `aws logs tail /ecs/ledger --follow --log-stream-name-prefix api`.
+* **Shell in a task** (ECS Exec is on): `aws ecs execute-command --cluster ledger --task <id> --container api --interactive --command sh`.
+* **Dead-lettered messages**: the management UI is not exposed. Use ECS Exec on the rabbitmq task: `rabbitmqctl list_queues name messages | grep _error`.
+* **Restore**: RDS console → *Restore to point in time* creates a new instance; point the connection strings at it (or swap it in with Terraform).
+* **Updating Keycloak**: change `KEYCLOAK_VERSION` in `infra/keycloak-prod/Dockerfile` and deploy.
+* **Removing everything**: turn off `deletion_protection` on the database, then `terraform destroy` (a final snapshot is kept).
+
+### 18.7 Verified before merging
+
+* The production Keycloak image starts against a new PostgreSQL database, imports the realm with the `LEDGER_WEB_URL` redirect URIs, keeps the public issuer and serves its keys on the internal address.
+* The production API image (`ASPNETCORE_ENVIRONMENT=Production`) on a scratch database and vhost: `/health` 200, `/api/...` 401 without a token and 200 with a token issued by that Keycloak (public issuer, keys downloaded internally), Scalar not exposed.
+* The web image serves `/config.json` from `KEYCLOAK_ISSUER`; the migrator image cross-builds for another architecture; `terraform validate` passes for both stacks.
+* Not verified yet: a real `terraform apply` and a full pipeline run (they need the AWS account and the domain).

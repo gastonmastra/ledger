@@ -1,0 +1,139 @@
+name: Deploy (AWS)
+
+# Run by hand only (Actions -> Deploy (AWS) -> Run workflow, from main): the PoC runs on the VPS for now.
+# tests -> images (arm64) -> keycloak database + migrations -> roll the services.
+# Infrastructure changes are not made here: run terraform in infra/terraform by hand.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: eu-west-1
+  CLUSTER: ledger
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    # No `environment:` here: it would change the OIDC subject the AWS role trusts (refs/heads/main).
+    permissions:
+      contents: read
+      id-token: write # GitHub OIDC -> AWS role (infra/terraform/bootstrap)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Build stages run on the runner's architecture (cross-compiled), so no emulation is needed.
+      - name: Build and push api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/Ledger.Api/Dockerfile
+          target: production
+          platforms: linux/arm64
+          push: true
+          provenance: false
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/ledger/api:${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/ledger/api:latest
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Build and push migrator
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/Ledger.Migrator/Dockerfile
+          platforms: linux/arm64
+          push: true
+          provenance: false
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/ledger/migrator:${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/ledger/migrator:latest
+          cache-from: type=gha,scope=migrator
+          cache-to: type=gha,mode=max,scope=migrator
+
+      - name: Build and push web
+        uses: docker/build-push-action@v6
+        with:
+          context: clients/web
+          platforms: linux/arm64
+          push: true
+          provenance: false
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/ledger/web:${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/ledger/web:latest
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+      - name: Build and push keycloak
+        uses: docker/build-push-action@v6
+        with:
+          context: infra/keycloak-prod
+          platforms: linux/arm64
+          push: true
+          provenance: false
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/ledger/keycloak:${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/ledger/keycloak:latest
+          cache-from: type=gha,scope=keycloak
+          cache-to: type=gha,mode=max,scope=keycloak
+
+      - name: Create the keycloak database (if missing) and apply migrations
+        run: |
+          set -euo pipefail
+          network=$(aws ecs describe-services --cluster "$CLUSTER" --services api \
+            --query 'services[0].networkConfiguration' --output json)
+
+          run_one_off() {
+            local name=$1
+            local task
+            task=$(aws ecs run-task --cluster "$CLUSTER" --launch-type FARGATE \
+              --task-definition "ledger-$name" --network-configuration "$network" \
+              --query 'tasks[0].taskArn' --output text)
+            echo "Started $name: $task"
+            aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$task"
+
+            local exit_code
+            exit_code=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$task" \
+              --query 'tasks[0].containers[0].exitCode' --output text)
+            aws logs get-log-events --log-group-name /ecs/ledger \
+              --log-stream-name "$name/$name/${task##*/}" \
+              --query 'events[].message' --output text || true
+            if [ "$exit_code" != "0" ]; then
+              echo "::error::$name failed (exit code $exit_code)"
+              aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$task" \
+                --query 'tasks[0].[stoppedReason, containers[0].reason]' --output text
+              exit 1
+            fi
+          }
+
+          run_one_off db-init
+          run_one_off migrator
+
+      - name: Roll keycloak, api and web to the new images
+        run: |
+          set -euo pipefail
+          for service in keycloak api web; do
+            aws ecs update-service --cluster "$CLUSTER" --service "$service" \
+              --force-new-deployment --query 'service.serviceName' --output text
+          done
+          aws ecs wait services-stable --cluster "$CLUSTER" --services keycloak api web

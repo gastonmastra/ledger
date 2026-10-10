@@ -1,7 +1,7 @@
 # Local environment.
 #   Infrastructure only (run/debug the API and console from your IDE):
 #     docker compose up -d
-#   Everything, including the API in a container:
+#   Everything, including the API (http://localhost:8081) and the web app (http://localhost:4201):
 #     docker compose --profile full up -d --build
 name: ledger
 
@@ -92,6 +92,17 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+
+  web:
+    profiles: ["full"]
+    build:
+      context: clients/web
+    container_name: ledger-web
+    restart: unless-stopped
+    ports:
+      - "4201:80"
+    depends_on:
+      - api
 
 volumes:
   ledger-postgres-data:
