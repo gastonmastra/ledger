@@ -114,9 +114,9 @@ jobs:
           TARGET: deploy@${{ secrets.VPS_HOST }}
         run: |
           ssh "$TARGET" 'mkdir -p /opt/ledger/initdb'
-          scp deploy/vps/docker-compose.yml deploy/vps/Caddyfile deploy/vps/backup.sh deploy/vps/deploy.sh deploy/vps/.env.example "$TARGET:/opt/ledger/"
+          scp deploy/vps/docker-compose.yml deploy/vps/Caddyfile deploy/vps/.env.example deploy/vps/*.sh "$TARGET:/opt/ledger/"
           scp deploy/vps/initdb/* "$TARGET:/opt/ledger/initdb/"
-          ssh "$TARGET" 'chmod +x /opt/ledger/backup.sh /opt/ledger/deploy.sh'
+          ssh "$TARGET" 'chmod +x /opt/ledger/*.sh'
 
       - name: Pull, migrate and restart
         env:
