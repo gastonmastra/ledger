@@ -34,6 +34,8 @@ npm run e2e                                           # Playwright; needs API + 
 cd infra/terraform && terraform plan                  # AWS infrastructure (applied by hand, never by CI)
 ```
 
+Production now: **one VPS** (documentation §19, `deploy/vps/`): Docker Compose with Caddy (Let's Encrypt, Keycloak admin allowlist), images from GHCR (`ghcr.io/gastonmastra/ledger-<name>:<sha>`), deployed on every push to `main` by `.github/workflows/deploy-vps.yml` (CI → images → SSH → `deploy.sh <sha>`: migrator, then the stack), nightly `backup.sh` to Hetzner Object Storage. New API settings go in `deploy/vps/docker-compose.yml` (and `.env.example` for secrets).
+
 AWS deployment (documentation §18, kept for the future, deployed **by hand only**): eu-west-1, ECS Fargate + RDS PostgreSQL + RabbitMQ on EFS + Keycloak (`infra/keycloak-prod`, realm without users, invite only) behind one ALB at `ledger.<domain>` / `auth.<domain>`. *Actions → Deploy (AWS) → Run workflow* runs `.github/workflows/deploy-aws.yml` (CI → arm64 images to ECR as `<sha>` + `latest` → db-init + migrator tasks → force new deployment). The web app reads the Keycloak issuer from `/config.json` at startup (`public/config.json` in dev, nginx `KEYCLOAK_ISSUER` in the container).
 
 Keycloak realm `ledger` (`infra/keycloak`), users `alice`/`alice` and `bob`/`bob`. Clients: `ledger-web` (redirects :4200 and :4201 only), `ledger-console` (127.0.0.1:7890), `ledger-scalar`.
@@ -122,7 +124,7 @@ Modules: **Identity** (Keycloak `sub` → internal user, `ledger_user_id` claim 
 * Don't rename/remove fields of integration events in place: queued messages and outbox rows still use the old shape. Add optional fields with defaults.
 * Don't make a handler assume another module's data already arrived — throw `NotYetAvailableException`.
 * Don't change Keycloak client ids, ports (API 5209, web 4200/4201, Keycloak 8080, console callback 7890) or the realm import without updating `infra/keycloak`, `infra/keycloak-prod`, `proxy.conf.json`, `public/config.json`, `app.settings.ts`, appsettings, `infra/terraform` and docs.
-* New API settings or secrets for production go in `infra/terraform` (task definition environment / SSM parameters), not only in appsettings.
+* New API settings or secrets for production go in `deploy/vps/docker-compose.yml` / `.env.example` (VPS) and `infra/terraform` (AWS), not only in appsettings.
 * Don't hard-code English text in the web UI or reuse an `@@id` with different text (the ES build fails).
 * Don't run tests or experiments against the user's `ledger` database or the default RabbitMQ vhost while their API may be running.
 

@@ -24,6 +24,7 @@ For a quick start see the [root README](../README.md). For database migrations s
 16. [Investments](#16-investments)
 17. [Linking contacts that are already in use](#17-linking-contacts-that-are-already-in-use)
 18. [Deployment (AWS)](#18-deployment-aws)
+19. [Deployment (VPS)](#19-deployment-vps)
 
 ---
 
@@ -515,7 +516,7 @@ Configuration:
 * Deleting a wallet right after creating it relies on retries while the account is still being created.
 * **Licensing:** MediatR 12 and MassTransit 8 are the last Apache versions. MassTransit 8 gets security fixes until the end of 2026; plan a move (to MassTransit 9 with a license, Wolverine, or plain RabbitMQ.Client, since the outbox and inbox are already ours).
 * **Operations:** no outbox/inbox cleanup job yet, no dead-letter dashboard, no metrics or tracing. Adding OpenTelemetry and periodic cleanup of processed outbox and inbox rows is recommended.
-* Production (HTTPS, secrets, Keycloak in production mode, migrations as a pipeline step) is covered by the AWS deployment in §18. Still missing there: alarms on errors or dead-lettered messages, a staging environment, and email (password reset, invitations).
+* Production (HTTPS, secrets, Keycloak in production mode, migrations as a pipeline step) is covered by the VPS deployment (§19) and the AWS one (§18). Still missing: alarms on errors or dead-lettered messages, a staging environment, and email (password reset, invitations).
 
 ## 12. Reference
 
@@ -881,7 +882,7 @@ Error codes: `contact.link_pending`, `contact.merged`, `link.answered`, `link.no
 
 Added on branch `feature/aws-deployment`. Goal: use the app from the internet (phone included) over HTTPS. One user for now, maybe some invited friends later. Everything is in `infra/terraform` (infrastructure), `infra/keycloak-prod` (Keycloak image and realm) and `.github/workflows` (CI and deploy).
 
-> **Status:** kept for the future. The proof of concept runs on a single VPS instead (cheaper and simpler), so this deploy is **only started by hand**; nothing deploys to AWS when `main` changes.
+> **Status:** kept for the future. The proof of concept runs on a single VPS instead (§19, cheaper and simpler), so this deploy is **only started by hand**; nothing deploys to AWS when `main` changes.
 
 ### 18.1 Decisions (asked before building)
 
@@ -992,3 +993,143 @@ Migrations are not rolled back automatically: write a new migration instead (Mig
 * The production API image (`ASPNETCORE_ENVIRONMENT=Production`) on a scratch database and vhost: `/health` 200, `/api/...` 401 without a token and 200 with a token issued by that Keycloak (public issuer, keys downloaded internally), Scalar not exposed.
 * The web image serves `/config.json` from `KEYCLOAK_ISSUER`; the migrator image cross-builds for another architecture; `terraform validate` passes for both stacks.
 * Not verified yet: a real `terraform apply` and a full pipeline run (they need the AWS account and the domain).
+
+---
+
+## 19. Deployment (VPS)
+
+Added on branch `feature/vps-deployment`. The proof of concept runs on **one server** with Docker Compose: cheaper and simpler than AWS (§18), which stays ready for later and is only deployed by hand. Files: `deploy/vps/` (stack, Caddy, scripts, cloud-init) and `.github/workflows/deploy-vps.yml`.
+
+### 19.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| Server | **Hetzner CX23** (2 shared vCPU, 4 GB, 40 GB NVMe, x86-64), Ubuntu 24.04. Enough for one user plus a few friends: the stack uses ~1.5 GB, and 2 GB of swap is a safety net. If it gets tight, resize the server in the Hetzner console (same disk and IP). |
+| Setup | **cloud-init** (`deploy/vps/cloud-init.yaml`, pasted when creating the server) plus the runbook below. |
+| HTTPS | **Caddy** with automatic Let's Encrypt certificates, for `ledger.<domain>` and `auth.<domain>` (a domain you buy; DNS anywhere). |
+| Images | Built by GitHub Actions for `linux/amd64` and pushed to **GitHub Container Registry**; the server only pulls. |
+| Keycloak admin | Admin console and master realm only from **`ADMIN_CIDRS`** (Caddy answers 403 to everyone else). Invite only, as in §18. |
+| Backups | **Hetzner server backups** (7 daily) **and** a nightly **`pg_dump`** of both databases, kept 14 days on the server and 30 days in **Hetzner Object Storage**. |
+| AWS | `.github/workflows/deploy-aws.yml` only runs by hand; nothing deploys to AWS when `main` changes. |
+
+Approximate cost (excluding VAT): CX23 €5.99 + backups (20 %) €1.20 + Object Storage ~€5 + IPv4 ~€0.50 + domain ~€1 ≈ **€14 a month**.
+
+### 19.2 Architecture
+
+```text
+Internet ──► :80/:443 Caddy (Let's Encrypt; HTTP redirects to HTTPS)
+  ledger.<domain>  ─► web (nginx: /en/, /es/, /config.json; proxies /api and /health to api:8080)
+  auth.<domain>    /admin*, /realms/master* ─► keycloak, only from ADMIN_CIDRS (others: 403)
+  auth.<domain>    anything else            ─► keycloak:8080
+Internal network only: api, keycloak, postgres (databases "ledger" and "keycloak"), rabbitmq
+Volumes: postgres_data, rabbitmq_data, caddy_data (certificates), caddy_config
+```
+
+* Same images as §18: the api `production` target, the migrator, the web image (`KEYCLOAK_ISSUER` → `/config.json`) and `infra/keycloak-prod` (realm imported on the first start, `LEDGER_WEB_URL` for the redirect URIs).
+* Tokens are issued for `https://auth.<domain>/realms/ledger`; the API reads the signing keys from `http://keycloak:8080` (same pattern as `docker-compose.yml` locally).
+* Only Caddy publishes ports. The firewall (ufw + Hetzner Cloud Firewall) allows 22, 80 and 443.
+* Create **A records only** (no AAAA): Docker doesn't keep the client's IPv6 address, so IPv6 visitors would always fail the admin allowlist.
+* RabbitMQ has a fixed host name, so its queues (in `rabbitmq_data`) survive a new container.
+* Container logs are rotated (10 MB × 5 per container); the backup log is in `/var/log/ledger/backup.log`.
+* Memory limits (for a 4 GB server): keycloak 1 GB (Java heap ~700 MB), api 768 MB, postgres 512 MB, rabbitmq 384 MB, web 128 MB. Check real use with `docker stats --no-stream`.
+
+### 19.3 Files
+
+| File | Purpose |
+| --- | --- |
+| `deploy/vps/docker-compose.yml` | The stack. Runs from `/opt/ledger` with `--env-file .env --env-file release.env`. |
+| `deploy/vps/Caddyfile` | Hosts, HTTPS and the admin allowlist. |
+| `deploy/vps/.env.example` | Settings and secrets; the real `.env` exists only on the server (mode 600). |
+| `deploy/vps/initdb/01-keycloak.sql` | Creates the `keycloak` database the first time PostgreSQL starts. |
+| `deploy/vps/deploy.sh` | `./deploy.sh <tag>`: writes `release.env`, pulls, starts postgres and rabbitmq, runs the migrator (if it fails, nothing else changes), starts the rest. |
+| `deploy/vps/backup.sh` | Nightly backup (cron at 03:30 UTC from cloud-init). |
+| `deploy/vps/cloud-init.yaml` | Server setup: user `deploy` (SSH key only), no root or password logins, ufw, fail2ban, automatic security updates, Docker + Compose, rclone, 2 GB swap, `/opt/ledger`, the backup cron. |
+
+### 19.4 First deployment
+
+1. **Domain**: buy one (any registrar).
+2. **SSH keys**: you need two key pairs: yours, and one for GitHub Actions (`ssh-keygen -t ed25519 -f ledger-deploy -N ""`).
+3. **Server**: in Hetzner Cloud, create a **CX23**, Ubuntu 24.04, location Nuremberg/Falkenstein/Helsinki (the CX line is only sold in Germany and Finland).
+   - Paste `deploy/vps/cloud-init.yaml` as *Cloud config* after replacing the two `ssh_authorized_keys` placeholders with the public keys.
+   - Turn on **Backups**.
+   - Add a **Firewall** allowing TCP 22, 80, 443 and UDP 443.
+   - Wait for cloud-init to finish (`ssh deploy@<ip>`, then `cloud-init status --wait`).
+4. **DNS**: A records `ledger.<domain>` and `auth.<domain>` → the server's IPv4 address (no AAAA records).
+5. **Object Storage**: create a bucket (e.g. `ledger-backups`, private) in the same location, and S3 credentials for it.
+6. **Settings on the server**:
+   ```bash
+   ssh deploy@<ip>
+   cd /opt/ledger
+   # copy deploy/vps/.env.example here as .env (the first deploy also copies it), then fill it in:
+   nano .env && chmod 600 .env       # DOMAIN, ADMIN_CIDRS, passwords (openssl rand -hex 24), BACKUP_S3_*
+   ```
+   The passwords are only used to create the database, the broker user and the Keycloak bootstrap admin on the first start. Changing them later means changing them inside those services too.
+7. **GitHub** (*Settings → Secrets and variables → Actions*):
+   - secrets: `VPS_HOST` (IP or host name), `VPS_SSH_KEY` (the private GitHub Actions key), `VPS_KNOWN_HOSTS` (`ssh-keyscan -t ed25519 <ip>`)
+   - variable: `VPS_DOMAIN`
+8. **First deploy**: merge into `main` or run *Actions → Deploy (VPS) → Run workflow*. Caddy gets the certificates in the first minute.
+9. **Keycloak**: open `https://auth.<domain>/admin/` from an address in `ADMIN_CIDRS` and log in as `admin` with `KEYCLOAK_ADMIN_PASSWORD`.
+   - Create your own admin in the *master* realm, add OTP, log in with it and delete `admin`.
+   - In realm **ledger**, create your user (*Users → Add user*, then *Credentials → Set password*).
+10. Open `https://ledger.<domain>` (phone included).
+
+**Inviting a friend**: realm `ledger` → *Users → Add user* with a **temporary** password; Keycloak asks them to change it at the first login.
+
+### 19.5 Every deploy
+
+`.github/workflows/deploy-vps.yml`, on every push to `main` (and by hand), one at a time:
+
+1. CI (`ci.yml`): .NET build and every test, web unit tests and the EN/ES build.
+2. Builds api, migrator, web and keycloak for `linux/amd64` and pushes them to `ghcr.io/<owner>/ledger-<name>` as `<commit sha>` and `latest`.
+3. Over SSH as `deploy`:
+   - copies the stack files to `/opt/ledger`
+   - logs in to ghcr.io with the job's token (sent through stdin) and runs `./deploy.sh <sha>`
+   - logs out
+4. Smoke check: `https://ledger.<domain>/health` must answer 200.
+
+**Rolling back**: on the server, `cd /opt/ledger && ./deploy.sh <older sha>`. If the GHCR packages are private, log in first with a personal access token that has `read:packages`: `docker login ghcr.io -u <user>`. Migrations are not reversed (add a new migration instead; Migrations.md).
+
+### 19.6 Operating it
+
+* **Status and logs**:
+  ```bash
+  cd /opt/ledger
+  docker compose --env-file .env --env-file release.env ps
+  docker compose --env-file .env --env-file release.env logs -f api
+  ```
+* **Backups**: `ls /opt/ledger/backups`, `tail /var/log/ledger/backup.log`, or run one now with `/opt/ledger/backup.sh`.
+* **Restore** a dump. The example is `ledger`; `keycloak` works the same way. Stop the services that use the database first:
+  ```bash
+  C="docker compose --env-file .env --env-file release.env"
+  $C stop api web
+  $C exec -T postgres dropdb -U postgres --force ledger
+  $C exec -T postgres createdb -U postgres ledger
+  $C exec -T postgres pg_restore -U postgres -d ledger < backups/<stamp>/ledger.dump
+  $C up -d --wait
+  ```
+  To get a dump from Object Storage: `rclone copy backups:<bucket>/<stamp> /opt/ledger/backups/<stamp>`, with the same `RCLONE_CONFIG_BACKUPS_*` variables `backup.sh` sets.
+* **Whole server**: restore a Hetzner backup from the console. It contains everything, including the volumes.
+* **Dead-lettered messages**: `docker exec ledger-rabbitmq-1 rabbitmqctl list_queues name messages | grep _error`.
+* **Server updates**: security updates install automatically. Reboot from time to time (`sudo reboot`); the containers restart by themselves.
+* **Moving to AWS later**: dump both databases, restore them into RDS, and follow §18 (and point the DNS at the load balancer).
+
+### 19.7 Verified before merging
+
+The production compose ran locally under a separate project name, with `DOMAIN=localhost` (Caddy's internal CA), using the four images built from this branch:
+
+* **Containers**: postgres and rabbitmq started healthy, the migrator applied every module, and api and keycloak became healthy.
+* **Web and API through Caddy**:
+  * HTTP → HTTPS redirect, `/` → `/en/`
+  * `/health` 200
+  * `/config.json` returns the public issuer
+* **Keycloak through Caddy**:
+  * discovery issuer `https://auth.localhost/realms/ledger`
+  * `/admin/` and `/realms/master/...` answer 403 outside `ADMIN_CIDRS`, and pass when allowed
+* **Authentication**:
+  * `/api/wallets` answers 401 without a token
+  * with a token from that Keycloak: 200, and creating a wallet answered 201 (the module queues exist in RabbitMQ)
+* **Backups**:
+  * `backup.sh` dumped both databases, and the `ledger` dump restored into an empty database
+  * the rclone commands uploaded and listed the dumps on a local S3 server
+* **Static checks**: `cloud-init schema` is valid, actionlint and shellcheck are clean, and `docker compose config` is valid.
+* **Not verified yet**: the real server, DNS, Let's Encrypt and a GitHub run. They need the domain and the server.

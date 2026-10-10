@@ -1,0 +1,91 @@
+#cloud-config
+# Paste as "Cloud config" when creating the server (Hetzner Cloud, Ubuntu 24.04). Documentation §19.4.
+# Before pasting, replace the two ssh_authorized_keys placeholders:
+#   - your own public key (to log in as "deploy")
+#   - the public half of the key GitHub Actions uses (secret VPS_SSH_KEY)
+#
+# Result: user "deploy" (SSH key only, docker group), no root or password logins, firewall (22/80/443),
+# fail2ban, automatic security updates, Docker + Compose, rclone, 2 GB swap, /opt/ledger and the nightly backup.
+
+package_update: true
+package_upgrade: true
+
+apt:
+  sources:
+    docker.list:
+      source: "deb [arch=amd64 signed-by=$KEY_FILE] https://download.docker.com/linux/ubuntu $RELEASE stable"
+      keyid: 9DC858229FC7DD38854AE2D88D81803C0EBFCD88
+
+packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+  - ufw
+  - fail2ban
+  - unattended-upgrades
+  - rclone
+
+users:
+  - name: deploy
+    shell: /bin/bash
+    lock_passwd: true
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAA...replace-with-your-key you@laptop
+      - ssh-ed25519 AAAA...replace-with-the-github-actions-key github-actions
+
+disable_root: true
+ssh_pwauth: false
+
+swap:
+  filename: /swapfile
+  size: 2G
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-ledger.conf
+    content: |
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      AllowUsers deploy
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+  - path: /etc/fail2ban/jail.d/sshd.local
+    content: |
+      [sshd]
+      enabled = true
+      maxretry = 5
+      bantime = 1h
+  - path: /etc/cron.d/ledger-backup
+    content: |
+      # Nightly PostgreSQL backup (deploy/vps/backup.sh, copied to /opt/ledger by every deploy).
+      30 3 * * * deploy [ -x /opt/ledger/backup.sh ] && /opt/ledger/backup.sh >> /var/log/ledger/backup.log 2>&1
+  - path: /etc/logrotate.d/ledger
+    content: |
+      /var/log/ledger/*.log {
+        weekly
+        rotate 8
+        compress
+        missingok
+        notifempty
+      }
+
+runcmd:
+  - usermod -aG docker deploy
+  - install -d -o deploy -g deploy -m 750 /opt/ledger /opt/ledger/backups
+  - install -d -o deploy -g deploy -m 755 /var/log/ledger
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw allow 443/udp
+  - ufw --force enable
+  - systemctl enable --now docker fail2ban
+  - systemctl restart ssh
+
+final_message: "Ledger server ready after $UPTIME seconds. Next: create /opt/ledger/.env (documentation §19.4)."
