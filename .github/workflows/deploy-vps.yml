@@ -1,7 +1,7 @@
 name: Deploy (VPS)
 
 # main -> tests -> images (amd64) to GitHub Container Registry -> over SSH: migrate and restart (deploy/vps/deploy.sh).
-# Secrets of the GitHub environment "development": VPS_HOST, VPS_SSH_KEY (private key of the "deploy" user),
+# Secrets of the GitHub environment "dev": VPS_HOST, VPS_SSH_KEY (private key of the "deploy" user),
 # VPS_KNOWN_HOSTS (ssh-keyscan of the host).
 # Variable of the same environment: VPS_DOMAIN (the app is at https://ledger.<VPS_DOMAIN>). Documentation §19.
 on:
@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     # VPS_HOST, VPS_SSH_KEY, VPS_KNOWN_HOSTS and VPS_DOMAIN live in this GitHub environment.
     environment:
-      name: development
+      name: dev
       url: https://ledger.${{ vars.VPS_DOMAIN }}
     permissions:
       contents: read
@@ -93,7 +93,7 @@ jobs:
           missing=0
           for name in VPS_HOST VPS_SSH_KEY VPS_KNOWN_HOSTS VPS_DOMAIN; do
             if [ -z "${!name}" ]; then
-              echo "::error::$name is empty: add it to the \"development\" environment (Settings → Environments)"
+              echo "::error::$name is empty: add it to the \"dev\" environment (Settings → Environments)"
               missing=1
             fi
           done
