@@ -1,5 +1,4 @@
 using Ledger.BuildingBlocks.Application;
-using Ledger.BuildingBlocks.Application.Exceptions;
 using Ledger.BuildingBlocks.Domain;
 using Ledger.Modules.Debts.Application.Operations;
 using Ledger.Modules.Debts.Domain;
@@ -26,7 +25,9 @@ public sealed record DebtDto(
     DebtStatus Status,
     bool IsSettling,
     string? Description,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    bool PendingChange = false,
+    bool Disputed = false);
 
 public sealed record CounterpartyDebtsDto(
     Guid PersonId,
@@ -63,15 +64,12 @@ public sealed record GroupBalancesDto(
 
 public sealed record GetGroupBalancesQuery(Guid UserId, Guid GroupId) : IQuery<GroupBalancesDto>;
 
-public sealed record GetOperationQuery(Guid UserId, Guid OperationId) : IQuery<OperationDto>;
-
 internal sealed class DebtQueryHandlers(
     IDebtsDbContext dbContext,
     PeopleDirectory people,
     GroupBalances groupBalances)
     : IQueryHandler<GetMyDebtsQuery, MyDebtsDto>,
-      IQueryHandler<GetGroupBalancesQuery, GroupBalancesDto>,
-      IQueryHandler<GetOperationQuery, OperationDto>
+      IQueryHandler<GetGroupBalancesQuery, GroupBalancesDto>
 {
     public async Task<MyDebtsDto> Handle(GetMyDebtsQuery query, CancellationToken cancellationToken)
     {
@@ -144,37 +142,25 @@ internal sealed class DebtQueryHandlers(
         return new GroupBalancesDto(query.GroupId, groupName, memberBalances, suggestions, debtDtos);
     }
 
-    public async Task<OperationDto> Handle(GetOperationQuery query, CancellationToken cancellationToken)
-    {
-        var operation = await dbContext.Operations.AsNoTracking()
-            .SingleOrDefaultAsync(o => o.Id == query.OperationId, cancellationToken);
-
-        var visible = operation is not null
-                      && (operation.InitiatorUserId == query.UserId
-                          || LedgerLegs.Involved(operation).Contains(query.UserId)
-                          || (operation.GroupId is { } groupId && await dbContext.GroupMembers.AnyAsync(
-                              m => m.GroupId == groupId && m.UserId == query.UserId, cancellationToken)));
-
-        if (!visible)
-            throw new NotFoundException("Operation", query.OperationId);
-
-        return OperationHandlers.ToDto(operation!);
-    }
-
-    private async Task<Dictionary<Guid, string?>> DescriptionsAsync(IReadOnlyList<Debt> debts, CancellationToken cancellationToken)
+    private async Task<Dictionary<Guid, OperationInfo>> DescriptionsAsync(IReadOnlyList<Debt> debts, CancellationToken cancellationToken)
     {
         var operationIds = debts.Select(d => d.OperationId).Distinct().ToList();
 
         return await dbContext.Operations.AsNoTracking()
             .Where(o => operationIds.Contains(o.Id))
-            .ToDictionaryAsync(o => o.Id, o => o.Description, cancellationToken);
+            .ToDictionaryAsync(
+                o => o.Id,
+                o => new OperationInfo(o.Description, o.PendingChangeId != null, o.IsDisputed),
+                cancellationToken);
     }
+
+    private sealed record OperationInfo(string? Description, bool PendingChange, bool Disputed);
 
     private static DebtDto ToDto(
         Debt debt,
         Guid me,
         IReadOnlyDictionary<Guid, string> names,
-        IReadOnlyDictionary<Guid, string?> descriptions)
+        IReadOnlyDictionary<Guid, OperationInfo> operations)
     {
         var owedToMe = debt.CreditorPersonId == me;
         var counterparty = owedToMe ? debt.DebtorPersonId : debt.CreditorPersonId;
@@ -191,7 +177,9 @@ internal sealed class DebtQueryHandlers(
             debt.Currency.ToString(),
             debt.Status,
             debt.IsSettling,
-            descriptions.GetValueOrDefault(debt.OperationId),
-            debt.CreatedAt);
+            operations.GetValueOrDefault(debt.OperationId)?.Description,
+            debt.CreatedAt,
+            operations.GetValueOrDefault(debt.OperationId)?.PendingChange ?? false,
+            operations.GetValueOrDefault(debt.OperationId)?.Disputed ?? false);
     }
 }

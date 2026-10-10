@@ -1,0 +1,107 @@
+<section class="mt-8" aria-labelledby="report-title">
+  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      @if (period().mode !== 'custom') {
+        <button uiButton variant="ghost" size="sm" type="button" (click)="shift(-1)" i18n-aria-label="@@report.previous" aria-label="Previous period">‹</button>
+      }
+      <h2 id="report-title" class="text-lg font-semibold capitalize">{{ title() }}</h2>
+      @if (period().mode !== 'custom') {
+        <button uiButton variant="ghost" size="sm" type="button" (click)="shift(1)" i18n-aria-label="@@report.next" aria-label="Next period">›</button>
+      }
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="inline-flex rounded-ui border border-border p-1" role="radiogroup" i18n-aria-label="@@report.period" aria-label="Period">
+        @for (mode of modes; track mode.value) {
+          <button type="button" role="radio" [attr.aria-checked]="period().mode === mode.value"
+                  class="rounded-ui px-3 py-1 text-sm cursor-pointer"
+                  [class]="period().mode === mode.value ? 'bg-primary text-primary-foreground' : 'text-muted hover:text-foreground'"
+                  (click)="setMode(mode.value)">
+            {{ mode.label }}
+          </button>
+        }
+      </div>
+      @if (report.value()?.currencies?.length) {
+        <label class="flex items-center gap-2 text-sm text-muted">
+          <span i18n="@@report.currency">Currency</span>
+          <select uiInput class="w-24 py-1" [ngModel]="report.value()!.currency" (ngModelChange)="currency.set($event)">
+            @for (item of report.value()!.currencies; track item) {
+              <option [value]="item">{{ item }}</option>
+            }
+          </select>
+        </label>
+      }
+    </div>
+  </div>
+
+  @if (period().mode === 'custom') {
+    <div class="mb-4 flex flex-wrap items-center gap-3 text-sm">
+      <label class="flex items-center gap-2">
+        <span class="text-muted" i18n="@@transactions.filterFrom">From</span>
+        <input uiInput type="date" class="w-44" [ngModel]="period().customFrom" [max]="period().customTo"
+               (ngModelChange)="setCustom('customFrom', $event)" />
+      </label>
+      <label class="flex items-center gap-2">
+        <span class="text-muted" i18n="@@transactions.filterTo">To</span>
+        <input uiInput type="date" class="w-44" [ngModel]="period().customTo" [min]="period().customFrom"
+               (ngModelChange)="setCustom('customTo', $event)" />
+      </label>
+    </div>
+  }
+
+  @if (report.isLoading() && !report.value()) {
+    <div class="flex justify-center py-16"><ui-spinner /></div>
+  } @else if (report.value(); as data) {
+    <ui-card class="mb-4">
+      <div class="grid grid-cols-3 gap-4">
+        <ui-stat i18n-label="@@report.income" label="Income" [value]="data.totalIncome | money: data.currency" tone="positive" />
+        <ui-stat i18n-label="@@report.expenses" label="Expenses" [value]="data.totalExpenses | money: data.currency" tone="negative" />
+        <ui-stat i18n-label="@@report.result" label="Result" [value]="balance() | money: data.currency: true" [tone]="amountTone(balance())" />
+      </div>
+    </ui-card>
+
+    <div class="grid gap-4 lg:grid-cols-2">
+      <ui-card i18n-heading="@@report.incomeVsExpenses" heading="Income vs expenses">
+        @if (incomeExpensesChart(); as chart) {
+          <ui-chart class="h-64" [config]="chart" i18n-label="@@report.incomeVsExpenses" label="Income vs expenses" />
+        } @else {
+          <ui-empty-state i18n-message="@@report.noMovements" message="No income or expenses in this period." />
+        }
+      </ui-card>
+
+      <ui-card i18n-heading="@@report.spendingByCategory" heading="Spending by category">
+        @if (spendingChart(); as chart) {
+          <ui-chart class="h-64" [config]="chart" i18n-label="@@report.spendingByCategory" label="Spending by category" />
+        } @else {
+          <ui-empty-state i18n-message="@@report.noExpenses" message="No expenses in this period." />
+        }
+      </ui-card>
+
+      <ui-card i18n-heading="@@report.netWorthOverTime" heading="Net worth over time">
+        @if (netWorthChart(); as chart) {
+          <ui-chart class="h-64" [config]="chart" i18n-label="@@report.netWorthOverTime" label="Net worth over time" />
+        }
+      </ui-card>
+
+      @if (investmentsChart(); as chart) {
+        <ui-card i18n-heading="@@report.investmentsOverTime" heading="Investments over time">
+          <ui-chart class="h-64" [config]="chart" i18n-label="@@report.investmentsOverTime" label="Investments over time" />
+          @if (investmentsInPeriod()?.realizedGain; as realized) {
+            <p class="mt-2 text-sm text-muted">
+              <span i18n="@@report.realizedInPeriod">Realized gains in this period</span>:
+              <span class="tabular-nums" [class]="realized > 0 ? 'text-success' : 'text-danger'">{{ realized | money: investmentsInPeriod()!.currency: true }}</span>
+            </p>
+          }
+        </ui-card>
+      }
+
+      <ui-card i18n-heading="@@report.walletBalances" heading="Balance per wallet">
+        @if (walletsChart(); as chart) {
+          <ui-chart class="h-64" [config]="chart" i18n-label="@@report.walletBalances" label="Balance per wallet" />
+        } @else {
+          <ui-empty-state i18n-message="@@report.noWallets" message="No wallets with money in this currency." />
+        }
+      </ui-card>
+    </div>
+  }
+</section>

@@ -15,7 +15,11 @@ public sealed class Account
             [AccountPurpose.CurrencyExchange] = ("Currency exchange", AccountType.Equity),
             [AccountPurpose.Uncategorized] = ("Uncategorized", AccountType.Expense),
             [AccountPurpose.UncategorizedIncome] = ("Uncategorized income", AccountType.Income),
-            [AccountPurpose.PendingSettlements] = ("Pending settlements", AccountType.Asset)
+            [AccountPurpose.PendingSettlements] = ("Pending settlements", AccountType.Asset),
+            // Equity: reconciliation differences are neither income nor expenses.
+            [AccountPurpose.BalanceAdjustments] = ("Balance adjustments", AccountType.Equity),
+            // Equity: realized gains and losses of investments are neither income nor expenses.
+            [AccountPurpose.InvestmentGains] = ("Investment gains", AccountType.Equity)
         };
 
     public const int NameMaxLength = 200;
@@ -45,7 +49,7 @@ public sealed class Account
     public AccountType Type { get; private set; }
     public AccountPurpose Purpose { get; private set; }
 
-    /// <summary>Only wallet accounts are bound to a single currency.</summary>
+    /// <summary>Only wallet and investment accounts are bound to a single currency.</summary>
     public Currency? Currency { get; private set; }
 
     /// <summary>Id of the entity of another module this account represents (e.g. a wallet).</summary>
@@ -68,6 +72,9 @@ public sealed class Account
 
     public static Account CreateWalletAccount(Guid ownerId, Guid walletId, string name, Currency currency)
         => new(Guid.NewGuid(), ownerId, name, AccountType.Asset, AccountPurpose.Wallet, currency, walletId);
+
+    public static Account CreateInvestmentAccount(Guid ownerId, Guid assetId, string name, Currency currency)
+        => new(Guid.NewGuid(), ownerId, name, AccountType.Asset, AccountPurpose.Investment, currency, assetId);
 
     public static Account CreateSystemAccount(Guid ownerId, AccountPurpose purpose)
     {

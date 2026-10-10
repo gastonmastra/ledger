@@ -28,13 +28,15 @@ internal sealed class AccountCreatedConsumer(ISender sender, TransactionsDbConte
                 account.Type,
                 account.Purpose,
                 account.Currency,
-                account.ReferenceId),
+                account.ReferenceId,
+                account.Purpose == AccountPurposes.Wallet ? account.OpeningBalance : 0),
             context.CancellationToken);
 
         if (account.Purpose == AccountPurposes.Wallet && account.OpeningBalance > 0)
         {
             await sender.Send(
-                new PostOpeningBalanceCommand(account.AccountId, account.OpeningBalance, account.CreatedAt),
+                new PostOpeningBalanceCommand(
+                    account.AccountId, account.OpeningBalance, account.OpeningBalanceAt ?? account.CreatedAt),
                 context.CancellationToken);
         }
     }
@@ -91,7 +93,8 @@ internal sealed class ContactLinkedConsumer(ISender sender, TransactionsDbContex
                 CounterpartyKind.Contact,
                 contact.ContactId,
                 contact.Name,
-                contact.PreviousPersonId),
+                contact.PreviousPersonId,
+                MergedIntoAnother: contact.MergedIntoContactId is not null),
             context.CancellationToken);
     }
 }
@@ -144,6 +147,60 @@ internal sealed class LedgerPostingRequestedConsumer(
         object reply = result.Succeeded
             ? new LedgerPostingCompleted(context.Message.OperationId)
             : new LedgerPostingRejected(context.Message.OperationId, result.RejectionReason!);
+
+        await eventBus.PublishAsync(reply, context.CancellationToken);
+    }
+}
+
+internal sealed class LedgerRevisionRequestedConsumer(
+    ISender sender,
+    ITransactionsEventBus eventBus,
+    TransactionsDbContext dbContext)
+    : ModuleConsumer<LedgerRevisionRequested, TransactionsDbContext>(dbContext)
+{
+    protected override async Task Handle(ConsumeContext<LedgerRevisionRequested> context)
+    {
+        var result = await sender.Send(new ReviseDebtOperationCommand(context.Message), context.CancellationToken);
+
+        object reply = result.Succeeded
+            ? new LedgerRevisionCompleted(context.Message.ChangeId)
+            : new LedgerRevisionRejected(context.Message.ChangeId, result.RejectionReason!);
+
+        await eventBus.PublishAsync(reply, context.CancellationToken);
+    }
+}
+
+internal sealed class InvestmentPostingRequestedConsumer(
+    ISender sender,
+    ITransactionsEventBus eventBus,
+    TransactionsDbContext dbContext)
+    : ModuleConsumer<InvestmentPostingRequested, TransactionsDbContext>(dbContext)
+{
+    protected override async Task Handle(ConsumeContext<InvestmentPostingRequested> context)
+    {
+        var result = await sender.Send(new PostInvestmentTradeCommand(context.Message), context.CancellationToken);
+
+        object reply = result.Succeeded
+            ? new InvestmentPostingCompleted(context.Message.TradeId, result.WalletCurrency)
+            : new InvestmentPostingRejected(context.Message.TradeId, result.RejectionReason!);
+
+        await eventBus.PublishAsync(reply, context.CancellationToken);
+    }
+}
+
+internal sealed class LedgerOpeningsRequestedConsumer(
+    ISender sender,
+    ITransactionsEventBus eventBus,
+    TransactionsDbContext dbContext)
+    : ModuleConsumer<LedgerOpeningsRequested, TransactionsDbContext>(dbContext)
+{
+    protected override async Task Handle(ConsumeContext<LedgerOpeningsRequested> context)
+    {
+        var result = await sender.Send(new PostLedgerOpeningsCommand(context.Message), context.CancellationToken);
+
+        object reply = result.Succeeded
+            ? new LedgerOpeningsCompleted(context.Message.MergeId)
+            : new LedgerOpeningsRejected(context.Message.MergeId, result.RejectionReason!);
 
         await eventBus.PublishAsync(reply, context.CancellationToken);
     }

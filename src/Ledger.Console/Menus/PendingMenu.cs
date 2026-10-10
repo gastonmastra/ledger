@@ -42,7 +42,9 @@ public sealed class PendingMenu(LedgerApiClient api) : Menu
             return;
         }
 
-        await api.AssignWalletAsync(item.Id, wallet.Id, ct);
+        var when = ConsoleUi.ReadWhen("When (yyyy-MM-dd HH:mm, ENTER = date of the operation): ", item.OccurredAt);
+
+        await api.AssignWalletAsync(item.Id, wallet.Id, when, ct);
         ConsoleUi.Success($"Recorded in {wallet.Name}.");
     }
 }

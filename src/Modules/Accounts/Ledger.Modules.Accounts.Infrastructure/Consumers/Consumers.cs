@@ -1,7 +1,9 @@
 using Ledger.Modules.Accounts.Infrastructure.Persistence;
 using Ledger.BuildingBlocks.Infrastructure.Messaging;
+using Ledger.Modules.Accounts.Application.Investments;
 using Ledger.Modules.Accounts.Application.System;
 using Ledger.Modules.Identity.Contracts;
+using Ledger.Modules.Investments.Contracts;
 using Ledger.Modules.Wallets.Contracts;
 using MassTransit;
 using MediatR;
@@ -23,7 +25,8 @@ internal sealed class WalletCreatedConsumer(ISender sender, AccountsDbContext db
         var wallet = context.Message;
 
         return sender.Send(
-            new OpenWalletAccountCommand(wallet.WalletId, wallet.UserId, wallet.Name, wallet.Currency, wallet.OpeningBalance),
+            new OpenWalletAccountCommand(
+                wallet.WalletId, wallet.UserId, wallet.Name, wallet.Currency, wallet.OpeningBalance, wallet.OpeningBalanceAt),
             context.CancellationToken);
     }
 }
@@ -49,4 +52,33 @@ internal sealed class WalletDeletedConsumer(ISender sender, AccountsDbContext db
 {
     protected override Task Handle(ConsumeContext<WalletDeleted> context)
         => sender.Send(new DeleteWalletAccountCommand(context.Message.WalletId), context.CancellationToken);
+}
+
+internal sealed class AssetCreatedConsumer(ISender sender, AccountsDbContext dbContext)
+    : ModuleConsumer<AssetCreated, AccountsDbContext>(dbContext)
+{
+    protected override Task Handle(ConsumeContext<AssetCreated> context)
+    {
+        var asset = context.Message;
+
+        return sender.Send(
+            new OpenInvestmentAccountCommand(asset.AssetId, asset.OwnerId, asset.Name, asset.Currency),
+            context.CancellationToken);
+    }
+}
+
+internal sealed class AssetRenamedConsumer(ISender sender, AccountsDbContext dbContext)
+    : ModuleConsumer<AssetRenamed, AccountsDbContext>(dbContext)
+{
+    protected override Task Handle(ConsumeContext<AssetRenamed> context)
+        => sender.Send(
+            new RenameInvestmentAccountCommand(context.Message.AssetId, context.Message.Name),
+            context.CancellationToken);
+}
+
+internal sealed class AssetArchivedConsumer(ISender sender, AccountsDbContext dbContext)
+    : ModuleConsumer<AssetArchived, AccountsDbContext>(dbContext)
+{
+    protected override Task Handle(ConsumeContext<AssetArchived> context)
+        => sender.Send(new ArchiveInvestmentAccountCommand(context.Message.AssetId), context.CancellationToken);
 }

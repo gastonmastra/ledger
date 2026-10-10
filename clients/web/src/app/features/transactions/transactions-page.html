@@ -1,0 +1,120 @@
+<ui-page-header i18n-heading="@@transactions.title" heading="Transactions"
+                i18n-subtitle="@@transactions.subtitle" subtitle="Everything that happened to your money, newest first.">
+  <button uiButton variant="secondary" type="button" (click)="record('income')">
+    <ui-icon name="plus" size="sm" /><ng-container i18n="@@transactions.income">Income</ng-container>
+  </button>
+  <button uiButton variant="secondary" type="button" (click)="record('expense')">
+    <ui-icon name="plus" size="sm" /><ng-container i18n="@@transactions.expense">Expense</ng-container>
+  </button>
+  <button uiButton type="button" (click)="transfer()">
+    <ui-icon name="arrows" size="sm" /><ng-container i18n="@@transactions.transfer">Transfer</ng-container>
+  </button>
+</ui-page-header>
+
+<ui-card class="mb-4">
+  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <ui-form-field i18n-label="@@transactions.filterWallet" label="Wallet">
+      <select uiInput [ngModel]="filters().walletId" (ngModelChange)="setFilter('walletId', $event)">
+        <option value="" i18n="@@ui.all">All</option>
+        @for (wallet of wallets.value(); track wallet.id) {
+          <option [value]="wallet.id">{{ wallet.name }}</option>
+        }
+      </select>
+    </ui-form-field>
+    <ui-form-field i18n-label="@@transactions.filterCategory" label="Category">
+      <select uiInput [ngModel]="filters().categoryId" (ngModelChange)="setFilter('categoryId', $event)">
+        <option value="" i18n="@@ui.all">All</option>
+        @for (category of categories.value(); track category.id) {
+          <option [value]="category.id">{{ category.name }}</option>
+        }
+      </select>
+    </ui-form-field>
+    <ui-form-field i18n-label="@@transactions.filterContact" label="Contact">
+      <select uiInput [ngModel]="filters().contactId" (ngModelChange)="setFilter('contactId', $event)">
+        <option value="" i18n="@@ui.all">All</option>
+        @for (contact of contacts.value(); track contact.id) {
+          <option [value]="contact.id">{{ contact.name }}</option>
+        }
+      </select>
+    </ui-form-field>
+    <ui-form-field i18n-label="@@transactions.filterFrom" label="From">
+      <input uiInput type="date" [ngModel]="filters().from" (ngModelChange)="setFilter('from', $event)" />
+    </ui-form-field>
+    <ui-form-field i18n-label="@@transactions.filterTo" label="To">
+      <input uiInput type="date" [ngModel]="filters().to" (ngModelChange)="setFilter('to', $event)" />
+    </ui-form-field>
+  </div>
+  <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+    <label class="flex cursor-pointer items-center gap-2 text-sm text-muted"
+           i18n-title="@@transactions.showChangesHint" title="Also show replaced and deleted versions and the reversals that cancelled them.">
+      <input type="checkbox" class="accent-primary" [checked]="includeHistory()" (change)="toggleHistory()" />
+      <ng-container i18n="@@transactions.showChanges">Show changes</ng-container>
+    </label>
+    <button uiButton variant="ghost" size="sm" type="button" (click)="clearFilters()" i18n="@@transactions.clearFilters">Clear filters</button>
+  </div>
+</ui-card>
+
+<ui-card [padded]="false">
+  @if (transactions.isLoading() && !transactions.value()) {
+    <div class="flex justify-center py-10"><ui-spinner /></div>
+  } @else if (!transactions.value()?.items?.length) {
+    <ui-empty-state i18n-message="@@transactions.empty" message="No transactions match." />
+  } @else {
+    @let result = transactions.value()!;
+    <ul class="divide-y divide-border">
+      @for (transaction of result.items; track transaction.id) {
+        <li class="px-4 py-3" [class.opacity-60]="transaction.status !== 'Current'">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm text-muted tabular-nums">{{ transaction.occurredAt | date: 'medium' }}</span>
+            <ui-badge tone="primary">{{ kindLabel(transaction.kind) }}</ui-badge>
+            @if (transaction.status !== 'Current') {
+              <ui-badge [tone]="transaction.status === 'Deleted' ? 'danger' : 'neutral'">{{ statusLabel(transaction.status) }}</ui-badge>
+            } @else if (transaction.revision > 1) {
+              <ui-badge i18n="@@transactions.edited">Edited</ui-badge>
+            }
+            <span class="text-sm font-medium">{{ transaction.description }}</span>
+            <div class="ml-auto flex flex-wrap gap-1">
+              @if (transaction.editable) {
+                <button uiButton variant="ghost" size="sm" type="button" (click)="edit(transaction)">
+                  <ui-icon name="pencil" size="sm" /><ng-container i18n="@@ui.edit">Edit</ng-container>
+                </button>
+              }
+              @if (transaction.deletable) {
+                <button uiButton variant="ghost" size="sm" type="button" (click)="remove(transaction)">
+                  <ui-icon name="trash" size="sm" /><ng-container i18n="@@ui.delete">Delete</ng-container>
+                </button>
+              }
+              @if (isDebtOperation(transaction)) {
+                <button uiButton variant="ghost" size="sm" type="button" (click)="openOperation(transaction)"
+                        i18n-title="@@transactions.openOperationHint" title="Loans, splits and settlements are changed in Debts & splits.">
+                  <ui-icon name="scale" size="sm" /><ng-container i18n="@@transactions.openOperation">Operation</ng-container>
+                </button>
+              }
+              <button uiButton variant="ghost" size="sm" type="button" (click)="history(transaction)">
+                <ui-icon name="clock" size="sm" /><ng-container i18n="@@history.title">History</ng-container>
+              </button>
+            </div>
+          </div>
+          @if (transaction.changeReason && transaction.status === 'Reversal') {
+            <p class="mt-1 text-xs text-muted">“{{ transaction.changeReason }}”</p>
+          }
+          <ul class="mt-2 grid gap-1 text-sm sm:pl-4">
+            @for (posting of transaction.postings; track posting.accountId + posting.currency + posting.amount + posting.counterpartyId) {
+              <li class="flex justify-between gap-4">
+                <span class="text-muted">
+                  {{ accountLabel(posting) }}
+                  @if (posting.counterpartyName) {
+                    · {{ posting.counterpartyName }}
+                  }
+                </span>
+                <span class="tabular-nums" [class]="amountClass(posting.amount)">{{ posting.amount | money: posting.currency: true }}</span>
+              </li>
+            }
+          </ul>
+        </li>
+      }
+    </ul>
+    <ui-pagination class="border-t border-border px-4 py-3" [page]="result.page" [totalPages]="result.totalPages"
+                   [totalCount]="result.totalCount" (pageChange)="page.set($event)" />
+  }
+</ui-card>

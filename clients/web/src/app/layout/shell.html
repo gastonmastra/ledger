@@ -1,0 +1,103 @@
+<div class="flex min-h-full">
+  <!-- Sidebar (desktop) -->
+  <aside class="hidden w-64 shrink-0 flex-col border-r border-border bg-surface lg:flex">
+    <div class="flex h-16 items-center gap-2 px-6 text-lg font-semibold text-foreground">
+      <span class="grid size-8 place-items-center rounded-ui bg-primary text-primary-foreground">L</span>
+      Ledger
+    </div>
+    <ng-container [ngTemplateOutlet]="navList" />
+  </aside>
+
+  <!-- Menu (mobile) -->
+  @if (menuOpen()) {
+    <div class="fixed inset-0 z-40 bg-overlay lg:hidden" (click)="menuOpen.set(false)"></div>
+    <aside class="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-border bg-surface lg:hidden">
+      <div class="flex h-16 items-center justify-between px-4">
+        <span class="text-lg font-semibold">Ledger</span>
+        <button type="button" class="rounded-ui p-2 hover:bg-surface-muted cursor-pointer" (click)="menuOpen.set(false)"
+                i18n-aria-label="@@ui.closeMenu" aria-label="Close menu">
+          <ui-icon name="close" />
+        </button>
+      </div>
+      <ng-container [ngTemplateOutlet]="navList" />
+    </aside>
+  }
+
+  <div class="flex min-w-0 flex-1 flex-col">
+    <!-- Top bar -->
+    <header class="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border bg-surface/90 px-4 backdrop-blur lg:px-8">
+      <button type="button" class="rounded-ui p-2 hover:bg-surface-muted lg:hidden cursor-pointer" (click)="menuOpen.set(true)"
+              i18n-aria-label="@@ui.openMenu" aria-label="Open menu">
+        <ui-icon name="menu" />
+      </button>
+      <span class="font-semibold lg:hidden">Ledger</span>
+
+      <div class="ml-auto flex items-center gap-1 sm:gap-2">
+        <label class="flex items-center gap-1 rounded-ui px-2 py-1 text-sm text-muted hover:bg-surface-muted">
+          <ui-icon name="language" size="sm" />
+          <span class="sr-only" i18n="@@ui.language">Language</span>
+          <select class="cursor-pointer bg-transparent text-foreground focus:outline-none" (change)="onLocaleChange($event)">
+            @for (item of locales; track item.code) {
+              <option [value]="item.code" [selected]="item.code === locale.current">{{ item.label }}</option>
+            }
+          </select>
+        </label>
+
+        <button type="button" class="rounded-ui p-2 hover:bg-surface-muted hover:text-foreground cursor-pointer"
+                [class]="privacy.hidden() ? 'text-primary' : 'text-muted'"
+                (click)="privacy.toggle()" [attr.aria-pressed]="privacy.hidden()" [attr.aria-label]="privacyLabel()" [title]="privacyLabel()">
+          <ui-icon [name]="privacy.hidden() ? 'eyeSlash' : 'eye'" />
+        </button>
+
+        <button type="button" class="rounded-ui p-2 text-muted hover:bg-surface-muted hover:text-foreground cursor-pointer"
+                (click)="theme.cycle()" [attr.aria-label]="themeLabel()" [title]="themeLabel()">
+          <ui-icon [name]="themeIcon()" />
+        </button>
+
+        <span class="hidden text-sm text-muted sm:inline">{{ auth.userName() }}</span>
+
+        <button type="button" class="rounded-ui p-2 text-muted hover:bg-surface-muted hover:text-foreground cursor-pointer"
+                (click)="auth.logout()" i18n-aria-label="@@ui.logout" aria-label="Log out" i18n-title="@@ui.logout" title="Log out">
+          <ui-icon name="logout" />
+        </button>
+      </div>
+    </header>
+
+    <main class="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-6 lg:px-8 lg:pb-10">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+
+<!-- Bottom bar (mobile) -->
+<nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-border bg-surface lg:hidden">
+  @for (item of bottomNav; track item.path) {
+    <a [routerLink]="item.path" routerLinkActive="text-primary" [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+       class="flex flex-col items-center gap-1 py-2 text-xs text-muted">
+      <ui-icon [name]="item.icon" />
+      {{ item.label }}
+    </a>
+  }
+</nav>
+
+<ui-toast-container />
+
+<ng-template #navList>
+  <nav class="flex flex-1 flex-col gap-1 px-3 py-2">
+    @for (item of nav; track item.path) {
+      <a [routerLink]="item.path"
+         routerLinkActive="bg-primary-soft text-primary-soft-foreground"
+         [routerLinkActiveOptions]="{ exact: item.path === '/' }"
+         class="flex items-center gap-3 rounded-ui px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-muted">
+        <ui-icon [name]="item.icon" />
+        <span class="flex-1">{{ item.label }}</span>
+        @if (item.path === '/pending' && pendingCount() > 0) {
+          <ui-badge tone="warning">{{ pendingCount() }}</ui-badge>
+        }
+        @if (item.path === '/changes' && toReviewCount() > 0) {
+          <ui-badge tone="warning">{{ toReviewCount() }}</ui-badge>
+        }
+      </a>
+    }
+  </nav>
+</ng-template>

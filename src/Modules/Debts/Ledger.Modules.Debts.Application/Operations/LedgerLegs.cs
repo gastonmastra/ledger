@@ -28,6 +28,35 @@ internal static class LedgerLegs
     }
 
     /// <summary>
+    /// A debt that already existed: no money moves (it is paid later with a settlement) and it is
+    /// neither income nor expense. The balance comes from Opening balances, like a wallet's
+    /// starting amount.
+    /// </summary>
+    public static IReadOnlyList<LedgerLeg> ForInitialDebt(DebtOperation debt, PersonInfo creditor, PersonInfo debtor)
+    {
+        var amount = debt.Total;
+        var legs = new List<LedgerLeg>();
+
+        if (debtor.UserId is { } debtorUserId)
+        {
+            legs.Add(new LedgerLeg(
+                debtorUserId, null, null, 0, 0,
+                [new LedgerPosition(creditor.PersonId, PositionSides.Payable, -amount)],
+                OpeningBalanceAmount: amount));
+        }
+
+        if (creditor.UserId is { } creditorUserId)
+        {
+            legs.Add(new LedgerLeg(
+                creditorUserId, null, null, 0, 0,
+                [new LedgerPosition(debtor.PersonId, PositionSides.Receivable, amount)],
+                OpeningBalanceAmount: -amount));
+        }
+
+        return legs;
+    }
+
+    /// <summary>
     /// Split outside groups: each registered user records what they paid, what they consumed and
     /// their debts with every other person.
     /// </summary>
@@ -165,6 +194,13 @@ internal static class LedgerLegs
         => operation.Payers.Select(p => p.PersonId)
             .Concat(operation.Shares.Select(s => s.PersonId))
             .Distinct();
+
+    /// <summary>Registered users among the people of the operation (only they have books).</summary>
+    public static IReadOnlySet<Guid> RegisteredUsers(DebtOperation operation, IReadOnlyDictionary<Guid, PersonInfo> people)
+        => operation.InvolvedPersonIds
+            .Select(id => people.GetValueOrDefault(id)?.UserId ?? (id == operation.InitiatorUserId ? id : null))
+            .OfType<Guid>()
+            .ToHashSet();
 
     private static decimal Paid(DebtOperation split, Guid personId)
         => split.Payers.Where(p => p.PersonId == personId).Sum(p => p.Amount);

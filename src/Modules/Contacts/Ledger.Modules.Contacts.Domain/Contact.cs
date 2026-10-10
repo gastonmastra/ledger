@@ -34,8 +34,22 @@ public sealed class Contact
     public Guid? LinkedUserId { get; private set; }
     public ContactOrigin Origin { get; private set; }
 
-    /// <summary>The contact takes part in a debt, split or group, so its person id is frozen.</summary>
+    /// <summary>
+    /// The contact takes part in a debt, split or group: linking it to a user needs that user's approval
+    /// (a <see cref="ContactLinkRequest"/>), because the shared history is copied into their books.
+    /// </summary>
     public bool IsInUse { get; private set; }
+
+    /// <summary>A link request waiting for the user's answer (or being applied).</summary>
+    public Guid? PendingLinkRequestId { get; private set; }
+
+    /// <summary>
+    /// Set when this contact was merged into another contact of the same owner (both were the same person).
+    /// A merged contact is hidden; its previous person id stays here only as history.
+    /// </summary>
+    public Guid? MergedIntoContactId { get; private set; }
+
+    public bool IsMerged => MergedIntoContactId is not null;
 
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -72,25 +86,79 @@ public sealed class Contact
             CreatedAt = DateTimeOffset.UtcNow
         };
 
+    /// <summary>Links a contact that is not used yet: nothing to copy, so it happens right away.</summary>
     public void LinkTo(Guid userId, string email)
     {
-        if (userId == OwnerId)
-            throw new DomainException("contact.self", "You cannot link a contact to yourself.");
-
-        if (LinkedUserId is not null)
-            throw new DomainException("contact.already_linked", "The contact is already linked to a user.");
+        EnsureCanLink(userId);
 
         if (IsInUse)
             throw new DomainException(
                 "contact.in_use",
-                "The contact already takes part in debts or groups; create a new contact linked to the user instead.");
+                "The contact already takes part in debts or groups: the user has to accept the link.");
 
         LinkedUserId = userId;
         PersonId = userId;
         Email = email;
     }
 
+    /// <summary>Starts linking a contact that is in use: the user has to accept the request first.</summary>
+    public ContactLinkRequest RequestLink(Guid userId)
+    {
+        EnsureCanLink(userId);
+
+        if (!IsInUse)
+            throw new DomainException("contact.not_in_use", "The contact is not used yet: link it directly.");
+
+        if (PendingLinkRequestId is not null)
+            throw new DomainException("contact.link_pending", "A link request for this contact is waiting for an answer.");
+
+        var request = ContactLinkRequest.Create(this, userId);
+        PendingLinkRequestId = request.Id;
+
+        return request;
+    }
+
+    /// <summary>The person was merged into the user (the request was accepted and applied): the contact becomes the user.</summary>
+    public void CompleteMerge(Guid userId, string? email)
+    {
+        PendingLinkRequestId = null;
+        LinkedUserId = userId;
+        PersonId = userId;
+        Email = email ?? Email;
+        IsInUse = true;
+    }
+
+    /// <summary>
+    /// The person was merged into a user the owner already had as another contact: this contact folds into that one.
+    /// Its person id is kept (it is unique per owner) as history.
+    /// </summary>
+    public void MergeInto(Contact survivor)
+    {
+        PendingLinkRequestId = null;
+        MergedIntoContactId = survivor.Id;
+        LinkedUserId = survivor.LinkedUserId;
+        survivor.MarkInUse();
+    }
+
+    public void ClearLinkRequest(Guid requestId)
+    {
+        if (PendingLinkRequestId == requestId)
+            PendingLinkRequestId = null;
+    }
+
     public void MarkInUse() => IsInUse = true;
+
+    private void EnsureCanLink(Guid userId)
+    {
+        if (userId == OwnerId)
+            throw new DomainException("contact.self", "You cannot link a contact to yourself.");
+
+        if (IsMerged)
+            throw new DomainException("contact.merged", "The contact was merged into another contact.");
+
+        if (LinkedUserId is not null)
+            throw new DomainException("contact.already_linked", "The contact is already linked to a user.");
+    }
 
     private static string ValidateName(string name)
     {

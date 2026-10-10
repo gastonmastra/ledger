@@ -82,3 +82,46 @@ public class DebtTests
         Assert.All(legs.SelectMany(l => l.Positions), p => Assert.Equal(groupId, p.CounterpartyId));
     }
 }
+
+public class InitialDebtTests
+{
+    private static readonly Guid Me = Guid.NewGuid();
+    private static readonly Guid Sofi = Guid.NewGuid();
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void An_initial_debt_is_neither_income_nor_expense(bool iOwe)
+    {
+        var me = new PersonInfo(Me, "Me", Me);
+        var sofi = new PersonInfo(Sofi, "Sofi", Sofi); // linked user: mirrored
+        var (creditor, debtor) = iOwe ? (sofi, me) : (me, sofi);
+
+        var debt = DebtOperation.InitialDebt(
+            Me, creditor.PersonId, debtor.PersonId, 50, Currency.EUR, DateTimeOffset.UtcNow, null);
+
+        var legs = LedgerLegs.ForInitialDebt(debt, creditor, debtor);
+
+        Assert.Equal(2, legs.Count);
+        Assert.All(legs, leg =>
+            Assert.Equal(0, leg.CashAmount + leg.ExpenseAmount - leg.IncomeAmount + leg.OpeningBalanceAmount + leg.Positions.Sum(p => p.Amount)));
+        Assert.All(legs, leg => Assert.Null(leg.WalletId)); // no money moves
+        Assert.All(legs, leg => Assert.Equal(0, leg.ExpenseAmount));
+        Assert.All(legs, leg => Assert.Equal(0, leg.IncomeAmount));
+
+        // The debt's balance comes from Opening balances, like a wallet's starting amount.
+        Assert.Equal(50, legs.Single(l => l.UserId == debtor.UserId).OpeningBalanceAmount);
+        Assert.Equal(-50, legs.Single(l => l.UserId == creditor.UserId).OpeningBalanceAmount);
+    }
+
+    [Fact]
+    public void Only_registered_people_get_books()
+    {
+        var me = new PersonInfo(Me, "Me", Me);
+        var sofi = new PersonInfo(Sofi, "Sofi", null);
+
+        var debt = DebtOperation.InitialDebt(Me, Sofi, Me, 10, Currency.EUR, DateTimeOffset.UtcNow, null);
+
+        Assert.Single(LedgerLegs.ForInitialDebt(debt, sofi, me));
+    }
+}

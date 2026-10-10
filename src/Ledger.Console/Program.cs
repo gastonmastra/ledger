@@ -34,7 +34,13 @@ builder.Services
     .AddTransient<ContactsMenu>()
     .AddTransient<GroupsMenu>()
     .AddTransient<DebtsMenu>()
-    .AddTransient<PendingMenu>();
+    .AddTransient<InvestmentsMenu>()
+    .AddTransient<PendingMenu>()
+    .AddTransient<ReportsMenu>()
+    .AddTransient<OperationsScreen>()
+    .AddTransient<ChangesScreen>()
+    .AddTransient<ActivityScreen>()
+    .AddTransient<SettingsMenu>();
 
 using var host = builder.Build();
 using var cancellation = new CancellationTokenSource();

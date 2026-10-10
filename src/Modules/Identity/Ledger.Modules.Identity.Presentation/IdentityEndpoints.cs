@@ -24,6 +24,7 @@ public static class IdentityEndpoints
                     result.DisplayName
                 });
             })
+            .RequireAuthorization()
             .WithTags("Identity")
             .WithName("GetMe")
             .WithSummary("Get the authenticated user");

@@ -34,13 +34,17 @@ public static class AccountsModule
         services.AddAccountsPersistence(configuration);
         services.AddModuleApplication(typeof(IAccountsDbContext).Assembly);
         services.AddScoped<IAccountsEventBus, AccountsEventBus>();
+        services.AddHostedService<SystemAccountsBackfill>();
         services.AddModuleMessaging<AccountsDbContext>(
             Name,
             typeof(UserRegisteredConsumer),
             typeof(WalletCreatedConsumer),
             typeof(WalletRenamedConsumer),
             typeof(WalletArchivedConsumer),
-            typeof(WalletDeletedConsumer));
+            typeof(WalletDeletedConsumer),
+            typeof(AssetCreatedConsumer),
+            typeof(AssetRenamedConsumer),
+            typeof(AssetArchivedConsumer));
 
         return services;
     }

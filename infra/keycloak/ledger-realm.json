@@ -31,8 +31,12 @@
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
-      "redirectUris": ["http://127.0.0.1:7890/*"],
-      "webOrigins": ["+"],
+      "redirectUris": [
+        "http://127.0.0.1:7890/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
       "protocol": "openid-connect",
       "attributes": {
         "pkce.code.challenge.method": "S256",
@@ -62,11 +66,54 @@
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
-      "redirectUris": ["http://localhost:5209/*", "http://localhost:8081/*"],
-      "webOrigins": ["http://localhost:5209", "http://localhost:8081"],
+      "redirectUris": [
+        "http://localhost:5209/*",
+        "http://localhost:8081/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5209",
+        "http://localhost:8081"
+      ],
       "protocol": "openid-connect",
       "attributes": {
         "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "ledger-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "ledger-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "ledger-web",
+      "name": "Ledger Web",
+      "description": "Angular web client: authorization code + PKCE.",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:4200/*",
+        "http://localhost:4201/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200",
+        "http://localhost:4201"
+      ],
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4200/*##http://localhost:4201/*"
       },
       "protocolMappers": [
         {
@@ -92,7 +139,13 @@
       "firstName": "Alice",
       "lastName": "Smith",
       "enabled": true,
-      "credentials": [{ "type": "password", "value": "alice", "temporary": false }]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "alice",
+          "temporary": false
+        }
+      ]
     },
     {
       "username": "bob",
@@ -101,7 +154,13 @@
       "firstName": "Bob",
       "lastName": "Jones",
       "enabled": true,
-      "credentials": [{ "type": "password", "value": "bob", "temporary": false }]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "bob",
+          "temporary": false
+        }
+      ]
     }
   ]
 }

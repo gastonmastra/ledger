@@ -26,6 +26,12 @@ public sealed class Counterparty
 
     public string Name { get; private set; }
 
+    /// <summary>
+    /// The person was merged into a registered user (a contact was linked after it was used): postings that still
+    /// carry this person id belong to that user's counterparty. Posted entries are never rewritten.
+    /// </summary>
+    public Guid? MergedIntoPersonId { get; private set; }
+
     public static Counterparty Create(Guid ownerId, Guid personId, CounterpartyKind kind, Guid sourceId, string name)
         => new()
         {
@@ -37,4 +43,6 @@ public sealed class Counterparty
         };
 
     public void Rename(string name) => Name = name;
+
+    public void MergeInto(Guid personId) => MergedIntoPersonId = personId;
 }

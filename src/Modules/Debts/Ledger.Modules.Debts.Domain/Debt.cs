@@ -96,4 +96,26 @@ public sealed class Debt
         if (Status == DebtStatus.Open && SettlementOperationId == settlementOperationId)
             SettlementOperationId = null;
     }
+
+    /// <summary>The settlement that paid the debt was undone: the debt is open again.</summary>
+    public void Reopen(Guid settlementOperationId)
+    {
+        if (SettlementOperationId != settlementOperationId)
+            return;
+
+        Status = DebtStatus.Open;
+        SettlementOperationId = null;
+        SettledAt = null;
+    }
+
+    /// <summary>A settlement moved to its new version (e.g. a different date).</summary>
+    public void MoveSettlement(Guid from, Guid to)
+    {
+        if (SettlementOperationId == from)
+            SettlementOperationId = to;
+    }
+
+    public void Supersede() => Status = DebtStatus.Superseded;
+
+    public bool IsPaid => Status == DebtStatus.Settled || IsSettling;
 }

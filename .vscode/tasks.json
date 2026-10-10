@@ -5,9 +5,17 @@
       "label": "build",
       "command": "dotnet",
       "type": "process",
-      "args": ["build", "${workspaceFolder}/Ledger.slnx", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary"],
+      "args": [
+        "build",
+        "${workspaceFolder}/Ledger.slnx",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
       "problemMatcher": "$msCompile",
-      "group": { "kind": "build", "isDefault": true }
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
     },
     {
       "label": "infra-up",
@@ -21,18 +29,23 @@
       "detail": "Apply the EF Core migrations of every module",
       "type": "shell",
       "command": "dotnet run --project src/Ledger.Migrator",
-      "dependsOn": ["infra-up"],
+      "dependsOn": [
+        "infra-up"
+      ],
       "problemMatcher": []
     },
     {
       "label": "prepare-debug",
       "dependsOrder": "sequence",
-      "dependsOn": ["migrate", "build"],
+      "dependsOn": [
+        "migrate",
+        "build"
+      ],
       "problemMatcher": []
     },
     {
       "label": "full-up",
-      "detail": "Run everything in containers (API on http://localhost:8081)",
+      "detail": "Run everything in containers (API on http://localhost:8081, web on http://localhost:4201)",
       "type": "shell",
       "command": "docker compose --profile full up -d --build",
       "problemMatcher": []
@@ -42,6 +55,144 @@
       "type": "shell",
       "command": "docker compose --profile full down",
       "problemMatcher": []
+    },
+    {
+      "label": "web: install",
+      "type": "shell",
+      "command": "npm ci",
+      "options": {
+        "cwd": "${workspaceFolder}/clients/web"
+      },
+      "problemMatcher": [],
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}/clients/web",
+          "shell": {
+            "executable": "/bin/zsh",
+            "args": [
+              "-i",
+              "-l",
+              "-c"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "web: start",
+      "detail": "Angular dev server on http://localhost:4200 (English); proxies /api to the API on :5209",
+      "type": "shell",
+      "command": "npm start",
+      "options": {
+        "cwd": "${workspaceFolder}/clients/web"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "typescript",
+        "pattern": "$tsc",
+        "background": {
+          "activatesByDefault": true,
+          "beginsPattern": {
+            "regexp": "(Changes detected|Building)"
+          },
+          "endsPattern": {
+            "regexp": "bundle generation (complete|failed)"
+          }
+        }
+      },
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}/clients/web",
+          "shell": {
+            "executable": "/bin/zsh",
+            "args": [
+              "-i",
+              "-l",
+              "-c"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "web: start (es)",
+      "detail": "Angular dev server on http://localhost:4200 (Spanish)",
+      "type": "shell",
+      "command": "npm run start:es",
+      "options": {
+        "cwd": "${workspaceFolder}/clients/web"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "typescript",
+        "pattern": "$tsc",
+        "background": {
+          "activatesByDefault": true,
+          "beginsPattern": {
+            "regexp": "(Changes detected|Building)"
+          },
+          "endsPattern": {
+            "regexp": "bundle generation (complete|failed)"
+          }
+        }
+      },
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}/clients/web",
+          "shell": {
+            "executable": "/bin/zsh",
+            "args": [
+              "-i",
+              "-l",
+              "-c"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "web: test",
+      "type": "shell",
+      "command": "npm test",
+      "options": {
+        "cwd": "${workspaceFolder}/clients/web"
+      },
+      "problemMatcher": [],
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}/clients/web",
+          "shell": {
+            "executable": "/bin/zsh",
+            "args": [
+              "-i",
+              "-l",
+              "-c"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "label": "web: e2e",
+      "type": "shell",
+      "command": "npm run e2e",
+      "options": {
+        "cwd": "${workspaceFolder}/clients/web"
+      },
+      "problemMatcher": [],
+      "osx": {
+        "options": {
+          "cwd": "${workspaceFolder}/clients/web",
+          "shell": {
+            "executable": "/bin/zsh",
+            "args": [
+              "-i",
+              "-l",
+              "-c"
+            ]
+          }
+        }
+      }
     }
   ]
 }

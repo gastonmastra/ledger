@@ -27,6 +27,12 @@ public static class AccountPurposes
     public const string UncategorizedIncome = nameof(UncategorizedIncome);
     /// <summary>Money paid/received on the user's behalf that waits for a wallet to be chosen.</summary>
     public const string PendingSettlements = nameof(PendingSettlements);
+    /// <summary>Differences recorded when the user reconciles a wallet with its real balance.</summary>
+    public const string BalanceAdjustments = nameof(BalanceAdjustments);
+    /// <summary>Asset account holding the cost of an investment asset (ReferenceId = asset id).</summary>
+    public const string Investment = nameof(Investment);
+    /// <summary>Realized gains and losses of investment sales (neither income nor expenses).</summary>
+    public const string InvestmentGains = nameof(InvestmentGains);
 }
 
 public sealed record AccountCreated(
@@ -38,7 +44,8 @@ public sealed record AccountCreated(
     string? Currency,
     Guid? ReferenceId,
     decimal OpeningBalance,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? OpeningBalanceAt = null);
 
 public sealed record AccountRenamed(Guid AccountId, Guid OwnerId, string Name);
 

@@ -3,6 +3,7 @@ using Ledger.BuildingBlocks.Application;
 using Ledger.BuildingBlocks.Application.Exceptions;
 using Ledger.BuildingBlocks.Domain;
 using Ledger.Modules.Debts.Contracts;
+using Ledger.Modules.Debts.Application.Links;
 using Ledger.Modules.Debts.Domain;
 using Ledger.Modules.Transactions.Contracts;
 using Microsoft.EntityFrameworkCore;
@@ -61,6 +62,19 @@ public sealed record SettleCommand(
     DateTimeOffset OccurredAt,
     string? Description) : ICommand<OperationDto>;
 
+/// <summary>
+/// Records a debt that existed before using Ledger (outside groups). It is neither income nor
+/// expense: the balance comes from Opening balances.
+/// </summary>
+public sealed record RecordInitialDebtCommand(
+    Guid UserId,
+    Guid ContactId,
+    InitialDebtDirection Direction,
+    decimal Amount,
+    string Currency,
+    DateTimeOffset OccurredAt,
+    string? Description) : ICommand<OperationDto>;
+
 /// <summary>Internal: the ledger answered a posting request.</summary>
 public sealed record ApplyLedgerResultCommand(Guid OperationId, bool Succeeded, string? Reason) : ICommand;
 
@@ -70,6 +84,19 @@ internal sealed class RecordLoanValidator : AbstractValidator<RecordLoanCommand>
     {
         RuleFor(x => x.Amount).GreaterThan(0).PrecisionScale(19, Money.Decimals, true);
         RuleFor(x => x.Description).MaximumLength(DebtOperation.DescriptionMaxLength);
+        RuleFor(x => x.OccurredAt).NotInFuture();
+    }
+}
+
+internal sealed class RecordInitialDebtValidator : AbstractValidator<RecordInitialDebtCommand>
+{
+    public RecordInitialDebtValidator()
+    {
+        RuleFor(x => x.Amount).GreaterThan(0).PrecisionScale(19, Money.Decimals, true);
+        RuleFor(x => x.Currency).Must(Currencies.IsSupported).WithMessage("Unsupported currency.");
+        RuleFor(x => x.Direction).IsInEnum();
+        RuleFor(x => x.Description).MaximumLength(DebtOperation.DescriptionMaxLength);
+        RuleFor(x => x.OccurredAt).NotInFuture();
     }
 }
 
@@ -82,6 +109,7 @@ internal sealed class RecordSplitValidator : AbstractValidator<RecordSplitComman
         RuleFor(x => x.Payers).NotEmpty();
         RuleFor(x => x.Participants).NotEmpty();
         RuleFor(x => x.Description).MaximumLength(DebtOperation.DescriptionMaxLength);
+        RuleFor(x => x.OccurredAt).NotInFuture();
     }
 }
 
@@ -97,112 +125,57 @@ internal sealed class SettleValidator : AbstractValidator<SettleCommand>
         RuleFor(x => x.Currency).Must(Currencies.IsSupported).WithMessage("Unsupported currency.")
             .When(x => x.Scope != SettlementScope.Debt);
         RuleFor(x => x.Description).MaximumLength(DebtOperation.DescriptionMaxLength);
+        RuleFor(x => x.OccurredAt).NotInFuture();
     }
 }
 
 internal sealed class OperationHandlers(
     IDebtsDbContext dbContext,
-    IDebtsEventBus eventBus,
     PeopleDirectory people,
-    GroupBalances groupBalances)
+    OperationFactory factory,
+    OperationLifecycle lifecycle,
+    BooksLockGuard locks,
+    GroupBalances groupBalances,
+    MergeGuard merges)
     : ICommandHandler<RecordLoanCommand, OperationDto>,
       ICommandHandler<RecordSplitCommand, OperationDto>,
+      ICommandHandler<RecordInitialDebtCommand, OperationDto>,
       ICommandHandler<SettleCommand, OperationDto>,
       ICommandHandler<ApplyLedgerResultCommand>
 {
     public async Task<OperationDto> Handle(RecordLoanCommand command, CancellationToken cancellationToken)
     {
-        var me = await people.MeAsync(command.UserId, cancellationToken);
         var borrower = await people.ContactAsync(command.UserId, command.ContactId, cancellationToken);
-        var wallet = await GetWalletAsync(command.UserId, command.WalletId, cancellationToken);
 
-        var loan = DebtOperation.Loan(
-            command.UserId, borrower.PersonId, wallet.WalletId, command.Amount, wallet.Currency,
-            command.OccurredAt, command.Description);
+        var built = await factory.LoanAsync(
+            command.UserId, borrower, command.WalletId, command.Amount, command.OccurredAt, command.Description,
+            cancellationToken);
 
-        var debt = Debt.Create(loan.Id, null, me.PersonId, borrower.PersonId, loan.Total, loan.Currency);
+        return await RecordAsync(built, command.UserId, cancellationToken);
+    }
 
-        dbContext.Operations.Add(loan);
-        dbContext.Debts.Add(debt);
+    public async Task<OperationDto> Handle(RecordInitialDebtCommand command, CancellationToken cancellationToken)
+    {
+        var contact = await people.ContactAsync(command.UserId, command.ContactId, cancellationToken);
 
-        await RequestPostingAsync(loan, LedgerLegs.ForLoan(loan, me, borrower), cancellationToken);
+        var built = await factory.InitialDebtAsync(
+            command.UserId, contact, command.Direction, command.Amount, Currencies.Parse(command.Currency),
+            command.OccurredAt, command.Description, cancellationToken);
 
-        return ToDto(loan);
+        return await RecordAsync(built, command.UserId, cancellationToken);
     }
 
     public async Task<OperationDto> Handle(RecordSplitCommand command, CancellationToken cancellationToken)
     {
-        var currency = Currencies.Parse(command.Currency);
+        if (command.GroupId is { } groupId)
+            await people.GroupAsync(command.UserId, groupId, cancellationToken);
 
-        IReadOnlyDictionary<Guid, PersonInfo> allowed = command.GroupId is { } groupId
-            ? (await people.GroupAsync(command.UserId, groupId, cancellationToken)).Members
-            : await people.CircleAsync(command.UserId, cancellationToken);
+        var built = await factory.SplitAsync(
+            command.UserId, command.GroupId, command.Total, Currencies.Parse(command.Currency), command.Method,
+            command.Payers, command.Participants, command.CategoryId, command.OccurredAt, command.Description,
+            requireMyWallet: true, cancellationToken);
 
-        var involved = command.Payers.Select(p => p.PersonId).Concat(command.Participants.Select(p => p.PersonId));
-
-        foreach (var personId in involved.Distinct())
-        {
-            if (!allowed.ContainsKey(personId))
-                throw new DomainException(
-                    "split.unknown_person",
-                    command.GroupId is null
-                        ? $"Person '{personId}' is neither you nor one of your contacts."
-                        : $"Person '{personId}' is not a member of the group.");
-        }
-
-        var payers = new List<OperationPayer>();
-
-        foreach (var payer in command.Payers)
-        {
-            Guid? walletId = null;
-
-            if (payer.PersonId == command.UserId)
-            {
-                if (payer.WalletId is null)
-                    throw new DomainException("split.wallet_required", "Choose the wallet you paid from.");
-
-                var wallet = await GetWalletAsync(command.UserId, payer.WalletId.Value, cancellationToken);
-
-                if (wallet.Currency != currency)
-                    throw new DomainException(
-                        "split.currency_mismatch",
-                        $"The wallet holds {wallet.Currency} but the expense is in {currency}.");
-
-                walletId = wallet.WalletId;
-            }
-
-            payers.Add(new OperationPayer(payer.PersonId, payer.Amount, walletId));
-        }
-
-        var shares = SplitMath.ComputeShares(
-            command.Total,
-            command.Method,
-            command.Participants.Select(p => new Participant(p.PersonId, p.Value)).ToList());
-
-        var split = DebtOperation.Split(
-            command.UserId, command.GroupId, command.Total, currency, command.Method, command.CategoryId,
-            payers, shares, command.OccurredAt, command.Description);
-
-        var debts = SplitMath
-            .AllocateDebts(payers.Select(p => (p.PersonId, p.Amount)).ToList(), shares)
-            .Select(d => Debt.Create(split.Id, split.GroupId, d.CreditorPersonId, d.DebtorPersonId, d.Amount, currency))
-            .ToList();
-
-        if (debts.Count == 0)
-            throw new DomainException(
-                "split.no_debts",
-                "Nobody owes anything in this split. Record it as a regular expense instead.");
-
-        dbContext.Operations.Add(split);
-        dbContext.Debts.AddRange(debts);
-
-        var legs = split.GroupId is null
-            ? LedgerLegs.ForSplit(split, debts, allowed)
-            : LedgerLegs.ForGroupSplit(split, allowed);
-
-        await RequestPostingAsync(split, legs, cancellationToken);
-
-        return ToDto(split);
+        return await RecordAsync(built, command.UserId, cancellationToken);
     }
 
     public async Task<OperationDto> Handle(SettleCommand command, CancellationToken cancellationToken)
@@ -224,9 +197,9 @@ internal sealed class OperationHandlers(
             return;
 
         if (command.Succeeded)
-            await CompleteAsync(operation, cancellationToken);
+            await lifecycle.CompleteAsync(operation, cancellationToken);
         else
-            await RejectAsync(operation, command.Reason ?? "Rejected by the ledger.", cancellationToken);
+            await lifecycle.RejectAsync(operation, command.Reason ?? "Rejected by the ledger.", cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -247,7 +220,7 @@ internal sealed class OperationHandlers(
         var other = circle.GetValueOrDefault(debt.CreditorPersonId == command.UserId ? debt.DebtorPersonId : debt.CreditorPersonId)
             ?? throw new NotYetAvailableException("The other person is not in your contacts yet. Try again in a moment.");
 
-        return await SettleDebtsAsync(command, circle[command.UserId], other, [debt], debt.Currency, cancellationToken);
+        return await SettleDebtsAsync(command, other, [debt], debt.Currency, cancellationToken);
     }
 
     private async Task<OperationDto> SettleContactAsync(SettleCommand command, CancellationToken cancellationToken)
@@ -267,45 +240,31 @@ internal sealed class OperationHandlers(
         if (debts.Count == 0)
             throw new DomainException("settlement.nothing", $"There are no open {currency} debts with {contact.Name}.");
 
-        return await SettleDebtsAsync(command, me, contact, debts, currency, cancellationToken);
+        return await SettleDebtsAsync(command, contact, debts, currency, cancellationToken);
     }
 
     private async Task<OperationDto> SettleDebtsAsync(
         SettleCommand command,
-        PersonInfo me,
         PersonInfo other,
         IReadOnlyList<Debt> debts,
         Currency currency,
         CancellationToken cancellationToken)
     {
-        var owedToMe = debts.Where(d => d.CreditorPersonId == me.PersonId).Sum(d => d.Amount);
-        var iOwe = debts.Where(d => d.DebtorPersonId == me.PersonId).Sum(d => d.Amount);
-        var net = owedToMe - iOwe;
+        var operationIds = debts.Select(d => d.OperationId).Distinct().ToList();
 
-        var walletId = await RequireWalletIfMoneyMovesAsync(command, net, currency, cancellationToken);
+        if (await dbContext.Operations.AnyAsync(o => operationIds.Contains(o.Id) && o.PendingChangeId != null, cancellationToken))
+            throw new DomainException(
+                "operation.change_pending",
+                "A change of one of these debts is waiting for confirmation. Settle it once it is answered.");
 
-        var settlement = DebtOperation.Settlement(
-            command.UserId,
-            command.Scope,
-            null,
-            net >= 0 ? other.PersonId : me.PersonId,
-            net >= 0 ? me.PersonId : other.PersonId,
-            Math.Abs(net),
-            currency,
-            walletId,
-            command.OccurredAt,
-            command.Description ?? $"Settle up with {other.Name}");
+        var built = await factory.DebtSettlementAsync(
+            command.UserId, command.Scope, other, debts, currency, command.WalletId, command.OccurredAt,
+            command.Description, cancellationToken);
 
         foreach (var debt in debts)
-            debt.StartSettlement(settlement.Id);
+            debt.StartSettlement(built.Operation.Id);
 
-        dbContext.Operations.Add(settlement);
-
-        var legs = LedgerLegs.ForDebtSettlement(settlement, debts, me, other, command.UserId, walletId);
-
-        await RequestPostingAsync(settlement, legs, cancellationToken);
-
-        return ToDto(settlement);
+        return await RecordAsync(built, command.UserId, cancellationToken);
     }
 
     private async Task<OperationDto> SettleGroupPairAsync(SettleCommand command, CancellationToken cancellationToken)
@@ -328,6 +287,11 @@ internal sealed class OperationHandlers(
         if (pending)
             throw new ConflictException("Another operation of this group is being recorded. Try again in a moment.");
 
+        if (await dbContext.Operations.AnyAsync(o => o.GroupId == groupId && o.PendingChangeId != null, cancellationToken))
+            throw new DomainException(
+                "operation.change_pending",
+                "A change of a group expense is waiting for confirmation. Settle up once it is answered.");
+
         var balances = (await groupBalances.ComputeAsync(groupId, members.Keys, cancellationToken))
             .GetValueOrDefault(currency) ?? [];
 
@@ -337,60 +301,42 @@ internal sealed class OperationHandlers(
                 "settlement.not_suggested",
                 $"{from.Name} does not have to pay {to.Name} in {currency}. Check the group balances.");
 
-        var iMoveMoney = from.UserId == command.UserId || to.UserId == command.UserId;
-        var walletId = iMoveMoney
-            ? await RequireWalletIfMoneyMovesAsync(command, suggestion.Amount, currency, cancellationToken)
-            : null;
+        var built = await factory.GroupSettlementAsync(
+            command.UserId, groupId, from, to, suggestion.Amount, currency, command.WalletId, command.OccurredAt,
+            command.Description ?? $"{groupName}: {from.Name} paid {to.Name}", cancellationToken);
 
-        var settlement = DebtOperation.Settlement(
-            command.UserId,
-            SettlementScope.GroupPair,
-            groupId,
-            from.PersonId,
-            to.PersonId,
-            suggestion.Amount,
-            currency,
-            walletId,
-            command.OccurredAt,
-            command.Description ?? $"{groupName}: {from.Name} paid {to.Name}");
-
-        dbContext.Operations.Add(settlement);
-
-        await RequestPostingAsync(
-            settlement,
-            LedgerLegs.ForGroupSettlement(settlement, from, to, command.UserId, walletId),
-            cancellationToken);
-
-        return ToDto(settlement);
+        return await RecordAsync(built, command.UserId, cancellationToken);
     }
 
-    private async Task<Guid?> RequireWalletIfMoneyMovesAsync(
-        SettleCommand command,
-        decimal amount,
-        Currency currency,
-        CancellationToken cancellationToken)
+    private async Task<OperationDto> RecordAsync(BuiltOperation built, Guid userId, CancellationToken cancellationToken)
     {
-        if (amount == 0)
-            return null;
+        await locks.EnsureOpenAsync(built.RegisteredUserIds, [built.Operation.OccurredAt], userId, cancellationToken);
+        await merges.EnsureNotMergingAsync(built.Operation.InvolvedPersonIds, cancellationToken);
 
-        if (command.WalletId is null)
-            throw new DomainException("settlement.wallet_required", "Choose the wallet the money comes from or goes to.");
+        dbContext.Operations.Add(built.Operation);
+        dbContext.Debts.AddRange(built.Debts);
 
-        var wallet = await GetWalletAsync(command.UserId, command.WalletId.Value, cancellationToken);
+        await lifecycle.RequestPostingAsync(built.Operation, built.Legs, cancellationToken);
 
-        if (wallet.Currency != currency)
-            throw new DomainException(
-                "settlement.currency_mismatch",
-                $"The wallet holds {wallet.Currency} but the settlement is in {currency}.");
-
-        return wallet.WalletId;
+        return ToDto(built.Operation);
     }
 
+    internal static OperationDto ToDto(DebtOperation operation)
+        => new(operation.Id, operation.Kind, operation.Status, operation.RejectionReason, operation.CreatedAt, operation.CompletedAt);
+}
+
+/// <summary>How an operation moves from Pending to Completed or Rejected, and what that does to its debts.</summary>
+internal sealed class OperationLifecycle(
+    IDebtsDbContext dbContext,
+    IDebtsEventBus eventBus,
+    OperationFactory factory,
+    GroupBalances groupBalances)
+{
     /// <summary>
     /// Saves the operation and asks the ledger to record it. When no registered user is affected
     /// (e.g. a group expense between two non-registered people) it completes right away.
     /// </summary>
-    private async Task RequestPostingAsync(
+    public async Task RequestPostingAsync(
         DebtOperation operation,
         IReadOnlyList<LedgerLeg> legs,
         CancellationToken cancellationToken)
@@ -416,30 +362,38 @@ internal sealed class OperationHandlers(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task CompleteAsync(DebtOperation operation, CancellationToken cancellationToken)
+    public async Task CompleteAsync(DebtOperation operation, CancellationToken cancellationToken)
     {
         operation.Complete();
 
-        var created = await dbContext.Debts.Where(d => d.OperationId == operation.Id).ToListAsync(cancellationToken);
-        var local = dbContext.Debts.Local.Where(d => d.OperationId == operation.Id);
-
-        foreach (var debt in created.Union(local))
+        foreach (var debt in await DebtsOfAsync(operation.Id, cancellationToken))
             debt.Activate();
 
         if (operation.Kind == OperationKind.Settlement)
         {
-            var settled = await dbContext.Debts
-                .Where(d => d.SettlementOperationId == operation.Id)
-                .ToListAsync(cancellationToken);
-
-            foreach (var debt in settled.Union(dbContext.Debts.Local.Where(d => d.SettlementOperationId == operation.Id)))
+            foreach (var debt in await SettledByAsync(operation.Id, cancellationToken))
                 debt.CompleteSettlement(operation.Id);
 
             if (operation.GroupId is { } groupId)
                 await SettleGroupDebtsIfBalancedAsync(operation, groupId, cancellationToken);
         }
 
-        await eventBus.PublishAsync(
+        await PublishCompletedAsync(operation, cancellationToken);
+    }
+
+    public async Task RejectAsync(DebtOperation operation, string reason, CancellationToken cancellationToken)
+    {
+        operation.Reject(reason);
+
+        foreach (var debt in await DebtsOfAsync(operation.Id, cancellationToken))
+            debt.Reject();
+
+        foreach (var debt in await SettledByAsync(operation.Id, cancellationToken))
+            debt.CancelSettlement(operation.Id);
+    }
+
+    public async Task PublishCompletedAsync(DebtOperation operation, CancellationToken cancellationToken)
+        => await eventBus.PublishAsync(
             new DebtOperationCompleted(
                 operation.Id,
                 operation.Kind.ToString(),
@@ -447,17 +401,19 @@ internal sealed class OperationHandlers(
                 operation.GroupId,
                 await PartiesAsync(operation, cancellationToken)),
             cancellationToken);
+
+    /// <summary>The debts created by the operation (stored or just added).</summary>
+    public async Task<IReadOnlyList<Debt>> DebtsOfAsync(Guid operationId, CancellationToken cancellationToken)
+    {
+        var stored = await dbContext.Debts.Where(d => d.OperationId == operationId).ToListAsync(cancellationToken);
+        return stored.Union(dbContext.Debts.Local.Where(d => d.OperationId == operationId)).ToList();
     }
 
-    private async Task RejectAsync(DebtOperation operation, string reason, CancellationToken cancellationToken)
+    /// <summary>The debts a settlement pays (stored or just added).</summary>
+    public async Task<IReadOnlyList<Debt>> SettledByAsync(Guid settlementId, CancellationToken cancellationToken)
     {
-        operation.Reject(reason);
-
-        foreach (var debt in await dbContext.Debts.Where(d => d.OperationId == operation.Id).ToListAsync(cancellationToken))
-            debt.Reject();
-
-        foreach (var debt in await dbContext.Debts.Where(d => d.SettlementOperationId == operation.Id).ToListAsync(cancellationToken))
-            debt.CancelSettlement(operation.Id);
+        var stored = await dbContext.Debts.Where(d => d.SettlementOperationId == settlementId).ToListAsync(cancellationToken);
+        return stored.Union(dbContext.Debts.Local.Where(d => d.SettlementOperationId == settlementId)).ToList();
     }
 
     /// <summary>Once every member of a group is even in a currency, all its debts in that currency are settled.</summary>
@@ -491,33 +447,12 @@ internal sealed class OperationHandlers(
 
     private async Task<IReadOnlyList<DebtParty>> PartiesAsync(DebtOperation operation, CancellationToken cancellationToken)
     {
-        IReadOnlyDictionary<Guid, PersonInfo> known = operation.GroupId is { } groupId
-            ? (await people.GroupAsync(operation.InitiatorUserId, groupId, cancellationToken)).Members
-            : await people.CircleAsync(operation.InitiatorUserId, cancellationToken);
+        var known = await factory.PeopleOfAsync(operation, cancellationToken);
 
-        var personIds = LedgerLegs.Involved(operation)
-            .Append(operation.InitiatorUserId)
-            .Concat(new[] { operation.FromPersonId, operation.ToPersonId }.OfType<Guid>())
-            .Distinct();
-
-        return personIds
+        return operation.InvolvedPersonIds
             .Where(known.ContainsKey)
             .Select(id => known[id])
             .Select(p => new DebtParty(p.PersonId, p.Name, p.UserId))
             .ToList();
     }
-
-    private async Task<DebtWallet> GetWalletAsync(Guid userId, Guid walletId, CancellationToken cancellationToken)
-    {
-        var wallet = await dbContext.Wallets.AsNoTracking()
-            .SingleOrDefaultAsync(w => w.WalletId == walletId, cancellationToken);
-
-        if (wallet is null || wallet.UserId != userId)
-            throw new NotFoundException("Wallet", walletId);
-
-        return wallet;
-    }
-
-    internal static OperationDto ToDto(DebtOperation operation)
-        => new(operation.Id, operation.Kind, operation.Status, operation.RejectionReason, operation.CreatedAt, operation.CompletedAt);
 }

@@ -45,7 +45,14 @@ public static class MessagingExtensions
             },
             (endpoint, context) =>
             {
-                endpoint.UseMessageRetry(retry => retry.Intervals(100, 500, 1000, 2000, 5000, 10000));
+                // A message can depend on another module's event that has not been processed yet
+                // (eventual consistency, e.g. a wallet account before the user's system accounts):
+                // retry with exponential backoff (about three minutes in total) before dead-lettering it.
+                endpoint.UseMessageRetry(retry => retry.Exponential(
+                    retryLimit: 12,
+                    minInterval: TimeSpan.FromMilliseconds(100),
+                    maxInterval: TimeSpan.FromSeconds(30),
+                    intervalDelta: TimeSpan.FromMilliseconds(200)));
 
                 foreach (var consumer in consumers)
                     endpoint.ConfigureConsumer(context, consumer);
