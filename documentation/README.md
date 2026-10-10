@@ -1043,6 +1043,8 @@ Volumes: postgres_data, rabbitmq_data, caddy_data (certificates), caddy_config
 | `deploy/vps/initdb/01-keycloak.sql` | Creates the `keycloak` database the first time PostgreSQL starts. |
 | `deploy/vps/deploy.sh` | `./deploy.sh <tag>`: writes `release.env`, pulls, starts postgres and rabbitmq, runs the migrator (if it fails, nothing else changes), starts the rest. |
 | `deploy/vps/backup.sh` | Nightly backup (cron at 03:30 UTC from cloud-init). |
+| `deploy/vps/import-dump.sh` | Replaces the `ledger` database with a dump from another environment and maps users to their Keycloak accounts on the server (§19.8). |
+| `deploy/vps/link-user.sh` | Links one imported user to their Keycloak account later, before their first login (§19.8). |
 | `deploy/vps/cloud-init.yaml` | Server setup: user `deploy` (SSH key only), no root or password logins, ufw, fail2ban, automatic security updates, Docker + Compose, rclone, 2 GB swap, `/opt/ledger`, the backup cron. |
 
 ### 19.4 First deployment
@@ -1135,3 +1137,68 @@ The production compose ran locally under a separate project name, with `DOMAIN=l
   * the rclone commands uploaded and listed the dumps on a local S3 server
 * **Static checks**: `cloud-init schema` is valid, actionlint and shellcheck are clean, and `docker compose config` is valid.
 * **Not verified yet**: the real server, DNS, Let's Encrypt and a GitHub run. They need the domain and the server.
+
+### 19.8 Bringing data from another environment (e.g. local)
+
+Added on branch `feature/vps-import-local-data`, to move the real data kept in local development to the VPS.
+
+**What has to change.** Every module stores data under the internal user id. Only `identity.users."ExternalId"` ties that id to a login: the Keycloak user id (`sub`). The local Keycloak and the server's are different, so the same person has another id on the server. The import copies the whole database and rewrites `ExternalId` for each person. Keycloak itself is not copied: people get new accounts (and passwords) on the server.
+
+**Before you start**
+* Both sides run the same version (or the server a newer one: the migrator runs after the import).
+* Create the server's Keycloak users in realm `ledger`, with the **same emails** as locally, and note each one's **ID** (*Users → user → ID*). Do it only for the people who need to log in now. Others can be linked later, but **before their first login**.
+* Nothing on the server's data is kept: whatever was created there (e.g. a test login) is replaced. It is saved first, see step 4.
+
+**Steps**
+1. Locally, stop the API so the data doesn't change, and check that nothing is waiting to be published:
+   ```bash
+   docker compose --profile full stop api        # or stop the API you run from the IDE
+   for s in accounts contacts debts groups identity investments transactions wallets; do
+     docker exec ledger-postgres psql -U postgres -d ledger -Atc "select '$s', count(*) from $s.integration_outbox where \"ProcessedAt\" is null"
+   done                                          # every count must be 0
+   docker exec ledger-postgres pg_dump -U postgres -Fc ledger > ledger.dump
+   ```
+2. Copy it to the server: `scp ledger.dump deploy@<server>:/opt/ledger/backups/`.
+3. On the server, from `/opt/ledger`:
+   ```bash
+   ./import-dump.sh backups/ledger.dump \
+     gastimastra@gmail.com=<keycloak id> sebastianmastra@gmail.com=<keycloak id>
+   ```
+   It asks you to type `import`. `--yes` skips the question.
+4. What it does:
+   1. checks the arguments and that the file is a `pg_dump -Fc` dump
+   2. stops `api` and `web` (the site is down for a minute)
+   3. refuses to go on if RabbitMQ still has queued messages
+   4. saves the current database to `backups/pre-import-<stamp>/ledger.dump`
+   5. restores the dump into a separate `ledger_import` database
+   6. for each mapping, checks that exactly one user has that email and that the id isn't taken by someone else, then sets `ExternalId`
+   7. lists the users, then replaces `ledger` with `ledger_import`
+   8. runs the migrator and starts everything (the new API process has no cached user ids)
+
+   **Any failure before the replacement leaves the server as it was.**
+5. Log in as each mapped user and check the balances. Delete `backups/ledger.dump` (and the local `ledger.dump`) when you're happy: they contain everything.
+
+**Linking someone later** (e.g. Sofia):
+1. Create their Keycloak user.
+2. Before they log in, run `./link-user.sh <email> <keycloak id>`.
+
+Users from the dump that are never linked (e.g. the local test users alice and bob) stay in the data, but nobody can log in as them.
+
+**If someone logged in before being linked**, the API created a second, empty user with the same email, and `link-user.sh` refuses (*There are 2 users with email …*). To fix it:
+1. Run, inside `docker compose … exec postgres psql -U postgres -d ledger`:
+   `UPDATE identity.users SET "ExternalId" = 'unlinked-' || "Id" WHERE "ExternalId" = '<keycloak id>';`
+   That makes the empty user unreachable.
+2. Run `link-user.sh` again.
+3. Restart the API (`docker compose … restart api`): it caches user ids for 30 minutes.
+
+The empty user stays in the data with the same email. If their contacts then look duplicated, tell the developer.
+
+**Undo the import**: restore `backups/pre-import-<stamp>/ledger.dump` as in §19.6.
+
+**Rehearsed before merging**, on a local copy of the production stack loaded with a read-only dump of the real local database:
+* **Failed mapping** (unknown email): exit 3, the existing data untouched, the temporary database removed, the app back up.
+* **Real import** (Gaston and Sebastian):
+  * a VPS user that had logged in before the import ended up with their original internal id
+  * the four wallets, their balances and the summary (wallets, owed to me, net) matched the local data
+  * creating a wallet afterwards worked, and its events went through RabbitMQ
+* **`link-user.sh`**: Sofia, linked before her first login, got her original id; a user who logged in first got the "2 users" refusal; invalid arguments were rejected.
