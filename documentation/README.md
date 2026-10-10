@@ -1064,7 +1064,7 @@ Volumes: postgres_data, rabbitmq_data, caddy_data (certificates), caddy_config
    nano .env && chmod 600 .env       # DOMAIN, ADMIN_CIDRS, passwords (openssl rand -hex 24), BACKUP_S3_*
    ```
    The passwords are only used to create the database, the broker user and the Keycloak bootstrap admin on the first start. Changing them later means changing them inside those services too.
-7. **GitHub**: create the environment **`development`** (*Settings → Environments*; the deploy job uses it) and add to it:
+7. **GitHub**: create the environment **`dev`** (*Settings → Environments*; the deploy job uses it) and add to it:
    - secrets: `VPS_HOST` (the server's IP or host name only), `VPS_SSH_KEY` (the whole private GitHub Actions key), `VPS_KNOWN_HOSTS` (`ssh-keyscan -t ed25519 <ip>`)
    - variable: `VPS_DOMAIN` (the bare domain, e.g. `example.com`)
 
@@ -1083,7 +1083,7 @@ Volumes: postgres_data, rabbitmq_data, caddy_data (certificates), caddy_config
 
 1. CI (`ci.yml`): .NET build and every test, web unit tests and the EN/ES build.
 2. Builds api, migrator, web and keycloak for `linux/amd64` and pushes them to `ghcr.io/<owner>/ledger-<name>` as `<commit sha>` and `latest`.
-3. In the GitHub environment `development` (its secrets, and the deployment history on the repository page), over SSH as `deploy`:
+3. In the GitHub environment `dev` (its secrets, and the deployment history on the repository page), over SSH as `deploy`:
    - copies the stack files to `/opt/ledger`
    - logs in to ghcr.io with the job's token (sent through stdin) and runs `./deploy.sh <sha>`
    - logs out
