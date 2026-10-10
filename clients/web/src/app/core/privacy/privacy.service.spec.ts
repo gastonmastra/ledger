@@ -3,6 +3,8 @@ import { MASK, PrivacyService, maskNumber } from './privacy.service';
 
 describe('PrivacyService', () => {
   beforeEach(() => localStorage.clear());
+  // Spec files can share one jsdom (e.g. CI with few workers): don't leave "hide amounts" on for them.
+  afterEach(() => localStorage.clear());
 
   it('masks the digits and the sign but keeps the currency', () => {
     const en = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR', signDisplay: 'exceptZero' });
