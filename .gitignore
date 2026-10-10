@@ -488,3 +488,6 @@ $RECYCLE.BIN/
 *.tfvars
 !*.tfvars.example
 crash.log
+
+# VPS secrets (the real file lives only on the server)
+deploy/vps/.env
