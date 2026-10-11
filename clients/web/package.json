@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build --service-worker=ngsw-config.json",
+    "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "start:es": "ng serve --configuration es",
