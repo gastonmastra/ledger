@@ -638,7 +638,7 @@ Added on branch `feature/ledger-enhancements`, to the API, the web app and the c
 `GET /api/reports?from&to&currency&timeZone` is computed in memory from the user's postings in one currency:
 * **Buckets:** days when the range is 62 days or shorter, months when it is longer, cut in the given IANA time zone.
 * **Income and expenses:** only Income and Expense accounts, so opening balances, currency exchange and balance adjustments are excluded.
-* **Net worth:** the cumulative wallets + owed to me − I owe + pending at the end of each bucket, including history before the period.
+* **Net worth:** the cumulative wallets + owed to me − I owe + pending at the end of each bucket, including history before the period. Each bucket also returns its parts (`wallets` — pending settlements included —, `owedToMe`, `iOwe`; `netWorth = wallets + owedToMe − iOwe`, added on branch `feature/net-worth-breakdown`). The web chart *Net worth over time* draws each part on its own line (I owe as negative, plus Investments when there are any) and the **total net worth** (parts + investments) as a thicker line on top; hovering lists every part and the total.
 * **Spending by category**, and the **balance per wallet** at the end of the period.
 
 ### 14.4 Problems found and fixed
