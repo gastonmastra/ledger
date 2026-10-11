@@ -14,6 +14,7 @@ public sealed class DebtsDbContext(DbContextOptions<DebtsDbContext> options)
 
     public DbSet<DebtOperation> Operations => Set<DebtOperation>();
     public DbSet<Debt> Debts => Set<Debt>();
+    public DbSet<DebtPayment> Payments => Set<DebtPayment>();
     public DbSet<DebtContact> Contacts => Set<DebtContact>();
     public DbSet<DebtUser> Users => Set<DebtUser>();
     public DbSet<DebtGroupMember> GroupMembers => Set<DebtGroupMember>();
@@ -197,16 +198,34 @@ internal sealed class DebtConfiguration : IEntityTypeConfiguration<Debt>
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Amount).HasPrecision(19, 4).IsRequired();
+        builder.Property(x => x.Paid).HasPrecision(19, 4).IsRequired();
         builder.Property(x => x.Currency).HasConversion<string>().HasMaxLength(3).IsRequired();
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Ignore(x => x.IsSettling);
         builder.Ignore(x => x.IsPaid);
+        builder.Ignore(x => x.Remaining);
+        builder.Ignore(x => x.IsPartiallyPaid);
 
         builder.HasIndex(x => x.OperationId);
         builder.HasIndex(x => x.SettlementOperationId);
         builder.HasIndex(x => x.CreditorPersonId);
         builder.HasIndex(x => x.DebtorPersonId);
         builder.HasIndex(x => x.GroupId);
+    }
+}
+
+internal sealed class DebtPaymentConfiguration : IEntityTypeConfiguration<DebtPayment>
+{
+    public void Configure(EntityTypeBuilder<DebtPayment> builder)
+    {
+        builder.ToTable("debt_payments");
+
+        builder.HasKey(x => x.Id);
+
+        builder.Property(x => x.Amount).HasPrecision(19, 4).IsRequired();
+
+        builder.HasIndex(x => x.DebtId);
+        builder.HasIndex(x => x.SettlementOperationId);
     }
 }
 

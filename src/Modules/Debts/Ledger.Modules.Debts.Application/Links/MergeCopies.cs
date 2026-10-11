@@ -16,9 +16,11 @@ internal static class MergeCopies
 {
     /// <param name="operations">Current (completed) operations involving the person.</param>
     /// <param name="debts">Every debt involving the person.</param>
+    /// <param name="payments">What the payments among <paramref name="operations"/> paid.</param>
     public static IReadOnlyList<MergeCopy> Build(
         IEnumerable<DebtOperation> operations,
         IReadOnlyList<Debt> debts,
+        IReadOnlyList<DebtPayment> payments,
         Guid personId,
         Guid userId)
     {
@@ -26,7 +28,7 @@ internal static class MergeCopies
 
         foreach (var operation in operations.OrderBy(o => o.OccurredAt).ThenBy(o => o.CreatedAt))
         {
-            var positions = PositionsOf(operation, debts, personId).Where(p => p.Amount != 0).ToList();
+            var positions = PositionsOf(operation, debts, payments, personId).Where(p => p.Amount != 0).ToList();
 
             if (positions.Count == 0)
                 continue;
@@ -40,22 +42,34 @@ internal static class MergeCopies
     }
 
     /// <summary>The person's positions in one operation, debit-signed like <see cref="LedgerLegs"/>.</summary>
-    public static IReadOnlyList<LedgerPosition> PositionsOf(DebtOperation operation, IReadOnlyList<Debt> debts, Guid personId)
+    public static IReadOnlyList<LedgerPosition> PositionsOf(
+        DebtOperation operation,
+        IReadOnlyList<Debt> debts,
+        IReadOnlyList<DebtPayment> payments,
+        Guid personId)
     {
         if (operation.GroupId is { } groupId)
             return GroupPositions(operation, groupId, personId);
 
-        if (operation.Kind == OperationKind.Settlement)
-        {
-            // A settlement cancels the debts it paid.
-            return debts
-                .Where(d => d.SettlementOperationId == operation.Id && d.Status == DebtStatus.Settled && d.Involves(personId))
-                .Select(d => d.CreditorPersonId == personId
-                    ? new LedgerPosition(d.DebtorPersonId, PositionSides.Receivable, -d.Amount)
-                    : new LedgerPosition(d.CreditorPersonId, PositionSides.Payable, d.Amount))
-                .ToList();
-        }
+        var created = CreatedPositions(operation, debts, personId);
 
+        if (operation.Kind != OperationKind.Settlement)
+            return created;
+
+        // A payment shrinks the debts it paid (fully or partly) and may create one (paid beyond what was owed).
+        var byId = debts.ToDictionary(d => d.Id);
+
+        return payments
+            .Where(p => p.SettlementOperationId == operation.Id && byId.ContainsKey(p.DebtId) && byId[p.DebtId].Involves(personId))
+            .Select(p => byId[p.DebtId].CreditorPersonId == personId
+                ? new LedgerPosition(byId[p.DebtId].DebtorPersonId, PositionSides.Receivable, -p.Amount)
+                : new LedgerPosition(byId[p.DebtId].CreditorPersonId, PositionSides.Payable, p.Amount))
+            .Concat(created)
+            .ToList();
+    }
+
+    private static IReadOnlyList<LedgerPosition> CreatedPositions(DebtOperation operation, IReadOnlyList<Debt> debts, Guid personId)
+    {
         return debts
             .Where(d => d.OperationId == operation.Id
                         && d.Status is DebtStatus.Open or DebtStatus.Settled

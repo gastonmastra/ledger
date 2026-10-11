@@ -41,7 +41,8 @@ public sealed record RecordInitialDebtRequest(
 /// New values of a loan, existing debt, split or settlement (every field of its kind is sent again)
 /// and why it changes. Loan: contactId, walletId, amount. Existing debt: contactId, direction,
 /// amount, currency. Split: amount (total), currency, method, payers, participants, categoryId.
-/// Settlement: walletId. Only whoever recorded it can change the contact, wallets, category or currency.
+/// Payment: amount, walletId (only whoever recorded it can change the amount). Group settlement: walletId.
+/// Only whoever recorded it can change the contact, wallets, category or currency.
 /// </summary>
 public sealed record ReviseOperationRequest(
     string Reason,
@@ -61,17 +62,36 @@ public sealed record OperationReasonRequest(string Reason);
 
 public sealed record RespondToChangeRequest(string? Reason = null);
 
+/// <summary>One suggested payment of a group's simplified balances.</summary>
 public sealed record SettleRequest(
-    SettlementScope Scope,
-    Guid? DebtId = null,
-    Guid? ContactId = null,
-    Guid? GroupId = null,
-    Guid? FromPersonId = null,
-    Guid? ToPersonId = null,
-    string? Currency = null,
+    Guid GroupId,
+    Guid FromPersonId,
+    Guid ToPersonId,
+    string Currency,
     Guid? WalletId = null,
     DateTimeOffset? OccurredAt = null,
     string? Description = null);
+
+/// <summary>Money paid between me and a contact (outside groups), applied to our debts oldest first.</summary>
+public sealed record RecordPaymentRequest(
+    Guid ContactId,
+    string Currency,
+    PaymentDirection Direction,
+    decimal Amount,
+    Guid WalletId,
+    DateTimeOffset? OccurredAt = null,
+    string? Description = null);
+
+/// <summary>
+/// What a payment would pay. New payment: contactId, currency, direction, amount. Edit of a payment: operationId and
+/// the new amount.
+/// </summary>
+public sealed record PreviewPaymentRequest(
+    decimal Amount,
+    Guid? ContactId = null,
+    string? Currency = null,
+    PaymentDirection? Direction = null,
+    Guid? OperationId = null);
 
 public static class DebtsEndpoints
 {
@@ -114,11 +134,29 @@ public static class DebtsEndpoints
         debts.MapPost("/settlements", async (SettleRequest request, ICurrentUser user, ISender sender, CancellationToken ct) =>
                 Accepted(await sender.Send(
                     new SettleCommand(
-                        user.UserId, request.Scope, request.DebtId, request.ContactId, request.GroupId,
-                        request.FromPersonId, request.ToPersonId, request.Currency, request.WalletId,
-                        request.OccurredAt ?? DateTimeOffset.UtcNow, request.Description),
+                        user.UserId, request.GroupId, request.FromPersonId, request.ToPersonId, request.Currency,
+                        request.WalletId, request.OccurredAt ?? DateTimeOffset.UtcNow, request.Description),
                     ct)))
-            .WithSummary("Fully settle a debt, everything with a contact, or a suggested group payment (asynchronous)");
+            .WithSummary("Pay one of a group's suggested payments (asynchronous)");
+
+        debts.MapPost("/payments", async (RecordPaymentRequest request, ICurrentUser user, ISender sender, CancellationToken ct) =>
+                Accepted(await sender.Send(
+                    new RecordPaymentCommand(
+                        user.UserId, request.ContactId, request.Currency, request.Direction, request.Amount,
+                        request.WalletId, request.OccurredAt ?? DateTimeOffset.UtcNow, request.Description),
+                    ct)))
+            .WithSummary("Record money paid between me and a contact: it pays our debts oldest first, mutual debts cancel out, and any extra becomes a debt the other way (asynchronous)");
+
+        debts.MapPost("/payments/preview", async (PreviewPaymentRequest request, ICurrentUser user, ISender sender, CancellationToken ct) =>
+                Results.Ok(await sender.Send(
+                    new PreviewPaymentQuery(
+                        user.UserId, request.Amount, request.ContactId, request.Currency, request.Direction, request.OperationId),
+                    ct)))
+            .WithSummary("What a payment (or an edit of one) would pay, without recording it");
+
+        debts.MapGet("/{id:guid}/payments", async (Guid id, ICurrentUser user, ISender sender, CancellationToken ct) =>
+                Results.Ok(await sender.Send(new GetDebtPaymentsQuery(user.UserId, id), ct)))
+            .WithSummary("The payments that paid (part of) a debt, oldest first");
 
         debts.MapGet("/operations", async (
                 OperationKind? kind,
