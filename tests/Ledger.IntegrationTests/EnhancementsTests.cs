@@ -170,6 +170,15 @@ public class EnhancementsTests(LedgerApiFactory factory)
         await alice.PostJsonAsync("/api/transactions/balance-adjustment",
             new { walletId, actualBalance = 1440, occurredAt = start.AddDays(4) }); // −10, excluded from expenses
 
+        // Net worth parts: Carl owes me 100 (a loan from the wallet), I owe Dana 30 (from before Ledger).
+        var carl = (await alice.PostJsonAsync("/api/contacts", new { name = "Carl" })).GetProperty("id").GetGuid();
+        var dana = (await alice.PostJsonAsync("/api/contacts", new { name = "Dana" })).GetProperty("id").GetGuid();
+        await alice.CompletedOperationAsync(await alice.PostJsonAsync("/api/debts/loans",
+            new { contactId = carl, walletId, amount = 100, occurredAt = start.AddDays(5) }, HttpStatusCode.Accepted));
+        await alice.CompletedOperationAsync(await alice.PostJsonAsync("/api/debts/initial",
+            new { contactId = dana, direction = "IOwe", amount = 30, currency = "EUR", occurredAt = start.AddDays(6) }, HttpStatusCode.Accepted));
+        await EventuallyAsync(async () => await alice.WalletBalanceAsync(walletId) == 1340 ? (object)true : null, "the loan in the wallet");
+
         var month = await alice.GetJsonAsync(
             $"/api/reports?from={Uri.EscapeDataString(start.ToString("O"))}&to={Uri.EscapeDataString(start.AddMonths(1).AddTicks(-1).ToString("O"))}&currency=EUR&timeZone=UTC");
 
@@ -180,11 +189,18 @@ public class EnhancementsTests(LedgerApiFactory factory)
 
         var buckets = month.GetProperty("buckets").EnumerateArray().ToList();
         Assert.Equal(1000, buckets[0].GetProperty("netWorth").GetDecimal());   // opening balance before the period
-        Assert.Equal(1440, buckets[^1].GetProperty("netWorth").GetDecimal());
+        Assert.Equal(1410, buckets[^1].GetProperty("netWorth").GetDecimal());  // 1340 + 100 − 30
+
+        // Its parts, per bucket: wallets, owed to me, I owe; they always add up to the net worth.
+        decimal Part(JsonElement bucket, string name) => bucket.GetProperty(name).GetDecimal();
+        Assert.Equal((1340m, 100m, 30m), (Part(buckets[^1], "wallets"), Part(buckets[^1], "owedToMe"), Part(buckets[^1], "iOwe")));
+        Assert.Equal((1440m, 0m, 0m), (Part(buckets[4], "wallets"), Part(buckets[4], "owedToMe"), Part(buckets[4], "iOwe")));
+        Assert.Equal((1340m, 100m, 0m), (Part(buckets[5], "wallets"), Part(buckets[5], "owedToMe"), Part(buckets[5], "iOwe")));
+        Assert.All(buckets, b => Assert.Equal(Part(b, "netWorth"), Part(b, "wallets") + Part(b, "owedToMe") - Part(b, "iOwe")));
 
         var spending = month.GetProperty("spendingByCategory").EnumerateArray().ToList();
         Assert.Equal(40, spending.Single(s => s.GetProperty("name").GetString() == "Food").GetProperty("amount").GetDecimal());
-        Assert.Equal(1440, month.GetProperty("walletBalances")[0].GetProperty("balance").GetDecimal());
+        Assert.Equal(1340, month.GetProperty("walletBalances")[0].GetProperty("balance").GetDecimal());
 
         var year = await alice.GetJsonAsync(
             $"/api/reports?from={Uri.EscapeDataString(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero).ToString("O"))}&to={Uri.EscapeDataString(new DateTimeOffset(2026, 12, 31, 23, 59, 59, TimeSpan.Zero).ToString("O"))}&timeZone=UTC");
