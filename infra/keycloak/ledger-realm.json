@@ -3,6 +3,8 @@
   "displayName": "Ledger",
   "enabled": true,
   "sslRequired": "none",
+  "webAuthnPolicyPasswordlessRpEntityName": "Ledger",
+  "webAuthnPolicyPasswordlessPasskeysEnabled": true,
   "registrationAllowed": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
@@ -134,6 +136,7 @@
   "users": [
     {
       "username": "alice",
+      "realmRoles": ["default-roles-ledger"],
       "email": "alice@ledger.local",
       "emailVerified": true,
       "firstName": "Alice",
@@ -149,6 +152,7 @@
     },
     {
       "username": "bob",
+      "realmRoles": ["default-roles-ledger"],
       "email": "bob@ledger.local",
       "emailVerified": true,
       "firstName": "Bob",
