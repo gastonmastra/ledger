@@ -148,7 +148,7 @@ All endpoints need a Keycloak access token. Explore them with Scalar at `/scalar
 | GET/PUT | `/api/transactions/opening-balance/{walletId}`, `/api/transactions/opening-balance` | Read or replace a wallet's opening balance (PUT needs a `reason`) |
 | POST | `/api/transactions/balance-adjustment` | Set a wallet to its real balance |
 | GET | `/api/summary` | Totals per currency, per wallet and per person or group |
-| GET | `/api/reports?from&to&currency&timeZone` | Figures for charts (daily up to 62 days, monthly above) |
+| GET | `/api/reports?from&to&currency&timeZone` | Figures for charts (daily up to 62 days, monthly above); each bucket has the net worth and its parts (wallets, owed to me, I owe) |
 | GET/POST | `/api/pending-assignments`, `/{id}/assign` | Choose the wallet for money others recorded for me |
 | GET/POST | `/api/contacts`, `/{id}/link` | Contacts (linking a used contact sends a link request) |
 | GET/POST/DELETE | `/api/contacts/link-requests`, `/{id}/accept`, `/{id}/reject`, `DELETE /{id}`; GET `/api/debts/link-requests/{id}/preview` | Link requests and their preview |
