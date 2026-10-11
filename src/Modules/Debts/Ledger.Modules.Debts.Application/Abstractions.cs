@@ -8,6 +8,7 @@ public interface IDebtsDbContext
 {
     DbSet<DebtOperation> Operations { get; }
     DbSet<Debt> Debts { get; }
+    DbSet<DebtPayment> Payments { get; }
     DbSet<DebtContact> Contacts { get; }
     DbSet<DebtUser> Users { get; }
     DbSet<DebtGroupMember> GroupMembers { get; }

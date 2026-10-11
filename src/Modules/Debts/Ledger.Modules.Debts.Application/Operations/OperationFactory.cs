@@ -15,6 +15,9 @@ internal sealed record BuiltOperation(
 {
     /// <summary>Registered users whose books the operation touches.</summary>
     public IReadOnlySet<Guid> RegisteredUserIds => LedgerLegs.RegisteredUsers(Operation, People);
+
+    /// <summary>Payments only: how much of each debt it pays.</summary>
+    public IReadOnlyList<DebtPayment> Payments { get; init; } = [];
 }
 
 /// <summary>
@@ -22,7 +25,7 @@ internal sealed record BuiltOperation(
 /// who first recorded them (the initiator): their contacts, wallets and categories. Used both to
 /// record a new operation and to build a new version of an existing one.
 /// </summary>
-internal sealed class OperationFactory(IDebtsDbContext dbContext, PeopleDirectory people)
+internal sealed class OperationFactory(IDebtsDbContext dbContext, PeopleDirectory people, PaymentBook payments)
 {
     public async Task<BuiltOperation> LoanAsync(
         Guid initiatorUserId,
@@ -162,46 +165,64 @@ internal sealed class OperationFactory(IDebtsDbContext dbContext, PeopleDirector
         return new BuiltOperation(split, debts, legs, allowed);
     }
 
-    /// <summary>Settles <paramref name="debts"/> between the initiator and <paramref name="other"/>.</summary>
+    /// <summary>
+    /// A payment between the initiator and <paramref name="other"/> outside groups: mutual debts cancel out, the money
+    /// pays the payer's debts oldest first, and anything paid beyond that becomes a debt of the payee to the payer.
+    /// </summary>
+    /// <param name="replacing">The version being edited: what it paid is available again.</param>
     /// <param name="requireMyWallet">
-    /// False when somebody else edits it and the initiator's wallet is unknown (settlements recorded
-    /// before wallets were stored): the initiator's money goes to their pending wallet assignments.
+    /// False when somebody else edits it and the initiator's wallet is unknown (settlements recorded before wallets
+    /// were stored): the initiator's money goes to their pending wallet assignments.
     /// </param>
-    public async Task<BuiltOperation> DebtSettlementAsync(
+    public async Task<BuiltOperation> PaymentAsync(
         Guid initiatorUserId,
-        SettlementScope scope,
         PersonInfo other,
-        IReadOnlyList<Debt> debts,
+        bool initiatorPays,
+        decimal amount,
         Currency currency,
         Guid? walletId,
         DateTimeOffset occurredAt,
         string? description,
+        Guid? replacing,
         CancellationToken cancellationToken,
         bool requireMyWallet = true)
     {
         var me = await people.MeAsync(initiatorUserId, cancellationToken);
+        var payer = initiatorPays ? me : other;
+        var payee = initiatorPays ? other : me;
 
-        var owedToMe = debts.Where(d => d.CreditorPersonId == me.PersonId).Sum(d => d.Amount);
-        var iOwe = debts.Where(d => d.DebtorPersonId == me.PersonId).Sum(d => d.Amount);
-        var net = owedToMe - iOwe;
+        var payable = await payments.PayableAsync(me.PersonId, other.PersonId, currency, replacing, cancellationToken);
+        var allocation = PaymentAllocation.Allocate(payer.PersonId, payee.PersonId, amount, payable.Open);
 
-        var wallet = await RequireWalletIfMoneyMovesAsync(initiatorUserId, walletId, net, currency, requireMyWallet, cancellationToken);
+        if (allocation.Allocations.Count == 0 && allocation.Extra == 0)
+            throw new DomainException("payment.nothing", "There is nothing to pay: enter an amount.");
+
+        var wallet = await RequireWalletIfMoneyMovesAsync(initiatorUserId, walletId, amount, currency, requireMyWallet, cancellationToken);
 
         var settlement = DebtOperation.Settlement(
             initiatorUserId,
-            scope,
+            SettlementScope.Payment,
             null,
-            net >= 0 ? other.PersonId : me.PersonId,
-            net >= 0 ? me.PersonId : other.PersonId,
-            Math.Abs(net),
+            payer.PersonId,
+            payee.PersonId,
+            amount,
             currency,
             wallet,
             occurredAt,
-            description ?? $"Settle up with {other.Name}");
+            // Also shown in a linked contact's books, so the default text names both sides.
+            description ?? $"{payer.Name} paid {payee.Name}");
 
-        var legs = LedgerLegs.ForDebtSettlement(settlement, debts, me, other, initiatorUserId, wallet);
+        var rows = allocation.Allocations
+            .Select(a => DebtPayment.Create(settlement.Id, a.DebtId, a.Amount))
+            .ToList();
 
-        return new BuiltOperation(settlement, [], legs, People(me, other));
+        IReadOnlyList<Debt> extra = allocation.Extra > 0
+            ? [Debt.ForExtraPayment(settlement.Id, payer.PersonId, payee.PersonId, allocation.Extra, currency)]
+            : [];
+
+        var legs = LedgerLegs.ForPayment(settlement, payable.Open, allocation, payer, payee, initiatorUserId, wallet);
+
+        return new BuiltOperation(settlement, extra, legs, People(me, other)) { Payments = rows };
     }
 
     /// <summary>One group member pays another.</summary>

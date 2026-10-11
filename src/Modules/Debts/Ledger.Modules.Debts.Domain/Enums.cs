@@ -39,12 +39,22 @@ public enum SplitMethod
 
 public enum SettlementScope
 {
-    /// <summary>One debt outside groups.</summary>
+    /// <summary>Legacy (before partial payments): one debt outside groups, fully. Kept for stored settlements.</summary>
     Debt,
-    /// <summary>Every open debt (outside groups) with a contact, in one currency.</summary>
+    /// <summary>Legacy (before partial payments): every open debt with a contact, fully. Kept for stored settlements.</summary>
     Contact,
     /// <summary>One suggested payment of a group's simplified balances.</summary>
-    GroupPair
+    GroupPair,
+    /// <summary>An amount paid to a person outside groups, applied to the debts with them oldest first.</summary>
+    Payment
+}
+
+public enum PaymentDirection
+{
+    /// <summary>The contact paid me.</summary>
+    TheyPaidMe,
+    /// <summary>I paid the contact.</summary>
+    IPaidThem
 }
 
 public enum DebtStatus
