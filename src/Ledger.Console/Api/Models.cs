@@ -68,7 +68,23 @@ public sealed record Operation(Guid Id, string Kind, string Status, string? Reje
 public sealed record Debt(
     Guid Id, Guid OperationId, Guid? GroupId, string? GroupName, Guid CounterpartyPersonId, string CounterpartyName,
     string Direction, decimal Amount, string Currency, string Status, bool IsSettling, string? Description, DateTimeOffset CreatedAt,
-    bool PendingChange = false, bool Disputed = false);
+    bool PendingChange = false, bool Disputed = false, decimal Paid = 0, decimal Remaining = 0, bool IsPartiallyPaid = false,
+    DateTimeOffset? OccurredAt = null);
+
+/// <summary>A payment that paid (part of) a debt.</summary>
+public sealed record DebtPayment(Guid SettlementOperationId, Guid EntryId, string Status, DateTimeOffset OccurredAt, string? Description, decimal Amount);
+
+public sealed record PaymentPreviewLine(
+    Guid DebtId, Guid OperationId, string? Description, DateTimeOffset OccurredAt, string Direction,
+    decimal DebtAmount, decimal RemainingBefore, decimal Paid, decimal RemainingAfter);
+
+/// <summary>What a payment would pay. Balances: positive when they owe me.</summary>
+public sealed record PaymentPreview(
+    IReadOnlyList<PaymentPreviewLine> Lines, decimal Extra, string? ExtraDirection, decimal BalanceBefore, decimal BalanceAfter);
+
+/// <summary>A debt a payment paid (part of).</summary>
+public sealed record PaymentAllocation(
+    Guid DebtId, Guid OperationId, string? Description, DateTimeOffset OccurredAt, string Direction, decimal DebtAmount, decimal Amount);
 
 public sealed record ContactDebts(Guid PersonId, string Name, string Currency, decimal OwedToMe, decimal IOwe, decimal Net);
 
@@ -118,7 +134,7 @@ public sealed record OperationDetails(
     Guid? CounterpartyPersonId, string? CounterpartyName, Guid? ContactId, string? Direction, Guid? WalletId,
     Guid? CategoryId, IReadOnlyList<PersonAmount> Payers, IReadOnlyList<PersonAmount> Shares, bool IsDisputed,
     PendingChange? PendingChange, bool CanEdit, bool CanDelete, bool CanRestore, string? BlockedReason,
-    IReadOnlyList<Guid> SettlementOperationIds);
+    IReadOnlyList<Guid> SettlementOperationIds, IReadOnlyList<PaymentAllocation>? Allocations = null, decimal ExtraAmount = 0);
 
 public sealed record ChangeSnapshot(
     decimal Total, string Currency, DateTimeOffset OccurredAt, string? Description, string? FromName, string? ToName,

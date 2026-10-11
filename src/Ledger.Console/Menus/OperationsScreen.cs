@@ -64,7 +64,7 @@ public sealed class OperationsScreen(LedgerApiClient api, SplitWizard splitWizar
         if (o.Status is not ("Completed" or "Pending")) flags.Add(o.Status == "Superseded" ? "changed" : o.Status.ToLowerInvariant());
         if (o.PendingChange is { } change) flags.Add(change.WaitingForMe ? "change waiting for you" : "change pending");
         if (o.IsDisputed) flags.Add("disputed");
-        if (o.BlockedReason == "debt.settled") flags.Add("settled");
+        if (o.BlockedReason == "debt.settled") flags.Add("has payments");
 
         var who = o.Kind == "Split"
             ? $"paid by {string.Join(", ", o.Payers.Select(p => p.Name))}, {o.Shares.Count} people"
@@ -85,12 +85,22 @@ public sealed class OperationsScreen(LedgerApiClient api, SplitWizard splitWizar
         if (operation.CanRestore) actions.Add(new("Restore", () => RestoreAsync(operation, ct)));
 
         if (operation.BlockedReason == "debt.settled" && operation.SettlementOperationIds.Count > 0)
-            actions.Add(new("Undo the settlement (to change it)", async () =>
+            actions.Add(new("Undo the payment (to change it)", async () =>
                 await DeleteAsync(await api.OperationDetailsAsync(operation.SettlementOperationIds[0], ct), ct)));
 
         actions.Add(new("History", () => HistoryAsync(operation.Id, ct)));
 
         ConsoleUi.Header(Label(operation));
+
+        if (operation.Allocations is { Count: > 0 } allocations)
+        {
+            SystemConsole.WriteLine("It paid:");
+            foreach (var a in allocations)
+                SystemConsole.WriteLine($"  {ConsoleUi.Money(a.Amount, operation.Currency)} of {a.Description ?? "a debt"} ({ConsoleUi.Money(a.DebtAmount, operation.Currency)}, {a.OccurredAt.ToLocalTime():yyyy-MM-dd})");
+        }
+
+        if (operation.ExtraAmount > 0)
+            SystemConsole.WriteLine($"  {ConsoleUi.Money(operation.ExtraAmount, operation.Currency)} beyond what was owed became a new debt.");
 
         if (operation.PendingChange is { } pending)
         {
@@ -184,7 +194,20 @@ public sealed class OperationsScreen(LedgerApiClient api, SplitWizard splitWizar
 
     private async Task<ChangeResult?> EditSettlementAsync(OperationDetails settlement, CancellationToken ct)
     {
-        SystemConsole.WriteLine("The amount comes from the debts it paid. To pay a different amount, delete it and settle again.");
+        decimal? amount = null;
+
+        if (settlement.GroupId is not null)
+            SystemConsole.WriteLine("The amount was the group's suggested payment. To pay a different amount, delete it and pay the new suggestion.");
+        else if (settlement.RecordedByMe)
+        {
+            // A payment: a new amount is applied again from the oldest debt.
+            amount = ConsoleUi.ReadDecimalOrKeep($"Amount ({settlement.Currency})", settlement.Total);
+            var other = settlement.CounterpartyName ?? "them";
+            DebtsMenu.ShowPreview(await api.PreviewPaymentAsync(new { amount, operationId = settlement.Id }, ct), settlement.Currency, other);
+        }
+        else
+            SystemConsole.WriteLine($"{settlement.RecordedByName} recorded it: only they can change the amount or the wallet.");
+
         var walletId = settlement.WalletId;
 
         if (settlement.RecordedByMe && settlement.Total > 0 && (walletId is null || ConsoleUi.Confirm("Change the wallet?")))
@@ -197,6 +220,7 @@ public sealed class OperationsScreen(LedgerApiClient api, SplitWizard splitWizar
         {
             description = ConsoleUi.ReadTextOrKeep("Description", settlement.Description),
             occurredAt = ReadWhen(settlement),
+            amount,
             walletId = settlement.RecordedByMe ? walletId : null,
             reason = ConsoleUi.ReadReason()
         }, ct);
@@ -205,7 +229,7 @@ public sealed class OperationsScreen(LedgerApiClient api, SplitWizard splitWizar
     private async Task DeleteAsync(OperationDetails operation, CancellationToken ct)
     {
         SystemConsole.WriteLine(operation.Kind == "Settlement"
-            ? "The debts it paid will be open again. It stays in the history."
+            ? "What it paid will be owed again. It stays in the history."
             : "It stays in the history and can be restored. Linked people involved have to confirm it.");
 
         if (!ConsoleUi.Confirm($"Delete this {operation.Kind}?"))
