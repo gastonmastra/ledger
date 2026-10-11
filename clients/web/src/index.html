@@ -4,8 +4,18 @@
     <meta charset="utf-8" />
     <title>Ledger</title>
     <base href="/" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Your money, debts and shared expenses." />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <!-- Installable app (PWA): manifest, colors and the iPhone home-screen icon. -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Ledger" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <script>
       // Apply the theme before Angular starts, so there is no light flash in dark mode.
       (function () {

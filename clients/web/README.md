@@ -51,6 +51,14 @@ The web app runs at **http://localhost:4201**. nginx serves `/en/` and `/es/`, r
 
 `nginx.conf.template` is rendered by the nginx image at startup with `API_UPSTREAM` (default `http://api:8080`) and `KEYCLOAK_ISSUER` (default `http://localhost:8080/realms/ledger`), which it serves as `/config.json`.
 
+## Installable app (PWA)
+
+* `npm run build` builds both languages **with the service worker** (`ng build --service-worker=ngsw-config.json`); plain `npx ng build` builds without it. `npm start` never registers it.
+* Files: `ngsw-config.json` (app shell and images cached; **the API is never cached**), `public/sw.js` (Angular's worker plus "leave other origins, i.e. Keycloak, to the browser"), `public/manifest.webmanifest`, `public/icons/`.
+* Icons: `npm run icons -- path/to/icon.png` (1024×1024 PNG or SVG) regenerates every size and `favicon.ico`.
+* `core/pwa/`: update prompt, install prompt, online/offline. `core/auth/device-session.ts`: *Remember me on this device* (localStorage + `offline_access`).
+* Details, cache headers and passkeys: documentation §21.
+
 ## Project structure
 
 ```text
@@ -95,6 +103,9 @@ Components never use raw colors: they use semantic Tailwind utilities generated 
 The eye button in the top bar (or **Shift+H**, except while typing in a field) hides sensitive figures, e.g. while sharing the screen: money amounts keep their currency but show `•••••` (`€•••••`, `••••• €`), asset quantities and unit prices are masked, and charts keep their shapes but lose the numbers on the value axis and in tooltips. The choice is stored in `localStorage` (`ledger.hideAmounts`). `PrivacyService` (`core/privacy`) holds the state; `MoneyPipe`, `PricePipe` and `QuantityPipe` are impure so they update when it changes, and `ChartView` redraws masked. Amounts typed or prefilled in form fields stay visible, and green/red colors still show whether an amount is positive or negative.
 
 ### UI kit (`src/app/ui`)
+
+* **Rows with several actions:** `uiRowAction` (`(rowOpen)`) opens a detail pop-up on click/Enter/Space; `ui-actions-menu` is the ⋯ menu with the same actions (`MenuAction[]`; `[text]` for header menus like "Add ▾"). Detail pop-ups close with the chosen action and the page runs its usual handler.
+* **Side panel / bottom sheet:** `DialogService.open(Component, data, 'panel')`; `ui-filter-chips` for active filters.
 
 | Component | Use |
 | --- | --- |
