@@ -7,7 +7,17 @@ using Microsoft.EntityFrameworkCore;
 namespace Ledger.Modules.Transactions.Application.Queries;
 
 /// <param name="NetWorth">Wallets + owed to me − I owe + pending, at the end of the bucket.</param>
-public sealed record ReportBucketDto(DateTimeOffset Start, decimal Income, decimal Expenses, decimal NetWorth);
+/// <param name="Wallets">Its parts, also at the end of the bucket: money in wallets plus pending settlements…</param>
+/// <param name="OwedToMe">…what people and groups owe me…</param>
+/// <param name="IOwe">…and what I owe them (positive). NetWorth = Wallets + OwedToMe − IOwe.</param>
+public sealed record ReportBucketDto(
+    DateTimeOffset Start,
+    decimal Income,
+    decimal Expenses,
+    decimal NetWorth,
+    decimal Wallets = 0,
+    decimal OwedToMe = 0,
+    decimal IOwe = 0);
 
 public sealed record CategoryAmountDto(Guid AccountId, string Name, string Purpose, decimal Amount);
 
@@ -98,7 +108,7 @@ internal sealed class GetReportHandler(ITransactionsDbContext dbContext) : IQuer
         var granularity = ReportBuckets.GranularityFor(query.From, query.To);
         var bucketStarts = ReportBuckets.Starts(query.From, query.To, granularity, zone);
         var buckets = new List<ReportBucketDto>();
-        var netWorth = 0m;
+        decimal netWorth = 0, wallets = 0, owedToMe = 0, iOwe = 0;
         var index = 0;
 
         for (var b = 0; b < bucketStarts.Count; b++)
@@ -115,6 +125,19 @@ internal sealed class GetReportHandler(ITransactionsDbContext dbContext) : IQuer
                 if (NetWorthPurposes.Contains(account.Purpose))
                     netWorth += row.Amount;
 
+                switch (account.Purpose)
+                {
+                    case LedgerAccountPurpose.Wallet or LedgerAccountPurpose.PendingSettlements:
+                        wallets += row.Amount;
+                        break;
+                    case LedgerAccountPurpose.Receivables:
+                        owedToMe += row.Amount;
+                        break;
+                    case LedgerAccountPurpose.Payables:
+                        iOwe -= row.Amount; // liabilities are negative in the ledger
+                        break;
+                }
+
                 if (row.OccurredAt < start || !row.Current)
                     continue; // before the period, or not the current version: only affects net worth
 
@@ -124,7 +147,7 @@ internal sealed class GetReportHandler(ITransactionsDbContext dbContext) : IQuer
                     expenses += row.Amount;
             }
 
-            buckets.Add(new ReportBucketDto(start, income, expenses, netWorth));
+            buckets.Add(new ReportBucketDto(start, income, expenses, netWorth, wallets, owedToMe, iOwe));
         }
 
         var inPeriod = rows.Where(r => r.OccurredAt >= query.From).ToList();
