@@ -6,7 +6,7 @@ namespace Ledger.IntegrationTests;
 
 /// <summary>Edits, deletions, restores, history, lock dates and confirmations of shared changes.</summary>
 [Collection(LedgerCollection.Name)]
-public class LedgerEditsTests(LedgerApiFactory factory)
+public partial class LedgerEditsTests(LedgerApiFactory factory)
 {
     private static string NewUser(string name) => $"{name}-{Guid.NewGuid():N}"[..20];
 
@@ -116,11 +116,11 @@ public class LedgerEditsTests(LedgerApiFactory factory)
         Assert.NotEqual(JsonValueKind.Null, details.GetProperty("pendingChange").ValueKind);
         Assert.Equal(40, (await alice.TotalsAsync("EUR")).GetProperty("owedToMe").GetDecimal());
 
-        // Settling is blocked meanwhile.
+        // Paying it is blocked meanwhile.
         var bobDebt = (await bob.GetJsonAsync("/api/debts")).GetProperty("debts").EnumerateArray().Single();
         Assert.True(bobDebt.GetProperty("pendingChange").GetBoolean());
-        await AssertRefusedAsync(Raw(bob, HttpMethod.Post, "/api/debts/settlements",
-            new { scope = "Debt", debtId = bobDebt.GetProperty("id").GetGuid(), walletId = bobBank }), "operation.change_pending");
+        await AssertRefusedAsync(Raw(alice, HttpMethod.Post, "/api/debts/payments",
+            new { contactId, currency = "EUR", direction = "TheyPaidMe", amount = 10, walletId = aliceBank }), "operation.change_pending");
 
         var toReview = (await bob.GetJsonAsync("/api/debts/changes")).EnumerateArray().Single();
         Assert.Equal(40, toReview.GetProperty("current").GetProperty("total").GetDecimal());
@@ -173,9 +173,9 @@ public class LedgerEditsTests(LedgerApiFactory factory)
         await alice.CompletedOperationAsync(loan);
         var loanId = loan.GetProperty("id").GetGuid();
 
-        var debt = (await alice.GetJsonAsync("/api/debts")).GetProperty("debts").EnumerateArray().Single();
-        var settlement = await alice.PostJsonAsync("/api/debts/settlements",
-            new { scope = "Debt", debtId = debt.GetProperty("id").GetGuid(), walletId = bank }, HttpStatusCode.Accepted);
+        var settlement = await alice.PostJsonAsync("/api/debts/payments",
+            new { contactId = carl.GetProperty("id").GetGuid(), currency = "EUR", direction = "TheyPaidMe", amount = 20, walletId = bank },
+            HttpStatusCode.Accepted);
         await alice.CompletedOperationAsync(settlement);
         await EventuallyAsync(async () => await alice.WalletBalanceAsync(bank) == 100 ? (object)true : null, "paid back");
 

@@ -141,9 +141,8 @@ public class EnhancementsTests(LedgerApiFactory factory)
         Assert.Equal(100, await gaston.WalletBalanceAsync(wallet)); // no money moved
         Assert.Equal(50, (await sofi.TotalsAsync("EUR")).GetProperty("owedToMe").GetDecimal());
 
-        var debt = (await gaston.GetJsonAsync("/api/debts")).GetProperty("debts").EnumerateArray().Single();
-        var settle = await gaston.PostJsonAsync("/api/debts/settlements",
-            new { scope = "Debt", debtId = debt.GetProperty("id").GetGuid(), walletId = wallet }, HttpStatusCode.Accepted);
+        var settle = await gaston.PostJsonAsync("/api/debts/payments",
+            new { contactId, currency = "EUR", direction = "IPaidThem", amount = 50, walletId = wallet }, HttpStatusCode.Accepted);
         Assert.Equal("Completed", (await gaston.CompletedOperationAsync(settle)).GetProperty("status").GetString());
 
         Assert.Equal(0, (await gaston.TotalsAsync("EUR")).GetProperty("iOwe").GetDecimal());
