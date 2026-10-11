@@ -85,8 +85,9 @@ Modules: **Identity** (Keycloak `sub` → internal user, `ledger_user_id` claim 
 
 ### Debts operations
 * Loans, splits, settlements and existing debts are **asynchronous**: the API answers `202` with an operation (`Pending → Completed | Rejected`); clients poll (`OperationTracker` in web, `WaitForOperationAsync` in console).
-* Operations are built by `OperationFactory` **from the initiator's point of view** (their contacts, wallets, category). Changes are `OperationChange`s: linked users involved approve; the author and those who accept get the new version, rejecters keep the old one (operation `IsDisputed`). Settled debts must be un-settled first (`debt.settled`).
+* Operations are built by `OperationFactory` **from the initiator's point of view** (their contacts, wallets, category). Changes are `OperationChange`s: linked users involved approve; the author and those who accept get the new version, rejecters keep the old one (operation `IsDisputed`). Paid debts (fully or partly) must have their payments changed or undone first (`debt.settled`).
 * Non-registered contacts have no books: only registered users get ledger legs.
+* **Payments** (outside groups) pay debts **oldest first** (`PaymentAllocation`, documentation §20): mutual debts cancel out, any extra becomes a debt the other way; `debt_payments` rows record what each payment paid and `Debt.Paid` what is left. Settlements with scope `Payment`; groups still use `GroupPair`. Paid loans/splits/existing debts are blocked until their payments change.
 * Linking a contact that is already in use is a **link request** the user accepts; it merges the person id into the user (Debts re-keys, Transactions keeps the old id as a counterparty alias) and copies the shared history into the user's books (documentation §17).
 
 ### Web client (`clients/web/src/app`)
