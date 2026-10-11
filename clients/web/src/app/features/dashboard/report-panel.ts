@@ -7,6 +7,7 @@ import { Currency, InvestmentsReport, Report } from '../../core/api/models';
 import { DataChanges } from '../../core/data-changes';
 import { currentTimeZone } from '../../core/dates';
 import { accountLabel } from '../../core/i18n/labels';
+import { netWorthSeries } from './net-worth-series';
 import {
   Button,
   Card,
@@ -182,68 +183,51 @@ export class ReportPanel {
     });
   }
 
-  /** Net worth; with investments, money and investments are stacked (their sum is the total). */
+  /**
+   * Net worth over time: every part on its own line (wallets, owed to me, I owe as negative, investments) and,
+   * drawn on top, their sum.
+   */
   private buildNetWorthChart(report: Report | undefined, investments: InvestmentsReport | null): ChartConfigFactory | null {
     if (!report?.buckets.length) return null;
     const money = this.money(report.currency);
     const pointRadius = report.buckets.length > 31 ? 0 : 2;
+    const series = netWorthSeries(report.buckets, investments?.buckets ?? null);
 
-    if (!investments) {
-      return (colors) => ({
-        type: 'line',
-        data: {
-          labels: this.bucketLabels(report),
-          datasets: [
-            {
-              label: $localize`:@@report.netWorth:Net worth`,
-              data: report.buckets.map((b) => b.netWorth),
-              borderColor: colors.line,
-              backgroundColor: colors.lineFill,
-              fill: true,
-              tension: 0.3,
-              pointRadius,
-            },
-          ],
-        },
-        options: {
-          maintainAspectRatio: false,
-          scales: {
-            x: { grid: { display: false } },
-            y: { grid: { color: colors.grid }, ticks: { callback: (v) => money(Number(v)) } },
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: (ctx) => ` ${money(ctx.parsed.y ?? 0)}` } },
-          },
-        },
-      });
-    }
-
-    const totals = report.buckets.map((b, i) => b.netWorth + investments.buckets[i].value);
+    const part = (label: string, data: number[], color: string) => ({
+      label,
+      data,
+      borderColor: color,
+      backgroundColor: color,
+      borderWidth: 1.5,
+      fill: false,
+      tension: 0.3,
+      pointRadius: 0,
+      order: 1,
+    });
 
     return (colors) => ({
       type: 'line',
       data: {
         labels: this.bucketLabels(report),
         datasets: [
+          // order 0: drawn above the parts.
           {
-            label: $localize`:@@summary.moneyNet:Money (net)`,
-            data: report.buckets.map((b) => b.netWorth),
+            label: $localize`:@@report.totalNetWorth:Total net worth`,
+            data: series.total,
             borderColor: colors.line,
-            backgroundColor: colors.lineFill,
-            fill: 'origin',
+            backgroundColor: colors.line,
+            borderWidth: 3,
+            // No area: it would hide the parts below it.
+            fill: false,
             tension: 0.3,
             pointRadius,
+            order: 0,
           },
-          {
-            label: $localize`:@@summary.investments:Investments`,
-            data: investments.buckets.map((b) => b.value),
-            borderColor: colors.series[1],
-            backgroundColor: colors.series[1] + '55',
-            fill: '-1',
-            tension: 0.3,
-            pointRadius,
-          },
+          // series[0] is the primary color (the total's): the parts use other palette colors.
+          part($localize`:@@report.wallets:Wallets`, series.wallets, colors.series[4]),
+          part($localize`:@@account.receivables:Owed to me`, series.owedToMe, colors.income),
+          part($localize`:@@debts.iOwe:I owe`, series.iOwe, colors.expenses),
+          ...(series.investments ? [part($localize`:@@summary.investments:Investments`, series.investments, colors.series[2])] : []),
         ],
       },
       options: {
@@ -251,14 +235,20 @@ export class ReportPanel {
         interaction: { mode: 'index', intersect: false },
         scales: {
           x: { grid: { display: false } },
-          y: { stacked: true, grid: { color: colors.grid }, ticks: { callback: (v) => money(Number(v)) } },
+          y: {
+            grid: { color: (ctx) => (ctx.tick.value === 0 ? colors.text : colors.grid) },
+            ticks: { callback: (v) => money(Number(v)) },
+          },
         },
         plugins: {
           legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true } },
           tooltip: {
+            // The parts first, then the total as the footer.
+            filter: (item) => item.datasetIndex !== 0,
             callbacks: {
               label: (ctx) => ` ${ctx.dataset.label}: ${money(ctx.parsed.y ?? 0)}`,
-              footer: (items) => $localize`:@@summary.total:Total` + `: ${money(totals[items[0]?.dataIndex ?? 0])}`,
+              footer: (items) =>
+                $localize`:@@report.totalNetWorth:Total net worth` + `: ${money(series.total[items[0]?.dataIndex ?? 0])}`,
             },
           },
         },
