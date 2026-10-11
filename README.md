@@ -18,12 +18,12 @@ It is a **.NET 10 modular monolith**: one deployable application made of indepen
 | Loans | Lend money from a wallet to a contact. The contact now owes me. |
 | Existing debts | Record a debt from before using Ledger ("I already owed Sofi 50", or the other way round). It is neither income nor expense (it comes from *Opening balances*), is mirrored to linked users and is settled like any debt. |
 | Corrections | **Edit, delete and restore** anything (income, expenses, transfers, loans, existing debts, splits, settlements) with a required reason. Nothing is edited in place: a reversal cancels the old version, so the history keeps everything and charts count only the current one. |
-| Shared changes | Linked users involved **confirm** changes to what they share; whoever rejects keeps the old version and the operation is marked *disputed*. Settled debts change only after undoing the settlement. |
+| Shared changes | Linked users involved **confirm** changes to what they share; whoever rejects keeps the old version and the operation is marked *disputed*. Paid debts change only after changing or undoing their payments. |
 | Lock date | Close your books up to a date: nothing in that period can be recorded or changed (also by shared changes). Can be moved back. |
 | Activity | Who changed, deleted or restored what, and why. |
 | Splits | Split an expense among me, my contacts or a group: equally, by amount or by percentage, with **any number of payers**. "A friend paid for me" is a split where the friend pays and I consume. |
 | Groups | Shared with every member who is a registered user. Group balances are **simplified** into the fewest payments. |
-| Settlements | Full settlement of one debt, of everything with a contact, or of one suggested group payment. |
+| Payments | Record that someone paid you (or you paid them) **any amount**: it pays your debts with them from the **oldest**, partially paying the next one; what you owe each other cancels out first, and paying more than what is owed becomes a debt the other way. Payments can be edited (re-applied) and deleted. Groups pay their suggested payments. |
 | Linked contacts | A contact with a registered user's email is linked. Debts are then mirrored into that user's books automatically, with contacts created for them. Money they paid or received waits in *Pending wallet assignments* until they choose the wallet. A contact that already has debts or groups can be linked too: the user accepts a **link request** (with a preview) and the shared history is copied into their books. |
 | Summary | Per currency: wallets, owed to me, I owe, pending and **net**, with a breakdown per wallet and per person or group; plus the investments' market value and the **total**. |
 | History | Transactions newest first, paginated, filterable by wallet, category, contact and date range. |
@@ -153,8 +153,10 @@ All endpoints need a Keycloak access token. Explore them with Scalar at `/scalar
 | GET/POST/DELETE | `/api/contacts/link-requests`, `/{id}/accept`, `/{id}/reject`, `DELETE /{id}`; GET `/api/debts/link-requests/{id}/preview` | Link requests and their preview |
 | GET/POST/DELETE | `/api/groups`, `/{id}`, `/{id}/members`, `/{id}/members/{personId}` | Groups |
 | GET | `/api/groups/{id}/balances` | Balances, simplified payments and raw debts |
-| GET | `/api/debts` | My debts and the net per contact |
-| POST | `/api/debts/loans`, `/api/debts/splits`, `/api/debts/settlements`, `/api/debts/initial` | Asynchronous: `202` plus an operation |
+| GET | `/api/debts?includeSettled` | My debts (amount, paid, remaining) and what is left per contact |
+| POST | `/api/debts/loans`, `/api/debts/splits`, `/api/debts/initial`, `/api/debts/payments`, `/api/debts/settlements` (groups) | Asynchronous: `202` plus an operation |
+| POST | `/api/debts/payments/preview` | What a payment (or an edit of one) would pay: debts paid, what is left, extra, balance after |
+| GET | `/api/debts/{id}/payments` | The payments that paid (part of) a debt |
 | GET | `/api/debts/operations/{id}` | An operation: `Pending`, `Completed`, `Rejected` (with the reason), `Superseded` or `Deleted` |
 | PUT/DELETE | `/api/transactions/{id}`, POST `/api/transactions/{id}/restore` | Correct, delete or restore a transaction (with a `reason`) |
 | GET | `/api/transactions/{id}/history`, `/api/transactions/activity` | Versions of a transaction; my recent changes |
