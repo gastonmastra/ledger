@@ -143,7 +143,6 @@ public sealed class GroupsMenu(LedgerApiClient api, SplitWizard splitWizard, Ope
 
         var operation = await api.SettleAsync(new
         {
-            scope = "GroupPair",
             groupId = group.Id,
             fromPersonId = payment.FromPersonId,
             toPersonId = payment.ToPersonId,
