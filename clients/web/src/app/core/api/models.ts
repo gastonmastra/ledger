@@ -386,7 +386,13 @@ export interface ReportBucket {
   start: string;
   income: number;
   expenses: number;
+  /** wallets + owedToMe − iOwe, at the end of the bucket. */
   netWorth: number;
+  /** Money in wallets (pending settlements included). */
+  wallets: number;
+  owedToMe: number;
+  /** What I owe (positive). */
+  iOwe: number;
 }
 
 export interface CategoryAmount {

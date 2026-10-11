@@ -1254,14 +1254,6 @@
           <context context-type="linenumber">43</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="report.netWorth" datatype="html">
-        <source>Net worth</source>
-        <target state="translated">Patrimonio</target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/dashboard/report-panel.ts</context>
-          <context context-type="linenumber">169</context>
-        </context-group>
-      </trans-unit>
       <trans-unit id="report.balance" datatype="html">
         <source>Balance</source>
         <target state="translated">Saldo</target>
@@ -4820,6 +4812,26 @@
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
           <context context-type="linenumber">120</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.totalNetWorth" datatype="html">
+        <source>Total net worth</source>
+        <target state="translated">Patrimonio total</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.ts</context>
+          <context context-type="linenumber">215</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.ts</context>
+          <context context-type="linenumber">249</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="report.wallets" datatype="html">
+        <source>Wallets</source>
+        <target state="translated">Billeteras</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/dashboard/report-panel.ts</context>
+          <context context-type="linenumber">225</context>
         </context-group>
       </trans-unit>
     </body>
