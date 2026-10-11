@@ -1113,6 +1113,7 @@ Volumes: postgres_data, rabbitmq_data, caddy_data (certificates), caddy_config
   ```
   To get a dump from Object Storage: `rclone copy backups:<bucket>/<stamp> /opt/ledger/backups/<stamp>`, with the same `RCLONE_CONFIG_BACKUPS_*` variables `backup.sh` sets.
 * **Whole server**: restore a Hetzner backup from the console. It contains everything, including the volumes.
+* **A copy on your laptop** (users and data), and running it locally: §19.9.
 * **Dead-lettered messages**: `docker exec ledger-rabbitmq-1 rabbitmqctl list_queues name messages | grep _error`.
 * **Server updates**: security updates install automatically. Reboot from time to time (`sudo reboot`); the containers restart by themselves.
 * **Moving to AWS later**: dump both databases, restore them into RDS, and follow §18 (and point the DNS at the load balancer).
@@ -1202,3 +1203,86 @@ The empty user stays in the data with the same email. If their contacts then loo
   * the four wallets, their balances and the summary (wallets, owed to me, net) matched the local data
   * creating a wallet afterwards worked, and its events went through RabbitMQ
 * **`link-user.sh`**: Sofia, linked before her first login, got her original id; a user who logged in first got the "2 users" refusal; invalid arguments were rejected.
+
+### 19.9 Keeping a copy of the VPS on your laptop
+
+A full copy, **Keycloak users and Ledger data**, that you can keep as a backup and run locally when needed. Running it **replaces** the local environment (section B), and section C goes back.
+
+* **Two files are the whole copy.** The server's PostgreSQL holds two databases: `keycloak` (realms, users, password hashes, OTP, the master admin) and `ledger` (every module). `backup.sh` already dumps both.
+* **No remapping.** Because both are copied, the Keycloak user ids stay the same and still match `identity.users."ExternalId"`. That's unlike §19.8, which needs remapping.
+* **Local Keycloak needs a different setup.** It normally runs with an embedded H2 database inside the `ledger-keycloak` container. To run the copied users, section B starts another Keycloak of the **same version** on a local PostgreSQL database.
+
+**A. Take the copy**
+
+1. On the server, make a fresh dump (or use last night's folder):
+   ```bash
+   cd /opt/ledger && ./backup.sh            # prints the folder: backups/<stamp>
+   ```
+2. On the laptop:
+   ```bash
+   scp -r deploy@<server>:/opt/ledger/backups/<stamp> ~/ledger-vps-copy/
+   ```
+   You get `ledger.dump` and `keycloak.dump`.
+3. Keep them safe:
+   * They contain **everyone's data and password hashes**: keep them on an encrypted disk (FileVault) and delete old copies.
+   * Never put them inside the repository (`*.dump` is git-ignored as a safety net).
+   * Note the Keycloak version they come from (`KEYCLOAK_VERSION` in `infra/keycloak-prod/Dockerfile`, **26.7.4** today). Restoring needs the same one.
+
+**B. Run it locally (replaces the local environment)**
+
+1. **Save the local state** so you can come back:
+   * Stop the API and the web app (IDE, or `docker compose --profile full stop api web`).
+   * Check that RabbitMQ is idle (`docker exec ledger-rabbitmq rabbitmqctl list_queues name messages`, all 0).
+   * Save the local data:
+     ```bash
+     docker exec ledger-postgres pg_dump -U postgres -Fc ledger > ~/ledger-local-$(date +%F).dump
+     ```
+   * The local Keycloak users live inside the `ledger-keycloak` container: **stop it, don't remove it** (`docker compose down` would lose them).
+2. **Ledger data:**
+   ```bash
+   cd ~/ledger-vps-copy
+   docker exec ledger-postgres dropdb -U postgres --force ledger
+   docker exec ledger-postgres createdb -U postgres ledger
+   docker exec -i ledger-postgres pg_restore -U postgres -d ledger --no-owner --no-privileges < ledger.dump
+   dotnet run --project src/Ledger.Migrator     # from the repository; only applies something if local code is newer
+   ```
+3. **Keycloak users:**
+   ```bash
+   docker exec ledger-postgres dropdb -U postgres --if-exists --force keycloak
+   docker exec ledger-postgres createdb -U postgres keycloak
+   docker exec -i ledger-postgres pg_restore -U postgres -d keycloak --no-owner --no-privileges < keycloak.dump
+   docker stop ledger-keycloak
+   docker run -d --name ledger-keycloak-vps --network ledger_default -p 8080:8080 \
+     quay.io/keycloak/keycloak:26.7.4 start-dev \
+     --db=postgres --db-url=jdbc:postgresql://postgres:5432/keycloak \
+     --db-username=postgres --db-password=postgres --hostname=http://localhost:8080
+   ```
+   It runs on the usual port, so the API and the web app need no changes.
+4. **Let the local web app log in.** The copied realm only accepts `https://ledger.<domain>`.
+   1. Open `http://localhost:8080/admin/` and log in with your **production admin**. It was copied with its password and OTP.
+   2. Realm **ledger** → *Clients* → `ledger-web`. Add:
+      * *Valid redirect URIs*: `http://localhost:4200/*`, `http://localhost:4201/*`
+      * *Valid post logout redirect URIs*: the same two
+      * *Web origins*: `http://localhost:4200`, `http://localhost:4201`
+   3. Save.
+5. **Start the API and the web app as usual,** and log in with your **production** user and password.
+   * `alice` and `bob` don't exist in this copy, so the E2E tests won't log in.
+   * Scalar's `ledger-scalar` client isn't in the production realm either: add it by hand if you need it.
+
+**C. Back to the normal local environment**
+```bash
+docker rm -f ledger-keycloak-vps && docker start ledger-keycloak
+docker exec ledger-postgres dropdb -U postgres --force ledger
+docker exec ledger-postgres createdb -U postgres ledger
+docker exec -i ledger-postgres pg_restore -U postgres -d ledger --no-owner --no-privileges < ~/ledger-local-<date>.dump
+docker exec ledger-postgres dropdb -U postgres --force keycloak     # optional
+```
+
+**Good to know**
+* Outbox rows of the dump that weren't published yet get published locally when the API starts. That's expected, and it doesn't reach the server.
+* The copy is a snapshot: changes made locally never go back to the server. To move local data to the server, use §19.8.
+* **Rehearsed before merging**:
+  * A production-like stack produced the two dumps with `backup.sh` (one user who had logged in, with a wallet).
+  * They were restored with these commands into a separate PostgreSQL, and a stock Keycloak 26.7.4 `start-dev` ran on it.
+  * The issuer was the local URL. The copied password logged in, a wrong one was refused, and the token's `sub` matched the restored `ExternalId` (with its wallet).
+  * The copied master admin logged in and added the localhost redirect URIs. After that, `http://localhost:4200/` got the login form and an unknown redirect was refused.
