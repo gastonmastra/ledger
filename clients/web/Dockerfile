@@ -7,8 +7,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-# Builds every language (dist/web/browser/en and dist/web/browser/es).
-RUN npx ng build
+# Builds every language (dist/web/browser/en and dist/web/browser/es), each with its service worker (PWA).
+RUN npm run build
 
 FROM nginx:1.29-alpine AS runtime
 # The nginx image renders templates/*.template into conf.d/ with these variables at startup.

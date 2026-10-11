@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Placeholder: the "L" of the sidebar. Replace it with your own icon (see scripts/make-icons.mjs). -->
+  <rect width="1024" height="1024" rx="224" fill="#4f46e5"/>
+  <text x="512" y="700" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-size="600" font-weight="700" fill="#ffffff" text-anchor="middle">L</text>
+</svg>

@@ -25,7 +25,7 @@
 
   <div class="flex min-w-0 flex-1 flex-col">
     <!-- Top bar -->
-    <header class="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border bg-surface/90 px-4 backdrop-blur lg:px-8">
+    <header class="pt-safe sticky top-0 z-30 flex min-h-16 items-center gap-2 border-b border-border bg-surface/90 px-4 backdrop-blur lg:px-8">
       <button type="button" class="rounded-ui p-2 hover:bg-surface-muted lg:hidden cursor-pointer" (click)="menuOpen.set(true)"
               i18n-aria-label="@@ui.openMenu" aria-label="Open menu">
         <ui-icon name="menu" />
@@ -63,6 +63,13 @@
       </div>
     </header>
 
+    @if (!network.online()) {
+      <div role="status" class="flex items-center gap-2 border-b border-warning bg-warning-soft px-4 py-2 text-sm text-warning lg:px-8">
+        <ui-icon name="offline" size="sm" />
+        <span i18n="@@pwa.offline">You are offline. You see what was already loaded; changes need a connection.</span>
+      </div>
+    }
+
     <main class="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-6 lg:px-8 lg:pb-10">
       <router-outlet />
     </main>
@@ -70,7 +77,7 @@
 </div>
 
 <!-- Bottom bar (mobile) -->
-<nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-border bg-surface lg:hidden">
+<nav class="pb-safe fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-border bg-surface lg:hidden">
   @for (item of bottomNav; track item.path) {
     <a [routerLink]="item.path" routerLinkActive="text-primary" [routerLinkActiveOptions]="{ exact: item.path === '/' }"
        class="flex flex-col items-center gap-1 py-2 text-xs text-muted">

@@ -91,7 +91,9 @@ export function errorMessage(error: unknown): string {
   }
 
   if (error.status === 0) {
-    return $localize`:@@error.apiUnreachable:The Ledger API is not reachable. Is it running?`;
+    return typeof navigator !== 'undefined' && navigator.onLine === false
+      ? $localize`:@@error.offline:You are offline. Try again when you have a connection.`
+      : $localize`:@@error.apiUnreachable:The Ledger API is not reachable. Is it running?`;
   }
 
   const problem = (error.error ?? {}) as ProblemDetails;
