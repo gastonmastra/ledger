@@ -233,131 +233,173 @@
           <context context-type="linenumber">58</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="error.debtSettled" datatype="html">
-        <source>It was already settled. Undo (delete) the settlement first, then change it.</source>
+      <trans-unit id="error.debtPaid" datatype="html">
+        <source>It was already paid (fully or partly). Change or delete those payments first, then change it.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
           <context context-type="linenumber">60</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="error.paymentPending" datatype="html">
+        <source>Another payment with this person is being recorded or changed. Try again once it is done.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">62</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="error.paymentNothing" datatype="html">
+        <source>There is nothing to pay: enter an amount.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">63</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="error.paymentAmount" datatype="html">
+        <source>The amount must be greater than zero.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">64</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="error.paymentSelf" datatype="html">
+        <source>A person cannot pay themselves.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">65</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="error.paymentTooMuch" datatype="html">
+        <source>The debts changed meanwhile. Check them and record the payment again.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">67</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="error.paymentIncomplete" datatype="html">
+        <source>Choose the person, the currency and who paid.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">68</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.changePending" datatype="html">
         <source>A change is waiting for confirmation. Try again once it is answered.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">62</context>
+          <context context-type="linenumber">70</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.notCurrent" datatype="html">
         <source>Only the current version can be changed.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">63</context>
+          <context context-type="linenumber">71</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">69</context>
+          <context context-type="linenumber">77</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.notLatest" datatype="html">
         <source>Only the latest version can be restored.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">64</context>
+          <context context-type="linenumber">72</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.settlementNotRestorable" datatype="html">
         <source>A deleted settlement cannot be restored: settle the debts again instead.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">66</context>
+          <context context-type="linenumber">74</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.initiatorOnly" datatype="html">
         <source>Only the person who recorded it can change the currency.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">68</context>
+          <context context-type="linenumber">76</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.notEditable" datatype="html">
         <source>This transaction cannot be edited here. Loans, splits and settlements are changed in Debts &amp; splits.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">71</context>
+          <context context-type="linenumber">79</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.notDeletable" datatype="html">
         <source>This transaction cannot be deleted here. Loans, splits and settlements are changed in Debts &amp; splits.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">73</context>
+          <context context-type="linenumber">81</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.alreadyAnswered" datatype="html">
         <source>You already answered this change.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">74</context>
+          <context context-type="linenumber">82</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.changeNotPending" datatype="html">
         <source>This change is no longer waiting for an answer.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">75</context>
+          <context context-type="linenumber">83</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.settlementWallet" datatype="html">
         <source>Choose the wallet the money comes from or goes to.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">77</context>
+          <context context-type="linenumber">85</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.unexpected" datatype="html">
         <source>Something went wrong. Please try again.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">82</context>
+          <context context-type="linenumber">90</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">110</context>
+          <context context-type="linenumber">118</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.apiUnreachable" datatype="html">
         <source>The Ledger API is not reachable. Is it running?</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">86</context>
+          <context context-type="linenumber">94</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.unauthorized" datatype="html">
         <source>Your session expired. Please log in again.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">101</context>
+          <context context-type="linenumber">109</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.notFound" datatype="html">
         <source>It was not found. If you just created it, try again in a moment.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">103</context>
+          <context context-type="linenumber">111</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.conflict" datatype="html">
         <source>It conflicts with existing data.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">105</context>
+          <context context-type="linenumber">113</context>
         </context-group>
       </trans-unit>
       <trans-unit id="error.notYetAvailable" datatype="html">
         <source>Still being set up. Try again in a moment.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
-          <context context-type="linenumber">107</context>
+          <context context-type="linenumber">115</context>
         </context-group>
       </trans-unit>
       <trans-unit id="kind.openingBalance" datatype="html">
@@ -589,6 +631,10 @@
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/core/i18n/labels.ts</context>
           <context context-type="linenumber">78</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-payments-dialog.ts</context>
+          <context context-type="linenumber">35,37</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debtStatus.pending" datatype="html">
@@ -1032,7 +1078,7 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">93,95</context>
+          <context context-type="linenumber">106,108</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-history-dialog.ts</context>
@@ -1040,7 +1086,7 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-history-dialog.ts</context>
-          <context context-type="linenumber">80,82</context>
+          <context context-type="linenumber">90,92</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operations-list.ts</context>
@@ -1170,11 +1216,11 @@
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">35,36</context>
+          <context context-type="linenumber">36,37</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">66,67</context>
+          <context context-type="linenumber">71,72</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/investments/investments-page.html</context>
@@ -1273,8 +1319,12 @@
           <context context-type="linenumber">69,70</context>
         </context-group>
         <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">142,143</context>
+        </context-group>
+        <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/settlement-edit-dialog.ts</context>
-          <context context-type="linenumber">46,47</context>
+          <context context-type="linenumber">47,48</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/groups/group-dialogs.ts</context>
@@ -2186,8 +2236,16 @@
           <context context-type="linenumber">37,38</context>
         </context-group>
         <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">49,50</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">77,78</context>
+        </context-group>
+        <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/settlement-edit-dialog.ts</context>
-          <context context-type="linenumber">30,31</context>
+          <context context-type="linenumber">31,32</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/groups/group-dialogs.ts</context>
@@ -2251,6 +2309,10 @@
           <context context-type="linenumber">48</context>
         </context-group>
         <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">72</context>
+        </context-group>
+        <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/transactions/movement-dialog.ts</context>
           <context context-type="linenumber">101</context>
         </context-group>
@@ -2266,8 +2328,12 @@
           <context context-type="linenumber">58,59</context>
         </context-group>
         <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">131,132</context>
+        </context-group>
+        <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/settlement-edit-dialog.ts</context>
-          <context context-type="linenumber">37,38</context>
+          <context context-type="linenumber">38,39</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/investments/trade-dialog.ts</context>
@@ -2297,8 +2363,12 @@
           <context context-type="linenumber">168</context>
         </context-group>
         <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">135</context>
+        </context-group>
+        <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/settlement-edit-dialog.ts</context>
-          <context context-type="linenumber">41</context>
+          <context context-type="linenumber">42</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/investments/price-dialog.ts</context>
@@ -2358,8 +2428,12 @@
           <context context-type="linenumber">70,71</context>
         </context-group>
         <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">162</context>
+        </context-group>
+        <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/settlement-edit-dialog.ts</context>
-          <context context-type="linenumber">47,48</context>
+          <context context-type="linenumber">48,49</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/investments/asset-dialog.ts</context>
@@ -2412,8 +2486,12 @@
           <context context-type="linenumber">132</context>
         </context-group>
         <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">252</context>
+        </context-group>
+        <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/settlement-edit-dialog.ts</context>
-          <context context-type="linenumber">89</context>
+          <context context-type="linenumber">90</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/shared/split-dialog.ts</context>
@@ -2500,6 +2578,57 @@
           <context context-type="linenumber">218</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="debtPayments.title" datatype="html">
+        <source>Payments of this debt</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-payments-dialog.ts</context>
+          <context context-type="linenumber">15,16</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debtPayments.summary" datatype="html">
+        <source><x id="PAID" equiv-text="{{ debt.paid | money: debt.currency // i18n(ph=&quot;paid&quot;) }}"/> paid of <x id="AMOUNT" equiv-text="{{ debt.amount | money: debt.currency // i18n(ph=&quot;amount&quot;) }}"/></source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-payments-dialog.ts</context>
+          <context context-type="linenumber">18,19</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debtPayments.left" datatype="html">
+        <source><x id="LEFT" equiv-text="{{ debt.remaining | money: debt.currency // i18n(ph=&quot;left&quot;) }}"/> left</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-payments-dialog.ts</context>
+          <context context-type="linenumber">20,21</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debtPayments.none" datatype="html">
+        <source>Nothing paid yet.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-payments-dialog.ts</context>
+          <context context-type="linenumber">25,27</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ui.close" datatype="html">
+        <source>Close</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-payments-dialog.ts</context>
+          <context context-type="linenumber">43,45</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/operation-history-dialog.ts</context>
+          <context context-type="linenumber">118,120</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/investments/asset-history-dialog.ts</context>
+          <context context-type="linenumber">51,53</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/transaction-history-dialog.ts</context>
+          <context context-type="linenumber">73,75</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/ui/dialog.ts</context>
+          <context context-type="linenumber">64,65</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="debts.title" datatype="html">
         <source>Debts &amp; splits</source>
         <context-group purpose="location">
@@ -2535,194 +2664,190 @@
           <context context-type="linenumber">5,6</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="debts.recordPayment" datatype="html">
+        <source>Record a payment</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
+          <context context-type="linenumber">6,7</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="debts.split" datatype="html">
         <source>Split an expense</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">7,8</context>
+          <context context-type="linenumber">8,9</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.changesToReview" datatype="html">
         <source>{VAR_PLURAL, plural, =1 {1 change is waiting for your answer.} other {<x id="INTERPOLATION"/> changes are waiting for your answer.}}</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">14,15</context>
+          <context context-type="linenumber">15,16</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.review" datatype="html">
         <source>Review</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">15,19</context>
+          <context context-type="linenumber">16,20</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.byPerson" datatype="html">
         <source>By person</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">24,25</context>
+          <context context-type="linenumber">25,26</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.noBalances" datatype="html">
         <source>You are even with everybody (group expenses are in Groups).</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">26,28</context>
+          <context context-type="linenumber">27,29</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.person" datatype="html">
         <source>Person</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">31,32</context>
+          <context context-type="linenumber">32,33</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.owesMe" datatype="html">
         <source>Owes me</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">32,33</context>
+          <context context-type="linenumber">33,34</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.iOwe" datatype="html">
         <source>I owe</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">33,34</context>
+          <context context-type="linenumber">34,35</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.net" datatype="html">
         <source>Net</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">35</context>
+          <context context-type="linenumber">36</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="debts.settleUp" datatype="html">
-        <source>Settle up</source>
+      <trans-unit id="debts.recordPaymentShort" datatype="html">
+        <source>Record payment</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">46,47</context>
+          <context context-type="linenumber">47,49</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="debts.open" datatype="html">
-        <source>Open debts</source>
+      <trans-unit id="debts.showPaid" datatype="html">
+        <source>Show paid debts</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">55,56</context>
+          <context context-type="linenumber">59,61</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.none" datatype="html">
         <source>No open debts.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">57,59</context>
+          <context context-type="linenumber">62,64</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.with" datatype="html">
         <source>With</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">62,63</context>
+          <context context-type="linenumber">67,68</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.for" datatype="html">
         <source>For</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">64</context>
+          <context context-type="linenumber">69</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.amount" datatype="html">
         <source>Amount</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">64,65</context>
+          <context context-type="linenumber">69,70</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.status" datatype="html">
         <source>Status</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">65,66</context>
+          <context context-type="linenumber">70,71</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.owesYouAmount" datatype="html">
-        <source>owes you <x id="INTERPOLATION" equiv-text="{{ debt.amount | money: debt.currency }}"/></source>
+        <source>owes you <x id="INTERPOLATION" equiv-text="{{ debt.remaining | money: debt.currency }}"/></source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">81,82</context>
+          <context context-type="linenumber">88,89</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.youOweAmount" datatype="html">
-        <source>you owe <x id="INTERPOLATION" equiv-text="{{ debt.amount | money: debt.currency }}"/></source>
+        <source>you owe <x id="INTERPOLATION" equiv-text="{{ debt.remaining | money: debt.currency }}"/></source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">83,84</context>
+          <context context-type="linenumber">90,91</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debts.ofOriginal" datatype="html">
+        <source>of <x id="INTERPOLATION" equiv-text="{{ debt.amount | money: debt.currency }}"/></source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
+          <context context-type="linenumber">93,94</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debts.partiallyPaid" datatype="html">
+        <source>Partially paid</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
+          <context context-type="linenumber">100,102</context>
         </context-group>
       </trans-unit>
       <trans-unit id="operations.changePending" datatype="html">
         <source>Change pending</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">90,92</context>
+          <context context-type="linenumber">103,105</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operations-list.ts</context>
           <context context-type="linenumber">49,51</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="debts.settle" datatype="html">
-        <source>Settle</source>
+      <trans-unit id="debts.payments" datatype="html">
+        <source>Payments</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">99,100</context>
-        </context-group>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">119</context>
+          <context context-type="linenumber">112,114</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.operations" datatype="html">
         <source>Loans, splits and settlements</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">110,111</context>
+          <context context-type="linenumber">123,124</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="debts.settled" datatype="html">
-        <source>Debt with <x id="name" equiv-text="debt.counterpartyName"/> settled.</source>
+      <trans-unit id="debts.open" datatype="html">
+        <source>Open debts</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">83</context>
+          <context context-type="linenumber">33</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="debts.settledUp" datatype="html">
-        <source>All settled with <x id="name" equiv-text="balance.name"/>.</source>
+      <trans-unit id="debts.withPaid" datatype="html">
+        <source>Open and paid debts</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">105</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="debts.settleTitle" datatype="html">
-        <source>Settle with <x id="name" equiv-text="name"/></source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">115</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="debts.settleReceive" datatype="html">
-        <source><x id="name" equiv-text="name"/> pays you <x id="amount" equiv-text="formatted"/>. Where did the money go?</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">117</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="debts.settlePay" datatype="html">
-        <source>You pay <x id="name" equiv-text="name"/> <x id="amount" equiv-text="formatted"/>. Where does the money come from?</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">118</context>
+          <context context-type="linenumber">34</context>
         </context-group>
       </trans-unit>
       <trans-unit id="initialDebt.description" datatype="html">
@@ -2792,28 +2917,28 @@
         <source>Delete this <x id="kind" equiv-text="kind"/>?</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-actions.ts</context>
-          <context context-type="linenumber">51</context>
+          <context context-type="linenumber">54</context>
         </context-group>
       </trans-unit>
       <trans-unit id="operations.deleteSettlement" datatype="html">
-        <source>The debts it paid will be open again. It stays in the history.</source>
+        <source>What it paid will be owed again. It stays in the history.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-actions.ts</context>
-          <context context-type="linenumber">54</context>
+          <context context-type="linenumber">57</context>
         </context-group>
       </trans-unit>
       <trans-unit id="operations.deleteMessage" datatype="html">
         <source>It stays in the history and can be restored. Linked people involved have to confirm it.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-actions.ts</context>
-          <context context-type="linenumber">55</context>
+          <context context-type="linenumber">58</context>
         </context-group>
       </trans-unit>
       <trans-unit id="ui.delete" datatype="html">
         <source>Delete</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-actions.ts</context>
-          <context context-type="linenumber">56</context>
+          <context context-type="linenumber">59</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operations-list.ts</context>
@@ -2840,32 +2965,32 @@
         <source>Deleted.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-actions.ts</context>
-          <context context-type="linenumber">63</context>
+          <context context-type="linenumber">66</context>
         </context-group>
       </trans-unit>
       <trans-unit id="operations.restoreTitle" datatype="html">
         <source>Restore it?</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-actions.ts</context>
-          <context context-type="linenumber">70</context>
+          <context context-type="linenumber">73</context>
         </context-group>
       </trans-unit>
       <trans-unit id="operations.restoreMessage" datatype="html">
         <source>It counts again as it was before it was deleted. Linked people involved have to confirm it.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-actions.ts</context>
-          <context context-type="linenumber">71</context>
+          <context context-type="linenumber">74</context>
         </context-group>
       </trans-unit>
       <trans-unit id="history.restore" datatype="html">
         <source>Restore</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-actions.ts</context>
-          <context context-type="linenumber">72</context>
+          <context context-type="linenumber">75</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-history-dialog.ts</context>
-          <context context-type="linenumber">60,61</context>
+          <context context-type="linenumber">70,71</context>
         </context-group>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operations-list.ts</context>
@@ -2884,7 +3009,7 @@
         <source>Restored.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-actions.ts</context>
-          <context context-type="linenumber">78</context>
+          <context context-type="linenumber">81</context>
         </context-group>
       </trans-unit>
       <trans-unit id="history.operationDescription" datatype="html">
@@ -2908,44 +3033,39 @@
           <context context-type="linenumber">35,36</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="history.paidDebt" datatype="html">
+        <source>Paid <x id="AMOUNT" equiv-text="{{ allocation.amount | money: version.currency // i18n(ph=&quot;amount&quot;) }}"/> of <x id="DEBT" equiv-text="{{ allocation.description || &apos;—&apos; // i18n(ph=&quot;debt&quot;) }}"/> (<x id="TOTAL" equiv-text="{{ allocation.debtAmount | money: version.currency // i18n(ph=&quot;total&quot;) }}"/>)</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/operation-history-dialog.ts</context>
+          <context context-type="linenumber">51,52</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="history.extraDebt" datatype="html">
+        <source><x id="AMOUNT" equiv-text="{{ version.extraAmount | money: version.currency // i18n(ph=&quot;amount&quot;) }}"/> beyond what was owed became a new debt</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/operation-history-dialog.ts</context>
+          <context context-type="linenumber">54,55</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="history.changes" datatype="html">
         <source>Changes</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-history-dialog.ts</context>
-          <context context-type="linenumber">67,68</context>
+          <context context-type="linenumber">77,78</context>
         </context-group>
       </trans-unit>
       <trans-unit id="history.noChanges" datatype="html">
         <source>It has not been changed.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-history-dialog.ts</context>
-          <context context-type="linenumber">69,71</context>
+          <context context-type="linenumber">79,81</context>
         </context-group>
       </trans-unit>
       <trans-unit id="history.by" datatype="html">
         <source>By <x id="NAME" equiv-text="{{ change.requestedByName // i18n(ph=&quot;name&quot;) }}"/>:</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-history-dialog.ts</context>
-          <context context-type="linenumber">85,86</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="ui.close" datatype="html">
-        <source>Close</source>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/operation-history-dialog.ts</context>
-          <context context-type="linenumber">108,110</context>
-        </context-group>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/investments/asset-history-dialog.ts</context>
-          <context context-type="linenumber">51,53</context>
-        </context-group>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/transactions/transaction-history-dialog.ts</context>
-          <context context-type="linenumber">73,75</context>
-        </context-group>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/ui/dialog.ts</context>
-          <context context-type="linenumber">64,65</context>
+          <context context-type="linenumber">95,96</context>
         </context-group>
       </trans-unit>
       <trans-unit id="operations.showChanged" datatype="html">
@@ -2969,8 +3089,8 @@
           <context context-type="linenumber">47,48</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="operations.settled" datatype="html">
-        <source>Settled</source>
+      <trans-unit id="operations.hasPayments" datatype="html">
+        <source>Has payments</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operations-list.ts</context>
           <context context-type="linenumber">56,58</context>
@@ -2998,15 +3118,15 @@
           <context context-type="linenumber">79,80</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="operations.undoSettlementHint" datatype="html">
-        <source>It was settled: undo the settlement to change it.</source>
+      <trans-unit id="operations.undoPaymentHint" datatype="html">
+        <source>It was paid (fully or partly): undo the payment to change it.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operations-list.ts</context>
           <context context-type="linenumber">81,82</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="operations.undoSettlement" datatype="html">
-        <source>Undo settlement</source>
+      <trans-unit id="operations.undoPayment" datatype="html">
+        <source>Undo payment</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operations-list.ts</context>
           <context context-type="linenumber">82,83</context>
@@ -3019,25 +3139,193 @@
           <context context-type="linenumber">148</context>
         </context-group>
       </trans-unit>
+      <trans-unit id="payment.description" datatype="html">
+        <source>It pays your debts with that person from the oldest. What you owe each other cancels out first.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">38,39</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.recordedBy" datatype="html">
+        <source><x id="NAME" equiv-text="{{ edit.recordedByName // i18n(ph=&quot;name&quot;) }}"/> recorded it. Only they can change the amount or the wallet.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">43,44</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.with" datatype="html">
+        <source>With</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">48</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.currency" datatype="html">
+        <source>Currency</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">55,56</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.who" datatype="html">
+        <source>Who paid</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">63,64</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.theyPaidMe" datatype="html">
+        <source><x id="NAME" equiv-text="{{ contactName() // i18n(ph=&quot;name&quot;) }}"/> paid me</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">65</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.iPaidThem" datatype="html">
+        <source>I paid <x id="NAME" equiv-text="{{ contactName() // i18n(ph=&quot;name&quot;) }}"/></source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">66</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.preview" datatype="html">
+        <source>What it pays</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">87,88</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.nothingToPay" datatype="html">
+        <source>Enter an amount.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">92,94</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.fullyPaid" datatype="html">
+        <source>Paid</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">103,104</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.leftOf" datatype="html">
+        <source><x id="INTERPOLATION" equiv-text="{{ line.remainingAfter | money: currency() }}"/> left of <x id="INTERPOLATION_1" equiv-text="{{ line.debtAmount | money: currency() }}"/></source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">105,106</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.extraOwedToMe" datatype="html">
+        <source>Paid beyond what was owed: <x id="NAME" equiv-text="{{ contactName() // i18n(ph=&quot;name&quot;) }}"/> now owes you</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">113</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.extraIOwe" datatype="html">
+        <source>Paid beyond what was owed: you now owe <x id="NAME" equiv-text="{{ contactName() // i18n(ph=&quot;name&quot;) }}"/></source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">115</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.balanceAfter" datatype="html">
+        <source>Balance afterwards</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">123,124</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.previewFailed" datatype="html">
+        <source>The preview is not available. Check the values.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">127,129</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.editTitle" datatype="html">
+        <source>Change the payment</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">160</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.title" datatype="html">
+        <source>Record a payment</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">161</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.submit" datatype="html">
+        <source>Record payment</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">162</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.theContact" datatype="html">
+        <source>the contact</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">200</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.fromWallet" datatype="html">
+        <source>From wallet</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">210</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.toWallet" datatype="html">
+        <source>Into wallet</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">211</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.debtOwedToMe" datatype="html">
+        <source>What they owed you</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">232</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.debtIOwe" datatype="html">
+        <source>What you owed</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">233</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.recorded" datatype="html">
+        <source>Payment recorded.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">265</context>
+        </context-group>
+      </trans-unit>
       <trans-unit id="settlementEdit.title" datatype="html">
         <source>Change the settlement</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/settlement-edit-dialog.ts</context>
-          <context context-type="linenumber">20,21</context>
+          <context context-type="linenumber">21,22</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="settlementEdit.description" datatype="html">
-        <source>The amount comes from the debts it paid. To pay a different amount, delete it and settle again.</source>
+      <trans-unit id="settlementEdit.groupDescription" datatype="html">
+        <source>The amount was the group&apos;s suggested payment. To pay a different amount, delete it and pay the new suggestion.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/settlement-edit-dialog.ts</context>
-          <context context-type="linenumber">21,23</context>
+          <context context-type="linenumber">22,24</context>
         </context-group>
       </trans-unit>
       <trans-unit id="settlementEdit.wallet" datatype="html">
         <source>Wallet</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/settlement-edit-dialog.ts</context>
-          <context context-type="linenumber">29</context>
+          <context context-type="linenumber">30</context>
         </context-group>
       </trans-unit>
       <trans-unit id="groups.detailSubtitle" datatype="html">
@@ -3245,7 +3533,7 @@
         <source>Payment recorded.</source>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/groups/group-detail-page.ts</context>
-          <context context-type="linenumber">131</context>
+          <context context-type="linenumber">130</context>
         </context-group>
       </trans-unit>
       <trans-unit id="groups.new" datatype="html">

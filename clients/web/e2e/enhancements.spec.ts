@@ -58,7 +58,7 @@ test.describe('Ledger web: dates, balances and existing debts', () => {
     await expect(row).toContainText('240.00');
   });
 
-  test('adds an existing debt and settles it', async ({ page }) => {
+  test('adds an existing debt and pays it', async ({ page }) => {
     const walletName = unique('E2E payback');
     const contactName = unique('E2E Sofi');
     const dialog = page.getByRole('dialog');
@@ -81,10 +81,73 @@ test.describe('Ledger web: dates, balances and existing debts', () => {
     const debtRow = page.getByRole('row', { name: new RegExp(contactName) }).last();
     await expect(debtRow).toContainText('you owe €30.00');
 
-    await debtRow.getByRole('button', { name: 'Settle', exact: true }).click();
-    await selectOptionContaining(dialog.getByLabel('Wallet'), walletName);
-    await dialog.getByRole('button', { name: 'Settle' }).click();
-    await expect(page.getByText(`Debt with ${contactName} settled.`)).toBeVisible({ timeout: 30_000 });
+    // Pre-filled to pay everything I owe them.
+    await page.getByRole('row', { name: new RegExp(contactName) }).first().getByRole('button', { name: 'Record payment' }).click();
+    await expect(dialog.getByLabel('Amount')).toHaveValue('30');
+    await expect(dialog.getByText('Paid', { exact: true })).toBeVisible();
+    await selectOptionContaining(dialog.getByLabel('From wallet'), walletName);
+    await dialog.getByRole('button', { name: 'Record payment' }).click();
+    await expect(page.getByText('Payment recorded.')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('row', { name: new RegExp(contactName) })).toHaveCount(0);
+  });
+
+  test('a payment pays the oldest debt first, then is changed and undone', async ({ page }) => {
+    const walletName = unique('E2E brother wallet');
+    const contactName = unique('E2E Brother');
+    const dialog = page.getByRole('dialog');
+    await createWallet(page, walletName, '10');
+
+    await page.goto('contacts');
+    await page.getByRole('button', { name: 'New contact' }).click();
+    await dialog.getByLabel('Name').fill(contactName);
+    await dialog.getByRole('button', { name: 'Create' }).click();
+    await expect(page.getByRole('row', { name: new RegExp(contactName) })).toBeVisible();
+
+    // He owes me 150 (older) and 50 (newer).
+    await page.goto('debts');
+    for (const amount of ['150', '50']) {
+      await page.getByRole('button', { name: 'Add existing debt' }).click();
+      await dialog.getByRole('radio', { name: 'They owed me' }).click();
+      await dialog.getByLabel('Contact').selectOption({ label: contactName });
+      await dialog.getByLabel('Amount').fill(amount);
+      await dialog.getByRole('button', { name: 'Save' }).click();
+      await expect(page.getByText('Existing debt recorded.').last()).toBeVisible({ timeout: 30_000 });
+    }
+    const byPerson = page.getByRole('row', { name: new RegExp(contactName) }).first();
+    await expect(byPerson).toContainText('€200.00');
+
+    // He pays 170: the 150 is paid, 30 are left of the 50.
+    await byPerson.getByRole('button', { name: 'Record payment' }).click();
+    await dialog.getByLabel('Amount').fill('170');
+    await expect(dialog.getByText('€30.00 left of €50.00')).toBeVisible();
+    await selectOptionContaining(dialog.getByLabel('Into wallet'), walletName);
+    await dialog.getByRole('button', { name: 'Record payment' }).click();
+    await expect(page.getByText('Payment recorded.')).toBeVisible({ timeout: 30_000 });
+
+    const debtRows = page.getByRole('row', { name: new RegExp(contactName) });
+    await expect(debtRows).toHaveCount(2); // the person's balance and the partially paid debt
+    await expect(debtRows.last()).toContainText('owes you €30.00');
+    await expect(debtRows.last()).toContainText('of €50.00');
+    await expect(debtRows.last()).toContainText('Partially paid');
+
+    // He actually paid 130: 20 left of the 150, the 50 untouched.
+    const payment = page.getByRole('listitem').filter({ hasText: `${contactName} paid` }).first();
+    await payment.getByRole('button', { name: 'Edit' }).click();
+    await dialog.getByLabel('Amount').fill('130');
+    await expect(dialog.getByText('€20.00 left of €150.00')).toBeVisible();
+    await dialog.getByLabel('Why?').fill('E2E: it was 130');
+    await dialog.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByText('Change applied.')).toBeVisible({ timeout: 30_000 });
+    await expect(debtRows).toHaveCount(3);
+    await expect(debtRows.filter({ hasText: 'owes you €20.00' })).toContainText('of €150.00');
+    await expect(debtRows.filter({ hasText: 'owes you €50.00' })).not.toContainText('Partially paid');
+
+    // Undone: everything is owed again.
+    await page.getByRole('listitem').filter({ hasText: `${contactName} paid` }).first().getByRole('button', { name: 'Delete' }).click();
+    await dialog.getByLabel('Why?').fill('E2E: he did not pay');
+    await dialog.getByRole('button', { name: 'Delete' }).click();
+    await expect(page.getByText('Deleted.')).toBeVisible({ timeout: 30_000 });
+    await expect(byPerson).toContainText('€200.00');
   });
 });
 

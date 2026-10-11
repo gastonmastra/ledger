@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { LedgerApi } from '../../core/api/ledger-api';
@@ -6,14 +6,14 @@ import { ContactDebts, Debt } from '../../core/api/models';
 import { CurrentUser } from '../../core/current-user';
 import { DataChanges } from '../../core/data-changes';
 import { debtStatusLabel } from '../../core/i18n/labels';
-import { OperationTracker } from '../../core/operations/operation-tracker';
 import { Badge, Button, Card, DialogService, EmptyState, Icon, MoneyPipe, PageHeader, Spinner, Table } from '../../ui';
 import { amountClass } from '../shared/amount';
 import { SplitDialog, SplitDialogData } from '../shared/split-dialog';
-import { WalletPickerDialog, WalletPickerData, WalletPickerResult } from '../shared/wallet-picker-dialog';
 import { FriendPaidDialog, LendDialog } from './debt-dialogs';
+import { DebtPaymentsDialog } from './debt-payments-dialog';
 import { InitialDebtDialog } from './initial-debt-dialog';
 import { OperationsList } from './operations-list';
+import { PaymentDialog, PaymentDialogData } from './payment-dialog';
 
 @Component({
   selector: 'app-debts-page',
@@ -25,17 +25,20 @@ export class DebtsPage {
   private readonly api = inject(LedgerApi);
   private readonly changes = inject(DataChanges);
   private readonly dialogs = inject(DialogService);
-  private readonly tracker = inject(OperationTracker);
   private readonly currentUser = inject(CurrentUser);
-  /** Formats (and masks, with "hide amounts") the amount shown in the settle dialog. */
-  private readonly money = new MoneyPipe();
 
   protected readonly statusLabel = debtStatusLabel;
   protected readonly amountClass = amountClass;
 
+  protected readonly openHeading = $localize`:@@debts.open:Open debts`;
+  protected readonly historyHeading = $localize`:@@debts.withPaid:Open and paid debts`;
+
+  /** Also show the debts that were fully paid (history). */
+  protected readonly showPaid = signal(false);
+
   protected readonly debts = rxResource({
-    params: () => this.changes.version(),
-    stream: () => this.api.debts(),
+    params: () => ({ version: this.changes.version(), showPaid: this.showPaid() }),
+    stream: ({ params }) => this.api.debts(params.showPaid),
   });
 
   /** Changes of shared operations waiting for my answer. */
@@ -48,12 +51,6 @@ export class DebtsPage {
     params: () => this.changes.version(),
     stream: () => this.api.contacts(),
   });
-
-  protected readonly settleable = computed(() =>
-    (this.debts.value()?.debts ?? []).filter(
-      (d) => d.groupId === null && d.status === 'Open' && !d.isSettling && !d.pendingChange,
-    ),
-  );
 
   protected openDialog(kind: 'lend' | 'friend' | 'initial'): void {
     const dialogs = { lend: LendDialog, friend: FriendPaidDialog, initial: InitialDebtDialog };
@@ -73,50 +70,25 @@ export class DebtsPage {
     }, 'lg');
   }
 
-  protected async settleDebt(debt: Debt): Promise<void> {
-    const receiving = debt.direction === 'OwedToMe';
-    const choice = await this.pickWallet(debt.currency, receiving, debt.counterpartyName, debt.amount, true);
-
-    if (choice?.walletId) {
-      await this.tracker.submit(
-        this.api.settle({ scope: 'Debt', debtId: debt.id, walletId: choice.walletId, occurredAt: choice.occurredAt }),
-        $localize`:@@debts.settled:Debt with ${debt.counterpartyName}:name: settled.`,
-      );
-    }
+  /** Records a payment with anybody (no person chosen yet). */
+  protected recordPayment(): void {
+    void this.dialogs.open<boolean, PaymentDialogData>(PaymentDialog, {}, 'lg');
   }
 
-  protected async settleContact(balance: ContactDebts): Promise<void> {
+  /** Records a payment with a person, pre-filled to pay everything that is owed between us. */
+  protected payBalance(balance: ContactDebts): void {
     const contact = this.contacts.value()?.find((c) => c.personId === balance.personId);
     if (!contact) return;
 
-    // When the net is zero no money moves: only the date is asked.
-    const choice = await this.pickWallet(
-      balance.currency, balance.net > 0, balance.name, Math.abs(balance.net), balance.net !== 0);
-    if (!choice) return;
-
-    await this.tracker.submit(
-      this.api.settle({
-        scope: 'Contact',
-        contactId: contact.id,
-        currency: balance.currency,
-        walletId: choice.walletId,
-        occurredAt: choice.occurredAt,
-      }),
-      $localize`:@@debts.settledUp:All settled with ${balance.name}:name:.`,
-    );
+    void this.dialogs.open<boolean, PaymentDialogData>(PaymentDialog, {
+      contactId: contact.id,
+      currency: balance.currency,
+      direction: balance.net >= 0 ? 'TheyPaidMe' : 'IPaidThem',
+      amount: Math.abs(balance.net) || undefined,
+    }, 'lg');
   }
 
-  private pickWallet(currency: Debt['currency'], receiving: boolean, name: string, amount: number, walletRequired: boolean) {
-    const formatted = this.money.transform(amount, currency);
-
-    return this.dialogs.open<WalletPickerResult, WalletPickerData>(WalletPickerDialog, {
-      currency,
-      walletRequired,
-      title: $localize`:@@debts.settleTitle:Settle with ${name}:name:`,
-      message: receiving
-        ? $localize`:@@debts.settleReceive:${name}:name: pays you ${formatted}:amount:. Where did the money go?`
-        : $localize`:@@debts.settlePay:You pay ${name}:name: ${formatted}:amount:. Where does the money come from?`,
-      confirmLabel: $localize`:@@debts.settle:Settle`,
-    });
+  protected showPayments(debt: Debt): void {
+    void this.dialogs.open<void, Debt>(DebtPaymentsDialog, debt);
   }
 }

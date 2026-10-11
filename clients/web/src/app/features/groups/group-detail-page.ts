@@ -120,7 +120,6 @@ export class GroupDetailPage {
 
     await this.tracker.submit(
       this.api.settle({
-        scope: 'GroupPair',
         groupId: this.id(),
         fromPersonId: payment.fromPersonId,
         toPersonId: payment.toPersonId,

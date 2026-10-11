@@ -3,6 +3,7 @@
   <button uiButton variant="secondary" type="button" (click)="openDialog('initial')" i18n="@@debts.initial">Add existing debt</button>
   <button uiButton variant="secondary" type="button" (click)="openDialog('friend')" i18n="@@debts.friendPaid">A friend paid for me</button>
   <button uiButton variant="secondary" type="button" (click)="openDialog('lend')" i18n="@@debts.lend">Lend money</button>
+  <button uiButton variant="secondary" type="button" (click)="recordPayment()" i18n="@@debts.recordPayment">Record a payment</button>
   <button uiButton type="button" (click)="splitWithContacts()">
     <ui-icon name="plus" size="sm" /><ng-container i18n="@@debts.split">Split an expense</ng-container>
   </button>
@@ -43,7 +44,7 @@
               <td class="text-right tabular-nums">{{ balance.iOwe | money: balance.currency }}</td>
               <td class="text-right font-medium tabular-nums" [class]="amountClass(balance.net)">{{ balance.net | money: balance.currency: true }}</td>
               <td class="text-right">
-                <button uiButton variant="secondary" size="sm" type="button" (click)="settleContact(balance)" i18n="@@debts.settleUp">Settle up</button>
+                <button uiButton variant="secondary" size="sm" type="button" (click)="payBalance(balance)" i18n="@@debts.recordPaymentShort">Record payment</button>
               </td>
             </tr>
           }
@@ -52,7 +53,11 @@
     }
   </ui-card>
 
-  <ui-card i18n-heading="@@debts.open" heading="Open debts" [padded]="false">
+  <ui-card [heading]="showPaid() ? historyHeading : openHeading" [padded]="false">
+    <label card-actions class="flex items-center gap-2 text-sm text-muted">
+      <input type="checkbox" [checked]="showPaid()" (change)="showPaid.set($any($event.target).checked)" />
+      <ng-container i18n="@@debts.showPaid">Show paid debts</ng-container>
+    </label>
     @if (!data?.debts?.length) {
       <ui-empty-state i18n-message="@@debts.none" message="No open debts." />
     } @else {
@@ -76,16 +81,24 @@
                 }
               </td>
               <td class="text-muted">{{ debt.description }}</td>
-              <td class="text-right tabular-nums" [class]="debt.direction === 'OwedToMe' ? 'text-success' : 'text-danger'">
-                @if (debt.direction === 'OwedToMe') {
-                  <span i18n="@@debts.owesYouAmount">owes you {{ debt.amount | money: debt.currency }}</span>
+              <td class="text-right tabular-nums" [class]="debt.status === 'Settled' ? 'text-muted' : debt.direction === 'OwedToMe' ? 'text-success' : 'text-danger'">
+                @if (debt.status === 'Settled') {
+                  <span>{{ debt.amount | money: debt.currency }}</span>
+                } @else if (debt.direction === 'OwedToMe') {
+                  <span i18n="@@debts.owesYouAmount">owes you {{ debt.remaining | money: debt.currency }}</span>
                 } @else {
-                  <span i18n="@@debts.youOweAmount">you owe {{ debt.amount | money: debt.currency }}</span>
+                  <span i18n="@@debts.youOweAmount">you owe {{ debt.remaining | money: debt.currency }}</span>
+                }
+                @if (debt.isPartiallyPaid) {
+                  <span class="block text-xs text-muted" i18n="@@debts.ofOriginal">of {{ debt.amount | money: debt.currency }}</span>
                 }
               </td>
               <td>
                 <div class="flex flex-wrap gap-1">
                   <ui-badge [tone]="debt.status === 'Open' && !debt.isSettling ? 'primary' : 'neutral'">{{ statusLabel(debt.status, debt.isSettling) }}</ui-badge>
+                  @if (debt.isPartiallyPaid) {
+                    <ui-badge tone="warning" i18n="@@debts.partiallyPaid">Partially paid</ui-badge>
+                  }
                   @if (debt.pendingChange) {
                     <ui-badge tone="warning" i18n="@@operations.changePending">Change pending</ui-badge>
                   }
@@ -95,8 +108,8 @@
                 </div>
               </td>
               <td class="text-right">
-                @if (!debt.groupId && debt.status === 'Open' && !debt.isSettling && !debt.pendingChange) {
-                  <button uiButton variant="ghost" size="sm" type="button" (click)="settleDebt(debt)" i18n="@@debts.settle">Settle</button>
+                @if (!debt.groupId && debt.paid > 0) {
+                  <button uiButton variant="ghost" size="sm" type="button" (click)="showPayments(debt)" i18n="@@debts.payments">Payments</button>
                 }
               </td>
             </tr>

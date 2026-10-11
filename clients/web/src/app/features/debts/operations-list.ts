@@ -53,7 +53,7 @@ const PAGE_SIZE = 10;
                     <ui-badge tone="danger" i18n="@@operations.disputed">Disputed</ui-badge>
                   }
                   @if (operation.blockedReason === 'debt.settled') {
-                    <ui-badge i18n="@@operations.settled">Settled</ui-badge>
+                    <ui-badge i18n="@@operations.hasPayments">Has payments</ui-badge>
                   }
                 </div>
                 <p class="mt-1 text-sm font-medium">{{ operation.description || summary(operation) }}</p>
@@ -78,8 +78,8 @@ const PAGE_SIZE = 10;
                 }
                 @if (operation.blockedReason === 'debt.settled' && operation.status === 'Completed') {
                   <button uiButton variant="ghost" size="sm" type="button" (click)="actions.undoSettlement(operation)"
-                          i18n-title="@@operations.undoSettlementHint" title="It was settled: undo the settlement to change it.">
-                    <ui-icon name="undo" size="sm" /><ng-container i18n="@@operations.undoSettlement">Undo settlement</ng-container>
+                          i18n-title="@@operations.undoPaymentHint" title="It was paid (fully or partly): undo the payment to change it.">
+                    <ui-icon name="undo" size="sm" /><ng-container i18n="@@operations.undoPayment">Undo payment</ng-container>
                   </button>
                 }
                 @if (operation.canRestore) {

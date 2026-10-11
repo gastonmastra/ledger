@@ -24,12 +24,32 @@ describe('LedgerApi', () => {
     request.flush({ items: [], page: 2, pageSize: 15, totalCount: 0, totalPages: 0 });
   });
 
-  it('posts settlements with their scope', () => {
-    api.settle({ scope: 'Debt', debtId: 'd1', walletId: 'w1' }).subscribe();
+  it('posts payments, previews them and reads the payments of a debt', () => {
+    const payment = {
+      contactId: 'c1', currency: 'EUR' as const, direction: 'TheyPaidMe' as const, amount: 170, walletId: 'w1',
+    };
+    api.recordPayment(payment).subscribe();
+    const post = http.expectOne('/api/debts/payments');
+    expect(post.request.method).toBe('POST');
+    expect(post.request.body).toEqual(payment);
+    post.flush({ id: 'op', kind: 'Settlement', status: 'Pending' });
+
+    api.previewPayment({ amount: 130, operationId: 'op' }).subscribe();
+    const preview = http.expectOne('/api/debts/payments/preview');
+    expect(preview.request.body).toEqual({ amount: 130, operationId: 'op' });
+    preview.flush({ lines: [], extra: 0, extraDirection: null, balanceBefore: 0, balanceAfter: 0 });
+
+    api.debtPayments('d1').subscribe();
+    expect(http.expectOne('/api/debts/d1/payments').request.method).toBe('GET');
+  });
+
+  it('posts group settlements', () => {
+    const body = { groupId: 'g1', fromPersonId: 'p1', toPersonId: 'p2', currency: 'EUR' as const, walletId: 'w1' };
+    api.settle(body).subscribe();
 
     const request = http.expectOne('/api/debts/settlements');
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ scope: 'Debt', debtId: 'd1', walletId: 'w1' });
+    expect(request.request.body).toEqual(body);
     request.flush({ id: 'op', kind: 'Settlement', status: 'Pending' });
   });
 
