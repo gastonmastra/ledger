@@ -1642,14 +1642,6 @@
           <context context-type="linenumber">27</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="debts.settleUp" datatype="html">
-        <source>Settle up</source>
-        <target state="translated">Saldar todo</target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">38,39</context>
-        </context-group>
-      </trans-unit>
       <trans-unit id="debts.open" datatype="html">
         <source>Open debts</source>
         <target state="translated">Deudas abiertas</target>
@@ -1699,71 +1691,19 @@
         </context-group>
       </trans-unit>
       <trans-unit id="debts.owesYouAmount" datatype="html">
-        <source>owes you <x id="INTERPOLATION" equiv-text="{{ debt.amount | money: debt.currency }}"/></source>
-        <target state="translated">te debe <x id="INTERPOLATION" equiv-text="{{ debt.amount | money: debt.currency }}"/></target>
+        <source>owes you <x id="INTERPOLATION" equiv-text="{{ debt.remaining | money: debt.currency }}"/></source>
+        <target state="translated">te debe <x id="INTERPOLATION" equiv-text="{{ debt.remaining | money: debt.currency }}"/></target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">73,74</context>
+          <context context-type="linenumber">88,89</context>
         </context-group>
       </trans-unit>
       <trans-unit id="debts.youOweAmount" datatype="html">
-        <source>you owe <x id="INTERPOLATION" equiv-text="{{ debt.amount | money: debt.currency }}"/></source>
-        <target state="translated">le debes <x id="INTERPOLATION" equiv-text="{{ debt.amount | money: debt.currency }}"/></target>
+        <source>you owe <x id="INTERPOLATION" equiv-text="{{ debt.remaining | money: debt.currency }}"/></source>
+        <target state="translated">le debes <x id="INTERPOLATION" equiv-text="{{ debt.remaining | money: debt.currency }}"/></target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">75,76</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="debts.settle" datatype="html">
-        <source>Settle</source>
-        <target state="translated">Saldar</target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
-          <context context-type="linenumber">81,82</context>
-        </context-group>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">108</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="debts.settled" datatype="html">
-        <source>Debt with <x id="name" equiv-text="debt.counterpartyName"/> settled.</source>
-        <target state="translated">Deuda con <x id="name" equiv-text="debt.counterpartyName"/> saldada.</target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">72</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="debts.settledUp" datatype="html">
-        <source>All settled with <x id="name" equiv-text="balance.name"/>.</source>
-        <target state="translated">Todo saldado con <x id="name" equiv-text="balance.name"/>.</target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">94</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="debts.settleTitle" datatype="html">
-        <source>Settle with <x id="name" equiv-text="name"/></source>
-        <target state="translated">Saldar con <x id="name" equiv-text="name"/></target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">104</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="debts.settleReceive" datatype="html">
-        <source><x id="name" equiv-text="name"/> pays you <x id="amount" equiv-text="formatted"/>. Where did the money go?</source>
-        <target state="translated"><x id="name" equiv-text="name"/> te paga <x id="amount" equiv-text="formatted"/>. ¿A dónde fue el dinero?</target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">106</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="debts.settlePay" datatype="html">
-        <source>You pay <x id="name" equiv-text="name"/> <x id="amount" equiv-text="formatted"/>. Where does the money come from?</source>
-        <target state="translated">Le pagas <x id="amount" equiv-text="formatted"/> a <x id="name" equiv-text="name"/>. ¿De dónde sale el dinero?</target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
-          <context context-type="linenumber">107</context>
+          <context context-type="linenumber">90,91</context>
         </context-group>
       </trans-unit>
       <trans-unit id="initialDebt.title" datatype="html">
@@ -3134,10 +3074,6 @@
         <source>Someone involved closed their books for that date, so it cannot change.</source>
         <target state="translated">Alguien involucrado cerró sus libros para esa fecha, así que no se puede cambiar.</target>
       </trans-unit>
-      <trans-unit id="error.debtSettled" datatype="html">
-        <source>It was already settled. Undo (delete) the settlement first, then change it.</source>
-        <target state="translated">Ya se saldó. Primero deshacé (eliminá) la liquidación y después cambialo.</target>
-      </trans-unit>
       <trans-unit id="error.changePending" datatype="html">
         <source>A change is waiting for confirmation. Try again once it is answered.</source>
         <target state="translated">Hay un cambio esperando confirmación. Probá de nuevo cuando lo respondan.</target>
@@ -3395,8 +3331,12 @@
         <target state="translated">¿Eliminar este registro (<x id="kind" equiv-text="kind"/>)?</target>
       </trans-unit>
       <trans-unit id="operations.deleteSettlement" datatype="html">
-        <source>The debts it paid will be open again. It stays in the history.</source>
-        <target state="translated">Las deudas que pagó volverán a quedar abiertas. Queda en el historial.</target>
+        <source>What it paid will be owed again. It stays in the history.</source>
+        <target state="translated">Lo que pagó se vuelve a deber. Queda en el historial.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/operation-actions.ts</context>
+          <context context-type="linenumber">57</context>
+        </context-group>
       </trans-unit>
       <trans-unit id="operations.deleteMessage" datatype="html">
         <source>It stays in the history and can be restored. Linked people involved have to confirm it.</source>
@@ -3458,10 +3398,6 @@
         <source>Change waiting for you</source>
         <target state="translated">Cambio esperando tu respuesta</target>
       </trans-unit>
-      <trans-unit id="operations.settled" datatype="html">
-        <source>Settled</source>
-        <target state="translated">Saldada</target>
-      </trans-unit>
       <trans-unit id="operations.recordedBy" datatype="html">
         <source>recorded by <x id="NAME" equiv-text="{{ operation.recordedByName // i18n(ph=&quot;name&quot;) }}"/></source>
         <target state="translated">registrado por <x id="NAME" equiv-text="{{ operation.recordedByName // i18n(ph=&amp;quot;name&amp;quot;) }}"/></target>
@@ -3470,14 +3406,6 @@
         <source>Edit</source>
         <target state="translated">Editar</target>
       </trans-unit>
-      <trans-unit id="operations.undoSettlementHint" datatype="html">
-        <source>It was settled: undo the settlement to change it.</source>
-        <target state="translated">Se saldó: deshacé la liquidación para cambiarlo.</target>
-      </trans-unit>
-      <trans-unit id="operations.undoSettlement" datatype="html">
-        <source>Undo settlement</source>
-        <target state="translated">Deshacer liquidación</target>
-      </trans-unit>
       <trans-unit id="operations.splitSummary" datatype="html">
         <source>Paid by <x id="payers" equiv-text="payers"/>, shared by <x id="count" equiv-text="people"/> people</source>
         <target state="translated">Pagó <x id="payers" equiv-text="payers"/>, compartido entre <x id="count" equiv-text="people"/> personas</target>
@@ -3485,10 +3413,6 @@
       <trans-unit id="settlementEdit.title" datatype="html">
         <source>Change the settlement</source>
         <target state="translated">Cambiar la liquidación</target>
-      </trans-unit>
-      <trans-unit id="settlementEdit.description" datatype="html">
-        <source>The amount comes from the debts it paid. To pay a different amount, delete it and settle again.</source>
-        <target state="translated">El monto sale de las deudas que pagó. Para pagar otro monto, eliminala y volvé a saldar.</target>
       </trans-unit>
       <trans-unit id="settlementEdit.wallet" datatype="html">
         <source>Wallet</source>
@@ -4129,6 +4053,390 @@
       <trans-unit id="contacts.linkCancelled" datatype="html">
         <source>Link request cancelled.</source>
         <target state="translated">Solicitud de vínculo cancelada.</target>
+      </trans-unit>
+      <trans-unit id="error.debtPaid" datatype="html">
+        <source>It was already paid (fully or partly). Change or delete those payments first, then change it.</source>
+        <target state="translated">Ya se pagó (total o parcialmente). Primero cambia o borra esos pagos y después cámbialo.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">60</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="error.paymentPending" datatype="html">
+        <source>Another payment with this person is being recorded or changed. Try again once it is done.</source>
+        <target state="translated">Se está registrando o cambiando otro pago con esta persona. Intenta de nuevo cuando termine.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">62</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="error.paymentNothing" datatype="html">
+        <source>There is nothing to pay: enter an amount.</source>
+        <target state="translated">No hay nada para pagar: ingresa un monto.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">63</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="error.paymentAmount" datatype="html">
+        <source>The amount must be greater than zero.</source>
+        <target state="translated">El monto tiene que ser mayor que cero.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">64</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="error.paymentSelf" datatype="html">
+        <source>A person cannot pay themselves.</source>
+        <target state="translated">Una persona no puede pagarse a sí misma.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">65</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="error.paymentTooMuch" datatype="html">
+        <source>The debts changed meanwhile. Check them and record the payment again.</source>
+        <target state="translated">Las deudas cambiaron mientras tanto. Revísalas y registra el pago de nuevo.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">67</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="error.paymentIncomplete" datatype="html">
+        <source>Choose the person, the currency and who paid.</source>
+        <target state="translated">Elige la persona, la moneda y quién pagó.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">68</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debtPayments.title" datatype="html">
+        <source>Payments of this debt</source>
+        <target state="translated">Pagos de esta deuda</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-payments-dialog.ts</context>
+          <context context-type="linenumber">15,16</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debtPayments.summary" datatype="html">
+        <source><x id="PAID" equiv-text="{{ debt.paid | money: debt.currency // i18n(ph=&quot;paid&quot;) }}"/> paid of <x id="AMOUNT" equiv-text="{{ debt.amount | money: debt.currency // i18n(ph=&quot;amount&quot;) }}"/></source>
+        <target state="translated"><x id="PAID" equiv-text="{{ debt.paid | money: debt.currency // i18n(ph=&quot;paid&quot;) }}"/> pagado de <x id="AMOUNT" equiv-text="{{ debt.amount | money: debt.currency // i18n(ph=&quot;amount&quot;) }}"/></target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-payments-dialog.ts</context>
+          <context context-type="linenumber">18,19</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debtPayments.left" datatype="html">
+        <source><x id="LEFT" equiv-text="{{ debt.remaining | money: debt.currency // i18n(ph=&quot;left&quot;) }}"/> left</source>
+        <target state="translated">quedan <x id="LEFT" equiv-text="{{ debt.remaining | money: debt.currency // i18n(ph=&quot;left&quot;) }}"/></target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-payments-dialog.ts</context>
+          <context context-type="linenumber">20,21</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debtPayments.none" datatype="html">
+        <source>Nothing paid yet.</source>
+        <target state="translated">Todavía no se pagó nada.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-payments-dialog.ts</context>
+          <context context-type="linenumber">25,27</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debts.recordPayment" datatype="html">
+        <source>Record a payment</source>
+        <target state="translated">Registrar un pago</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
+          <context context-type="linenumber">6,7</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debts.recordPaymentShort" datatype="html">
+        <source>Record payment</source>
+        <target state="translated">Registrar pago</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
+          <context context-type="linenumber">47,49</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debts.showPaid" datatype="html">
+        <source>Show paid debts</source>
+        <target state="translated">Mostrar deudas pagadas</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
+          <context context-type="linenumber">59,61</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debts.ofOriginal" datatype="html">
+        <source>of <x id="INTERPOLATION" equiv-text="{{ debt.amount | money: debt.currency }}"/></source>
+        <target state="translated">de <x id="INTERPOLATION" equiv-text="{{ debt.amount | money: debt.currency }}"/></target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
+          <context context-type="linenumber">93,94</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debts.partiallyPaid" datatype="html">
+        <source>Partially paid</source>
+        <target state="translated">Pagada en parte</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
+          <context context-type="linenumber">100,102</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debts.payments" datatype="html">
+        <source>Payments</source>
+        <target state="translated">Pagos</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.html</context>
+          <context context-type="linenumber">112,114</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debts.withPaid" datatype="html">
+        <source>Open and paid debts</source>
+        <target state="translated">Deudas abiertas y pagadas</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
+          <context context-type="linenumber">34</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="history.paidDebt" datatype="html">
+        <source>Paid <x id="AMOUNT" equiv-text="{{ allocation.amount | money: version.currency // i18n(ph=&quot;amount&quot;) }}"/> of <x id="DEBT" equiv-text="{{ allocation.description || &apos;—&apos; // i18n(ph=&quot;debt&quot;) }}"/> (<x id="TOTAL" equiv-text="{{ allocation.debtAmount | money: version.currency // i18n(ph=&quot;total&quot;) }}"/>)</source>
+        <target state="translated">Pagó <x id="AMOUNT" equiv-text="{{ allocation.amount | money: version.currency // i18n(ph=&quot;amount&quot;) }}"/> de <x id="DEBT" equiv-text="{{ allocation.description || &apos;—&apos; // i18n(ph=&quot;debt&quot;) }}"/> (<x id="TOTAL" equiv-text="{{ allocation.debtAmount | money: version.currency // i18n(ph=&quot;total&quot;) }}"/>)</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/operation-history-dialog.ts</context>
+          <context context-type="linenumber">51,52</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="history.extraDebt" datatype="html">
+        <source><x id="AMOUNT" equiv-text="{{ version.extraAmount | money: version.currency // i18n(ph=&quot;amount&quot;) }}"/> beyond what was owed became a new debt</source>
+        <target state="translated"><x id="AMOUNT" equiv-text="{{ version.extraAmount | money: version.currency // i18n(ph=&quot;amount&quot;) }}"/> por encima de lo que se debía se convirtió en una nueva deuda</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/operation-history-dialog.ts</context>
+          <context context-type="linenumber">54,55</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.description" datatype="html">
+        <source>It pays your debts with that person from the oldest. What you owe each other cancels out first.</source>
+        <target state="translated">Paga tus deudas con esa persona empezando por la más antigua. Lo que se deben mutuamente se compensa primero.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">38,39</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.recordedBy" datatype="html">
+        <source><x id="NAME" equiv-text="{{ edit.recordedByName // i18n(ph=&quot;name&quot;) }}"/> recorded it. Only they can change the amount or the wallet.</source>
+        <target state="translated">Lo registró <x id="NAME" equiv-text="{{ edit.recordedByName // i18n(ph=&quot;name&quot;) }}"/>. Solo esa persona puede cambiar el monto o la billetera.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">43,44</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.with" datatype="html">
+        <source>With</source>
+        <target state="translated">Con</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">48</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.currency" datatype="html">
+        <source>Currency</source>
+        <target state="translated">Moneda</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">55,56</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.who" datatype="html">
+        <source>Who paid</source>
+        <target state="translated">Quién pagó</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">63,64</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.theyPaidMe" datatype="html">
+        <source><x id="NAME" equiv-text="{{ contactName() // i18n(ph=&quot;name&quot;) }}"/> paid me</source>
+        <target state="translated"><x id="NAME" equiv-text="{{ contactName() // i18n(ph=&quot;name&quot;) }}"/> me pagó</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">65</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.iPaidThem" datatype="html">
+        <source>I paid <x id="NAME" equiv-text="{{ contactName() // i18n(ph=&quot;name&quot;) }}"/></source>
+        <target state="translated">Le pagué a <x id="NAME" equiv-text="{{ contactName() // i18n(ph=&quot;name&quot;) }}"/></target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">66</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.preview" datatype="html">
+        <source>What it pays</source>
+        <target state="translated">Qué paga</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">87,88</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.nothingToPay" datatype="html">
+        <source>Enter an amount.</source>
+        <target state="translated">Ingresa un monto.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">92,94</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.fullyPaid" datatype="html">
+        <source>Paid</source>
+        <target state="translated">Pagada</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">103,104</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.leftOf" datatype="html">
+        <source><x id="INTERPOLATION" equiv-text="{{ line.remainingAfter | money: currency() }}"/> left of <x id="INTERPOLATION_1" equiv-text="{{ line.debtAmount | money: currency() }}"/></source>
+        <target state="translated">quedan <x id="INTERPOLATION" equiv-text="{{ line.remainingAfter | money: currency() }}"/> de <x id="INTERPOLATION_1" equiv-text="{{ line.debtAmount | money: currency() }}"/></target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">105,106</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.extraOwedToMe" datatype="html">
+        <source>Paid beyond what was owed: <x id="NAME" equiv-text="{{ contactName() // i18n(ph=&quot;name&quot;) }}"/> now owes you</source>
+        <target state="translated">Pagado por encima de lo que se debía: ahora <x id="NAME" equiv-text="{{ contactName() // i18n(ph=&quot;name&quot;) }}"/> te debe</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">113</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.extraIOwe" datatype="html">
+        <source>Paid beyond what was owed: you now owe <x id="NAME" equiv-text="{{ contactName() // i18n(ph=&quot;name&quot;) }}"/></source>
+        <target state="translated">Pagado por encima de lo que se debía: ahora le debes a <x id="NAME" equiv-text="{{ contactName() // i18n(ph=&quot;name&quot;) }}"/></target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">115</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.balanceAfter" datatype="html">
+        <source>Balance afterwards</source>
+        <target state="translated">Saldo después del pago</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">123,124</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.previewFailed" datatype="html">
+        <source>The preview is not available. Check the values.</source>
+        <target state="translated">La vista previa no está disponible. Revisa los valores.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">127,129</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.editTitle" datatype="html">
+        <source>Change the payment</source>
+        <target state="translated">Cambiar el pago</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">160</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.title" datatype="html">
+        <source>Record a payment</source>
+        <target state="translated">Registrar un pago</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">161</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.submit" datatype="html">
+        <source>Record payment</source>
+        <target state="translated">Registrar pago</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">162</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.theContact" datatype="html">
+        <source>the contact</source>
+        <target state="translated">el contacto</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">200</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.fromWallet" datatype="html">
+        <source>From wallet</source>
+        <target state="translated">Desde la billetera</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">210</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.toWallet" datatype="html">
+        <source>Into wallet</source>
+        <target state="translated">A la billetera</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">211</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.debtOwedToMe" datatype="html">
+        <source>What they owed you</source>
+        <target state="translated">Lo que te debía</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">232</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.debtIOwe" datatype="html">
+        <source>What you owed</source>
+        <target state="translated">Lo que debías</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">233</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="payment.recorded" datatype="html">
+        <source>Payment recorded.</source>
+        <target state="translated">Pago registrado.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/payment-dialog.ts</context>
+          <context context-type="linenumber">265</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settlementEdit.groupDescription" datatype="html">
+        <source>The amount was the group&apos;s suggested payment. To pay a different amount, delete it and pay the new suggestion.</source>
+        <target state="translated">El monto era el pago sugerido del grupo. Para pagar otro monto, bórralo y paga la nueva sugerencia.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/settlement-edit-dialog.ts</context>
+          <context context-type="linenumber">22,24</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="operations.hasPayments" datatype="html">
+        <source>Has payments</source>
+        <target state="translated">Tiene pagos</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/operations-list.ts</context>
+          <context context-type="linenumber">56,58</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="operations.undoPaymentHint" datatype="html">
+        <source>It was paid (fully or partly): undo the payment to change it.</source>
+        <target state="translated">Se pagó (total o parcialmente): deshaz el pago para cambiarlo.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/operations-list.ts</context>
+          <context context-type="linenumber">81,82</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="operations.undoPayment" datatype="html">
+        <source>Undo payment</source>
+        <target state="translated">Deshacer pago</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/operations-list.ts</context>
+          <context context-type="linenumber">82,83</context>
+        </context-group>
       </trans-unit>
     </body>
   </file>

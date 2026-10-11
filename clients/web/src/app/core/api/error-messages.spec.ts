@@ -16,7 +16,8 @@ describe('errorMessage', () => {
     const settled = new HttpErrorResponse({ status: 400, error: { code: 'debt.settled', detail: '…' } });
 
     expect(errorMessage(locked)).toContain('Settings');
-    expect(errorMessage(settled)).toContain('Undo (delete) the settlement first');
+    expect(errorMessage(settled)).toContain('Change or delete those payments first');
+    expect(errorMessage(new HttpErrorResponse({ status: 400, error: { code: 'payment.pending' } }))).toContain('Another payment');
   });
 
   it('joins validation errors', () => {

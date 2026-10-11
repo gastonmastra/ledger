@@ -8,8 +8,9 @@ import { OperationTracker } from '../../core/operations/operation-tracker';
 import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, ReasonField } from '../../ui';
 
 /**
- * Changes the date, description or wallet of a settlement. The amount comes from the debts it
- * paid: to pay a different amount, undo (delete) the settlement and settle again.
+ * Changes the date, description or wallet of a group settlement. The amount is the group's suggested payment:
+ * to pay a different amount, delete it and record the suggested payment again. (Payments outside groups use
+ * PaymentDialog, where the amount can change.)
  */
 @Component({
   selector: 'app-settlement-edit-dialog',
@@ -18,7 +19,7 @@ import { Button, DateTimeInput, DialogLayout, FormField, Input, MoneyPipe, Reaso
   template: `
     <form [formGroup]="form" (ngSubmit)="save()">
       <ui-dialog i18n-heading="@@settlementEdit.title" heading="Change the settlement"
-                 i18n-description="@@settlementEdit.description" description="The amount comes from the debts it paid. To pay a different amount, delete it and settle again.">
+                 i18n-description="@@settlementEdit.groupDescription" description="The amount was the group's suggested payment. To pay a different amount, delete it and pay the new suggestion.">
         <div class="grid gap-4">
           <p class="text-sm">
             {{ operation.fromName }} → {{ operation.toName }} ·

@@ -32,6 +32,10 @@ import {
   ReviseOperationRequest,
   ReviseTransactionRequest,
   SettleRequest,
+  RecordPaymentRequest,
+  PreviewPaymentRequest,
+  PaymentPreview,
+  DebtPayment,
   SplitRequest,
   Summary,
   Trade,
@@ -267,8 +271,23 @@ export class LedgerApi {
     return this.http.post<Operation>(`${this.base}/debts/splits`, body);
   }
 
+  /** Pays one of a group's suggested payments. */
   settle(body: SettleRequest): Observable<Operation> {
     return this.http.post<Operation>(`${this.base}/debts/settlements`, body);
+  }
+
+  /** Money paid between me and a contact: pays our debts oldest first (asynchronous). */
+  recordPayment(body: RecordPaymentRequest): Observable<Operation> {
+    return this.http.post<Operation>(`${this.base}/debts/payments`, body);
+  }
+
+  /** What a payment (or an edit of one) would pay, without recording it. */
+  previewPayment(body: PreviewPaymentRequest): Observable<PaymentPreview> {
+    return this.http.post<PaymentPreview>(`${this.base}/debts/payments/preview`, body);
+  }
+
+  debtPayments(debtId: string): Observable<DebtPayment[]> {
+    return this.http.get<DebtPayment[]>(`${this.base}/debts/${debtId}/payments`);
   }
 
   operation(id: string): Observable<OperationDetails> {
