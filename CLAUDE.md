@@ -27,7 +27,7 @@ dotnet build Ledger.slnx && dotnet test Ledger.slnx   # unit + architecture + in
 cd clients/web
 npm start                                             # ng serve :4200, proxies /api to :5209 (proxy.conf.json)
 npm test -- --watch=false                             # Vitest via the Angular builder (bare `npx vitest` does not work)
-npm run build                                         # production, EN + ES, with the service worker; fails on missing translations
+npx ng build                                          # production, EN + ES, with the service worker; fails on missing translations
 npx ng extract-i18n --output-path src/locale          # then add the new ids to messages.es.xlf
 npm run e2e                                           # Playwright; needs API + Keycloak; logs in as alice/bob
 
@@ -98,7 +98,7 @@ Modules: **Identity** (Keycloak `sub` → internal user, `ledger_user_id` claim 
 * i18n: every user-visible string uses `i18n="@@id"` / `$localize\`:@@id:…\``. Same `@@id` must always have the same English text. Placeholders in templates: `{{ x // i18n(ph="name") }}`.
 * Features live in `features/<area>/`; shared operation actions in `features/debts/operation-actions.ts`.
 * Rows with several actions: `uiRowAction` + a detail pop-up that closes with the action, plus `ui-actions-menu` (⋯) with the same `MenuAction`s; operations use `OperationActions.open()/menu()`. Filters go in a `DialogService.open(…, 'panel')` side panel with `ui-filter-chips`.
-* **PWA** (documentation §21): build with `npm run build` (adds `--service-worker`; don't add it to `angular.json`). `public/sw.js` must keep leaving cross-origin (Keycloak) requests to the browser; never add API data groups to `ngsw-config.json`. Tokens: `core/auth/device-session.ts` (Remember me → localStorage + `offline_access`); call `oauth.setStorage()` when switching storage.
+* **PWA** (documentation §21): the service worker is enabled in the production configuration of `angular.json` (`serviceWorker`). `public/sw.js` must keep leaving cross-origin (Keycloak) requests to the browser; never add API data groups to `ngsw-config.json`. Tokens: `core/auth/device-session.ts` (Remember me → localStorage + `offline_access`); call `oauth.setStorage()` when switching storage.
 
 ### Console (`src/Ledger.Console`)
 * `Api/LedgerApiClient.cs` + `Api/Models.cs` (copies of the HTTP contracts), menus in `Menus/` deriving from `Menu`, prompts via `ConsoleUi` (`ReadWhen` → UTC, `ReadReason`, `ReadTextOrKeep`, `Choose`). Register new menus in `Program.cs` and `App.cs`.

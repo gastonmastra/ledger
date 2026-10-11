@@ -53,7 +53,7 @@ The web app runs at **http://localhost:4201**. nginx serves `/en/` and `/es/`, r
 
 ## Installable app (PWA)
 
-* `npm run build` builds both languages **with the service worker** (`ng build --service-worker=ngsw-config.json`); plain `npx ng build` builds without it. `npm start` never registers it.
+* `npx ng build` (or `npm run build`) builds both languages **with the service worker** (`serviceWorker: ngsw-config.json` in the production configuration of `angular.json`). The development build and `npm start` never register it.
 * Files: `ngsw-config.json` (app shell and images cached; **the API is never cached**), `public/sw.js` (Angular's worker plus "leave other origins, i.e. Keycloak, to the browser"), `public/manifest.webmanifest`, `public/icons/`.
 * Icons: `npm run icons -- path/to/icon.png` (1024×1024 PNG or SVG) regenerates every size and `favicon.ico`.
 * `core/pwa/`: update prompt, install prompt, online/offline. `core/auth/device-session.ts`: *Remember me on this device* (localStorage + `offline_access`).
