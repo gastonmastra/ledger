@@ -32,7 +32,7 @@
       </thead>
       <tbody>
         @for (wallet of wallets.value(); track wallet.id) {
-          <tr>
+          <tr uiRowAction (rowOpen)="open(wallet)">
             <td class="font-medium">{{ wallet.name }}</td>
             <td class="text-right tabular-nums">{{ wallet.balance | money: wallet.currency }}</td>
             <td>
@@ -44,15 +44,7 @@
             </td>
             <td class="text-right">
               @if (wallet.status === 'Active') {
-                <div class="flex flex-wrap justify-end gap-1">
-                  @if (wallet.isReady) {
-                    <button uiButton variant="ghost" size="sm" type="button" (click)="openingBalance(wallet)" i18n="@@wallets.openingAction">Opening balance</button>
-                    <button uiButton variant="ghost" size="sm" type="button" (click)="adjust(wallet)" i18n="@@wallets.adjustAction">Adjust balance</button>
-                  }
-                  <button uiButton variant="ghost" size="sm" type="button" (click)="rename(wallet)" i18n="@@ui.rename">Rename</button>
-                  <button uiButton variant="ghost" size="sm" type="button" (click)="archive(wallet)" i18n="@@wallets.archive">Archive</button>
-                  <button uiButton variant="ghost" size="sm" type="button" (click)="remove(wallet)" i18n="@@ui.delete">Delete</button>
-                </div>
+                <ui-actions-menu [actions]="menu(wallet)" />
               }
             </td>
           </tr>

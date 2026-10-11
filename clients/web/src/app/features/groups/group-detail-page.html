@@ -1,10 +1,10 @@
 @if (group.value(); as g) {
   <ui-page-header [heading]="g.name" i18n-subtitle="@@groups.detailSubtitle" subtitle="Shared expenses, balances and payments.">
     <a uiButton variant="ghost" routerLink="/groups" i18n="@@groups.back">All groups</a>
-    <button uiButton variant="secondary" type="button" (click)="addMember()" i18n="@@groups.addMember">Add member</button>
     <button uiButton type="button" (click)="addExpense()">
       <ui-icon name="plus" size="sm" /><ng-container i18n="@@groups.addExpense">Add expense</ng-container>
     </button>
+    <ui-actions-menu [actions]="groupMenu" />
   </ui-page-header>
 
   <div class="grid gap-6 lg:grid-cols-3">
@@ -50,7 +50,7 @@
               }
             </span>
             @if (!member.isMe && !member.hasActivity) {
-              <button uiButton variant="ghost" size="sm" type="button" (click)="removeMember(member)" i18n="@@groups.remove">Remove</button>
+              <ui-actions-menu [actions]="memberMenu(member)" />
             }
           </li>
         }

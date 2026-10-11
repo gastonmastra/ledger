@@ -1,5 +1,5 @@
 import { Page, expect, test } from '@playwright/test';
-import { login, selectOptionContaining, unique } from './helpers';
+import { filterTransactions, login, menuAction, rowAction, selectOptionContaining, unique } from './helpers';
 
 async function createWallet(page: Page, name: string, opening: string): Promise<void> {
   const dialog = page.getByRole('dialog');
@@ -31,7 +31,7 @@ test.describe('Ledger web: dates, balances and existing debts', () => {
 
     await expect(page.getByText('Expense recorded.')).toBeVisible();
     // Newest first: an expense dated in January is further down, so filter by its wallet.
-    await selectOptionContaining(page.getByLabel('Wallet'), walletName);
+    await filterTransactions(page, { wallet: walletName });
     const item = page.locator('li', { hasText: 'E2E coffee in January' }).first();
     await expect(item).toContainText('Jan 15, 2026');
   });
@@ -42,7 +42,7 @@ test.describe('Ledger web: dates, balances and existing debts', () => {
     const row = page.getByRole('row', { name: new RegExp(walletName) });
     const dialog = page.getByRole('dialog');
 
-    await row.getByRole('button', { name: 'Opening balance' }).click();
+    await rowAction(row, 'Opening balance');
     await expect(dialog.getByLabel(/Amount/)).toHaveValue('100');
     await dialog.getByLabel(/Amount/).fill('250');
     await dialog.getByLabel('Why?').fill('E2E: counted wrong');
@@ -50,7 +50,10 @@ test.describe('Ledger web: dates, balances and existing debts', () => {
     await expect(page.getByText('Opening balance updated.')).toBeVisible();
     await expect(row).toContainText('250.00');
 
-    await row.getByRole('button', { name: 'Adjust balance' }).click();
+    // Also from the wallet's detail (click the row).
+    await row.click();
+    await expect(dialog.getByRole('heading', { name: walletName })).toBeVisible();
+    await dialog.getByRole('button', { name: 'Adjust balance' }).click();
     await dialog.getByLabel('Real balance').fill('240');
     await dialog.getByLabel('Description').fill('E2E bank fees');
     await dialog.getByRole('button', { name: 'Adjust' }).click();
@@ -71,7 +74,7 @@ test.describe('Ledger web: dates, balances and existing debts', () => {
     await expect(page.getByRole('row', { name: new RegExp(contactName) })).toBeVisible();
 
     await page.goto('debts');
-    await page.getByRole('button', { name: 'Add existing debt' }).click();
+    await menuAction(page, 'Add', 'Add existing debt');
     await dialog.getByRole('radio', { name: 'I owed them' }).click();
     await dialog.getByLabel('Contact').selectOption({ label: contactName });
     await dialog.getByLabel('Amount').fill('30');
@@ -106,7 +109,7 @@ test.describe('Ledger web: dates, balances and existing debts', () => {
     // He owes me 150 (older) and 50 (newer).
     await page.goto('debts');
     for (const amount of ['150', '50']) {
-      await page.getByRole('button', { name: 'Add existing debt' }).click();
+      await menuAction(page, 'Add', 'Add existing debt');
       await dialog.getByRole('radio', { name: 'They owed me' }).click();
       await dialog.getByLabel('Contact').selectOption({ label: contactName });
       await dialog.getByLabel('Amount').fill(amount);
@@ -132,7 +135,7 @@ test.describe('Ledger web: dates, balances and existing debts', () => {
 
     // He actually paid 130: 20 left of the 150, the 50 untouched.
     const payment = page.getByRole('listitem').filter({ hasText: `${contactName} paid` }).first();
-    await payment.getByRole('button', { name: 'Edit' }).click();
+    await rowAction(payment, 'Edit');
     await dialog.getByLabel('Amount').fill('130');
     await expect(dialog.getByText('€20.00 left of €150.00')).toBeVisible();
     await dialog.getByLabel('Why?').fill('E2E: it was 130');
@@ -143,7 +146,10 @@ test.describe('Ledger web: dates, balances and existing debts', () => {
     await expect(debtRows.filter({ hasText: 'owes you €50.00' })).not.toContainText('Partially paid');
 
     // Undone: everything is owed again.
-    await page.getByRole('listitem').filter({ hasText: `${contactName} paid` }).first().getByRole('button', { name: 'Delete' }).click();
+    // From the payment's detail (click it): what it paid, and its actions.
+    await page.getByRole('listitem').filter({ hasText: `${contactName} paid` }).first().click();
+    await expect(dialog.getByText('What it pays')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Delete' }).click();
     await dialog.getByLabel('Why?').fill('E2E: he did not pay');
     await dialog.getByRole('button', { name: 'Delete' }).click();
     await expect(page.getByText('Deleted.')).toBeVisible({ timeout: 30_000 });

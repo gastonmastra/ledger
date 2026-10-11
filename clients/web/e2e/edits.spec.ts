@@ -1,5 +1,5 @@
 import { Browser, Page, expect, test } from '@playwright/test';
-import { login, selectOptionContaining, unique } from './helpers';
+import { filterTransactions, login, menuAction, rowAction, selectOptionContaining, unique } from './helpers';
 
 async function createWallet(page: Page, name: string, opening: string): Promise<void> {
   const dialog = page.getByRole('dialog');
@@ -38,9 +38,14 @@ test.describe('Ledger web: editable, auditable ledger', () => {
     await createWallet(page, walletName, '100');
     await recordExpense(page, walletName, '12', description);
 
-    await selectOptionContaining(page.getByLabel('Wallet'), walletName);
+    await filterTransactions(page, { wallet: walletName });
+    await expect(page.getByText(`Wallet: ${walletName}`)).toBeVisible(); // the active filter as a chip
     const item = page.locator('li', { hasText: description }).first();
-    await item.getByRole('button', { name: 'Edit' }).click();
+
+    // Clicking the row opens its detail, with the same actions as its ⋯ menu.
+    await item.click();
+    await expect(dialog.getByText('Movements')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Edit' }).click();
     await expect(dialog.getByLabel(/Amount/)).toHaveValue('12');
     await dialog.getByLabel(/Amount/).fill('20');
     await expect(dialog.getByRole('button', { name: 'Save' })).toBeDisabled(); // the reason is required
@@ -53,34 +58,34 @@ test.describe('Ledger web: editable, auditable ledger', () => {
     await expect(page.locator('li', { hasText: description }).first()).toContainText('Edited');
     await expect(page.locator('li', { hasText: description }).first()).toContainText('-€20.00');
 
-    await page.locator('li', { hasText: description }).first().getByRole('button', { name: 'History' }).click();
+    await rowAction(page.locator('li', { hasText: description }).first(), 'History');
     // The reason is on the reversal and on the corrected version.
     await expect(dialog.getByText('E2E: it was 20')).toHaveCount(2);
     await expect(dialog.locator('li', { hasText: 'Changed' })).toHaveCount(1);
     await dialog.getByRole('button', { name: 'Close' }).last().click();
 
     // "Show changes" also lists the replaced version and its reversal.
-    await page.getByLabel('Show changes').check();
+    await filterTransactions(page, { showChanges: true });
     await expect(page.locator('li', { hasText: description })).toHaveCount(3);
-    await page.getByLabel('Show changes').uncheck();
+    await filterTransactions(page, { showChanges: false });
 
-    await page.locator('li', { hasText: description }).first().getByRole('button', { name: 'Delete' }).click();
+    await rowAction(page.locator('li', { hasText: description }).first(), 'Delete');
     await dialog.getByLabel('Why?').fill('E2E: duplicated');
     await dialog.getByRole('button', { name: 'Delete' }).click();
     await expect(page.getByText('Transaction deleted.')).toBeVisible();
     await expect(page.locator('li', { hasText: description })).toHaveCount(0);
 
-    await page.getByLabel('Show changes').check();
-    await page.locator('li', { hasText: description }).filter({ hasText: 'Deleted' }).first()
-      .getByRole('button', { name: 'History' }).click();
+    await filterTransactions(page, { showChanges: true });
+    await rowAction(page.locator('li', { hasText: description }).filter({ hasText: 'Deleted' }).first(), 'History');
     await dialog.getByRole('button', { name: 'Restore' }).click();
     await dialog.getByLabel('Why?').fill('E2E: it was not duplicated');
     await dialog.getByRole('button', { name: 'Restore' }).click();
     await expect(page.getByText('Transaction restored.')).toBeVisible();
 
     await page.goto('activity');
-    await expect(page.getByText('“E2E: it was not duplicated”')).toBeVisible();
-    await expect(page.getByText('“E2E: duplicated”')).toBeVisible();
+    // This run's entries (earlier runs leave the same reasons on other expenses).
+    await expect(page.getByText(description).filter({ hasText: '“E2E: it was not duplicated”' })).toBeVisible();
+    await expect(page.getByText(description).filter({ hasText: '“E2E: duplicated”' })).toBeVisible();
   });
 
   test('a lock date blocks changes in the closed period', async ({ page }) => {
@@ -120,6 +125,7 @@ test.describe('Ledger web: editable, auditable ledger', () => {
 
     // Link Bob once (by email); later runs reuse the contact.
     await page.goto('contacts');
+    await page.locator('ui-table, ui-empty-state').first().waitFor(); // the list is loaded before looking
     const existing = page.getByRole('row', { name: /bob@ledger\.local/ });
     let bobName = 'E2E Bob';
     if (await existing.count()) {
@@ -133,7 +139,7 @@ test.describe('Ledger web: editable, auditable ledger', () => {
     }
 
     await page.goto('debts');
-    await page.getByRole('button', { name: 'Lend money' }).click();
+    await menuAction(page, 'Add', 'Lend money');
     await dialog.getByLabel('To').selectOption({ label: bobName });
     await selectOptionContaining(dialog.getByLabel('From wallet'), walletName);
     await dialog.getByLabel('Amount').fill('10');
@@ -142,7 +148,7 @@ test.describe('Ledger web: editable, auditable ledger', () => {
     await expect(page.getByText(`Loan to ${bobName} recorded.`)).toBeVisible({ timeout: 30_000 });
 
     const operation = page.locator('li', { hasText: description }).first();
-    await operation.getByRole('button', { name: 'Edit' }).click();
+    await rowAction(operation, 'Edit');
     await dialog.getByLabel('Amount').fill('15');
     await dialog.getByLabel('Why?').fill('E2E: I lent him 15');
     await dialog.getByRole('button', { name: 'Save' }).click();

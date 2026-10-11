@@ -5,10 +5,11 @@ import { OperationDetails } from '../../core/api/models';
 import { CurrentUser } from '../../core/current-user';
 import { operationKindLabel } from '../../core/i18n/labels';
 import { OperationTracker } from '../../core/operations/operation-tracker';
-import { ConfirmService, DialogService } from '../../ui';
+import { ConfirmService, DialogService, MenuAction } from '../../ui';
 import { SplitDialog, SplitDialogData, SplitPerson } from '../shared/split-dialog';
 import { LendDialog } from './debt-dialogs';
 import { InitialDebtDialog } from './initial-debt-dialog';
+import { OperationAction, OperationDetailDialog } from './operation-detail-dialog';
 import { OperationHistoryDialog, OperationHistoryResult } from './operation-history-dialog';
 import { PaymentDialog, PaymentDialogData } from './payment-dialog';
 import { SettlementEditDialog } from './settlement-edit-dialog';
@@ -24,6 +25,39 @@ export class OperationActions {
   private readonly confirm = inject(ConfirmService);
   private readonly tracker = inject(OperationTracker);
   private readonly currentUser = inject(CurrentUser);
+
+  /** The detail pop-up of an operation (or of its id); its buttons run the same actions as the menu. */
+  async open(operationOrId: OperationDetails | string): Promise<void> {
+    const operation = typeof operationOrId === 'string'
+      ? await firstValueFrom(this.api.operation(operationOrId))
+      : operationOrId;
+    const action = await this.dialogs.open<OperationAction, OperationDetails>(OperationDetailDialog, operation, 'lg');
+
+    switch (action) {
+      case 'edit': return this.edit(operation);
+      case 'delete': return this.delete(operation);
+      case 'undoPayment': return this.undoSettlement(operation);
+      case 'restore': return this.restore(operation);
+      case 'history': return this.history(operation.id);
+    }
+  }
+
+  /** The ⋯ menu of an operation. */
+  menu(operation: OperationDetails): MenuAction[] {
+    return [
+      { label: $localize`:@@ui.edit:Edit`, icon: 'pencil', run: () => this.edit(operation), hidden: !operation.canEdit },
+      { label: $localize`:@@ui.delete:Delete`, icon: 'trash', run: () => this.delete(operation), hidden: !operation.canDelete, danger: true },
+      {
+        label: $localize`:@@operations.undoPayment:Undo payment`,
+        icon: 'undo',
+        run: () => this.undoSettlement(operation),
+        hidden: !(operation.blockedReason === 'debt.settled' && operation.status === 'Completed'),
+        hint: $localize`:@@operations.undoPaymentHint:It was paid (fully or partly): undo the payment to change it.`,
+      },
+      { label: $localize`:@@history.restore:Restore`, icon: 'undo', run: () => this.restore(operation), hidden: !operation.canRestore },
+      { label: $localize`:@@history.title:History`, icon: 'clock', run: () => this.history(operation.id) },
+    ];
+  }
 
   async edit(operation: OperationDetails): Promise<void> {
     switch (operation.kind) {

@@ -5,12 +5,13 @@ import { LedgerApi } from '../../core/api/ledger-api';
 import { Contact } from '../../core/api/models';
 import { DataChanges } from '../../core/data-changes';
 import { ToastService } from '../../core/notifications/toast.service';
-import { Badge, Button, Card, DialogService, EmptyState, Icon, PageHeader, Spinner, Table } from '../../ui';
+import { ActionsMenu, Badge, Button, Card, DialogService, EmptyState, Icon, MenuAction, PageHeader, RowAction, Spinner, Table } from '../../ui';
+import { ContactAction, ContactDetailDialog } from './contact-detail-dialog';
 import { ContactDialog, LinkContactDialog } from './contact-dialogs';
 
 @Component({
   selector: 'app-contacts-page',
-  imports: [PageHeader, Card, Table, Badge, Button, Icon, EmptyState, Spinner],
+  imports: [PageHeader, Card, Table, Badge, Button, Icon, EmptyState, Spinner, ActionsMenu, RowAction],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ui-page-header i18n-heading="@@contacts.title" heading="Contacts"
@@ -30,21 +31,21 @@ import { ContactDialog, LinkContactDialog } from './contact-dialogs';
           <thead>
             <tr>
               <th i18n="@@contacts.name">Name</th>
-              <th i18n="@@contacts.email">Email</th>
+              <th class="hidden sm:table-cell" i18n="@@contacts.email">Email</th>
               <th i18n="@@contacts.account">Ledger account</th>
               <th><span class="sr-only" i18n="@@ui.actions">Actions</span></th>
             </tr>
           </thead>
           <tbody>
             @for (contact of contacts.value(); track contact.id) {
-              <tr>
+              <tr uiRowAction (rowOpen)="open(contact)">
                 <td class="font-medium">
                   {{ contact.name }}
                   @if (contact.origin === 'Mirrored') {
                     <ui-badge class="ml-1" i18n="@@contacts.auto">added automatically</ui-badge>
                   }
                 </td>
-                <td class="text-muted">{{ contact.email }}</td>
+                <td class="hidden text-muted sm:table-cell">{{ contact.email }}</td>
                 <td>
                   @if (contact.isLinked) {
                     <ui-badge tone="success" i18n="@@contacts.linked">Linked</ui-badge>
@@ -55,11 +56,7 @@ import { ContactDialog, LinkContactDialog } from './contact-dialogs';
                   }
                 </td>
                 <td class="text-right">
-                  @if (contact.pendingLinkRequestId) {
-                    <button uiButton variant="ghost" size="sm" type="button" (click)="cancelLink(contact)" i18n="@@contacts.cancelLink">Cancel request</button>
-                  } @else if (!contact.isLinked) {
-                    <button uiButton variant="ghost" size="sm" type="button" (click)="link(contact)" i18n="@@contacts.link">Link</button>
-                  }
+                  <ui-actions-menu [actions]="menu(contact)" />
                 </td>
               </tr>
             }
@@ -79,6 +76,19 @@ export class ContactsPage {
     params: () => this.changes.version(),
     stream: () => this.api.contacts(),
   });
+
+  protected async open(contact: Contact): Promise<void> {
+    const action = await this.dialogs.open<ContactAction, Contact>(ContactDetailDialog, contact);
+    if (action === 'link') await this.link(contact);
+    else if (action === 'cancelLink') await this.cancelLink(contact);
+  }
+
+  protected menu(contact: Contact): MenuAction[] {
+    return [
+      { label: $localize`:@@contacts.link:Link`, icon: 'link', run: () => this.link(contact), hidden: contact.isLinked || !!contact.pendingLinkRequestId },
+      { label: $localize`:@@contacts.cancelLink:Cancel request`, icon: 'close', run: () => this.cancelLink(contact), hidden: !contact.pendingLinkRequestId },
+    ];
+  }
 
   protected async create(): Promise<void> {
     const contact = await this.dialogs.open<Contact>(ContactDialog);
