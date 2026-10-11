@@ -105,14 +105,45 @@ public class LinkContactsTests(LedgerApiFactory factory)
                 .Where(c => c.GetProperty("personId").GetGuid() == aliceId)
                 .Select(c => (object?)c.GetProperty("id").GetGuid())
                 .FirstOrDefault(), "Pedro's contact for Alice");
-        var settlement = await pedro.PostJsonAsync("/api/debts/settlements",
-            new { scope = "Contact", contactId = (Guid)aliceForPedro, currency = "EUR", walletId = pedroWallet }, HttpStatusCode.Accepted);
+        var settlement = await pedro.PostJsonAsync("/api/debts/payments",
+            new { contactId = (Guid)aliceForPedro, currency = "EUR", direction = "IPaidThem", amount = 70, walletId = pedroWallet },
+            HttpStatusCode.Accepted);
         Assert.Equal("Completed", (await pedro.CompletedOperationAsync(settlement)).GetProperty("status").GetString());
 
         await EventuallyAsync(async () => await pedro.WalletBalanceAsync(pedroWallet) == 30 ? (object)true : null, "Pedro paid");
         Assert.Equal(0, (await pedro.TotalsAsync("EUR")).GetProperty("iOwe").GetDecimal());
         await EventuallyAsync(async () =>
             (await alice.TotalsAsync("EUR")).GetProperty("owedToMe").GetDecimal() == 0 ? (object)true : null, "Alice was paid");
+    }
+
+    [Fact]
+    public async Task A_partial_payment_is_copied_as_what_it_paid()
+    {
+        var (alice, contactId, aliceId) = await AliceWithLoanAsync(100);
+        var bank = (await alice.GetJsonAsync("/api/wallets")).EnumerateArray().First().GetProperty("id").GetGuid();
+
+        // Pedro (no account yet) paid 30 of the 100.
+        var payment = await alice.PostJsonAsync("/api/debts/payments",
+            new { contactId, currency = "EUR", direction = "TheyPaidMe", amount = 30, walletId = bank }, HttpStatusCode.Accepted);
+        await alice.CompletedOperationAsync(payment);
+        Assert.Equal(70, (await alice.TotalsAsync("EUR")).GetProperty("owedToMe").GetDecimal());
+
+        var (pedro, email, _) = await NewAccountAsync("pedro");
+        var request = await RequestLinkAsync(alice, contactId, email);
+
+        var preview = await PreviewAsync(pedro, request);
+        Assert.Equal(2, preview.GetProperty("operations").GetInt32());
+        Assert.Equal(-70, preview.GetProperty("balances").EnumerateArray().Single().GetProperty("amount").GetDecimal());
+
+        await AcceptAsync(pedro, alice, request);
+
+        await EventuallyAsync(async () =>
+            (await pedro.TotalsAsync("EUR")).GetProperty("iOwe").GetDecimal() == 70 ? (object)true : null, "Pedro owes what is left");
+        var pedroDebt = (await pedro.GetJsonAsync("/api/debts")).GetProperty("debts").EnumerateArray().Single();
+        Assert.Equal((100m, 70m, aliceId), (
+            pedroDebt.GetProperty("amount").GetDecimal(),
+            pedroDebt.GetProperty("remaining").GetDecimal(),
+            pedroDebt.GetProperty("counterpartyPersonId").GetGuid()));
     }
 
     [Fact]
