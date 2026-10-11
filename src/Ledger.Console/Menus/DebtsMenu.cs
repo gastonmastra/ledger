@@ -14,9 +14,10 @@ public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard, Oper
         ("Split an expense with contacts", SplitAsync),
         ("A friend paid for me", FriendPaidAsync),
         ("Add an existing debt", InitialDebtAsync),
-        ("Settle one debt", SettleDebtAsync),
-        ("Settle up with a contact", SettleContactAsync),
-        ("Loans, splits and settlements (edit, delete, restore, history)", ct => operations.RunAsync(null, ct))
+        ("Record a payment (pays the oldest debts first)", RecordPaymentAsync),
+        ("Payments of a debt", DebtPaymentsAsync),
+        ("Paid debts (history)", PaidDebtsAsync),
+        ("Loans, splits and payments (edit, delete, restore, history)", ct => operations.RunAsync(null, ct))
     ];
 
     private async Task OverviewAsync(CancellationToken ct)
@@ -31,15 +32,26 @@ public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard, Oper
             ("Net", c => ConsoleUi.Money(c.Net, c.Currency)));
 
         SystemConsole.WriteLine("\nOpen debts:");
-        ConsoleUi.Table(debts.Debts,
+        DebtsTable(debts.Debts);
+
+        ConsoleUi.Pause();
+    }
+
+    private static void DebtsTable(IEnumerable<Debt> debts)
+        => ConsoleUi.Table(debts,
             ("With", d => d.GroupName is null ? d.CounterpartyName : $"{d.CounterpartyName} ({d.GroupName})"),
             ("Direction", d => d.Direction == "OwedToMe" ? "owes me" : "I owe"),
-            ("Amount", d => ConsoleUi.Money(d.Amount, d.Currency)),
+            ("Left", d => ConsoleUi.Money(d.Remaining, d.Currency)),
+            ("Of", d => ConsoleUi.Money(d.Amount, d.Currency)),
             ("For", d => d.Description),
-            ("Status", d => (d.IsSettling ? "Settling" : d.Status)
+            ("Status", d => (d.IsSettling ? "Settling" : d.IsPartiallyPaid ? "Partially paid" : d.Status)
                             + (d.PendingChange ? " · change pending" : "")
                             + (d.Disputed ? " · disputed" : "")));
 
+    private async Task PaidDebtsAsync(CancellationToken ct)
+    {
+        var paid = (await api.DebtsAsync(includeSettled: true, ct)).Debts.Where(d => d.Status == "Settled").ToList();
+        DebtsTable(paid);
         ConsoleUi.Pause();
     }
 
@@ -127,56 +139,88 @@ public sealed class DebtsMenu(LedgerApiClient api, SplitWizard splitWizard, Oper
                  : $"Recorded: {contact.Name} owes you {ConsoleUi.Money(amount, currency)}.");
     }
 
-    private async Task SettleDebtAsync(CancellationToken ct)
+    private async Task RecordPaymentAsync(CancellationToken ct)
     {
-        var debts = (await api.DebtsAsync(false, ct)).Debts
-            .Where(d => d.GroupId is null && d.Status == "Open" && !d.IsSettling && !d.PendingChange)
-            .ToList();
+        var contacts = await api.ContactsAsync(ct);
+        var balances = (await api.DebtsAsync(false, ct)).ByContact;
+
+        if (ConsoleUi.Choose("With", contacts, c => c.Name + string.Concat(balances
+                .Where(b => b.PersonId == c.PersonId)
+                .Select(b => $" · net {ConsoleUi.Money(b.Net, b.Currency)}"))) is not { } contact)
+        {
+            ConsoleUi.Pause();
+            return;
+        }
+
+        var mine = balances.Where(b => b.PersonId == contact.PersonId).ToList();
+        var currency = mine.Count == 1 ? mine[0].Currency : ConsoleUi.Choose("Currency", ["EUR", "USD", "ARS"], c => c)!;
+        var net = mine.FirstOrDefault(b => b.Currency == currency)?.Net ?? 0;
+
+        var theyPaid = ConsoleUi.Choose("Who paid",
+            [$"{contact.Name} paid me", $"I paid {contact.Name}"], d => d) == $"{contact.Name} paid me";
+        var direction = theyPaid ? "TheyPaidMe" : "IPaidThem";
+        var suggested = (theyPaid && net > 0) || (!theyPaid && net < 0) ? Math.Abs(net) : 0;
+        var amount = suggested > 0
+            ? ConsoleUi.ReadDecimalOrKeep($"Amount ({currency})", suggested)
+            : ConsoleUi.ReadDecimal($"Amount ({currency}): ");
+
+        var preview = await api.PreviewPaymentAsync(new { contactId = contact.Id, currency, direction, amount }, ct);
+        ShowPreview(preview, currency, contact.Name);
+
+        if (!ConsoleUi.Confirm("Record it?"))
+        {
+            ConsoleUi.Pause();
+            return;
+        }
+
+        if (await ChooseWalletAsync(currency, theyPaid, ct) is not { } wallet)
+            return;
+
+        var description = ConsoleUi.ReadText("Description (optional): ", optional: true);
+        var when = ConsoleUi.ReadWhen();
+        var operation = await api.RecordPaymentAsync(
+            contact.Id, currency, direction, amount, wallet.Id, description.Length == 0 ? null : description, when, ct);
+
+        ShowOperation(await api.WaitForOperationAsync(operation, ct), "Payment recorded.");
+    }
+
+    /// <summary>Which debts a payment pays and what is left, from my point of view.</summary>
+    internal static void ShowPreview(PaymentPreview preview, string currency, string name)
+    {
+        SystemConsole.WriteLine("\nIt pays (oldest first):");
+        ConsoleUi.Table(preview.Lines,
+            ("Debt", l => $"{(l.Direction == "OwedToMe" ? $"{name} owed me" : $"I owed {name}")} · {l.Description}"),
+            ("Date", l => l.OccurredAt.ToLocalTime().ToString("yyyy-MM-dd")),
+            ("Paid", l => ConsoleUi.Money(l.Paid, currency)),
+            ("Left", l => l.RemainingAfter == 0 ? "paid" : $"{ConsoleUi.Money(l.RemainingAfter, currency)} of {ConsoleUi.Money(l.DebtAmount, currency)}"));
+
+        if (preview.Extra > 0)
+            SystemConsole.WriteLine(preview.ExtraDirection == "OwedToMe"
+                ? $"Paid beyond what was owed: {name} now owes you {ConsoleUi.Money(preview.Extra, currency)}."
+                : $"Paid beyond what was owed: you now owe {name} {ConsoleUi.Money(preview.Extra, currency)}.");
+
+        SystemConsole.WriteLine($"Balance afterwards: {ConsoleUi.Money(preview.BalanceAfter, currency)} (positive: they owe you).\n");
+    }
+
+    private async Task DebtPaymentsAsync(CancellationToken ct)
+    {
+        var debts = (await api.DebtsAsync(includeSettled: true, ct)).Debts.Where(d => d.GroupId is null && d.Paid > 0).ToList();
 
         if (ConsoleUi.Choose("Debt", debts,
-                d => $"{(d.Direction == "OwedToMe" ? $"{d.CounterpartyName} owes me" : $"I owe {d.CounterpartyName}")} {ConsoleUi.Money(d.Amount, d.Currency)} ({d.Description})")
+                d => $"{(d.Direction == "OwedToMe" ? $"{d.CounterpartyName} owes me" : $"I owe {d.CounterpartyName}")} · {d.Description} · {ConsoleUi.Money(d.Paid, d.Currency)} paid of {ConsoleUi.Money(d.Amount, d.Currency)}")
             is not { } debt)
         {
             ConsoleUi.Pause();
             return;
         }
 
-        if (await ChooseWalletAsync(debt.Currency, debt.Direction == "OwedToMe", ct) is not { } wallet)
-            return;
-
-        var when = ConsoleUi.ReadWhen();
-        var operation = await api.SettleAsync(new { scope = "Debt", debtId = debt.Id, walletId = wallet.Id, occurredAt = when }, ct);
-        ShowOperation(await api.WaitForOperationAsync(operation, ct), "Debt settled.");
-    }
-
-    private async Task SettleContactAsync(CancellationToken ct)
-    {
-        var balances = (await api.DebtsAsync(false, ct)).ByContact;
-
-        if (ConsoleUi.Choose("Contact", balances,
-                b => $"{b.Name}: net {ConsoleUi.Money(b.Net, b.Currency)} ({(b.Net >= 0 ? "they pay you" : "you pay them")})")
-            is not { } balance)
-        {
-            ConsoleUi.Pause();
-            return;
-        }
-
-        var contact = (await api.ContactsAsync(ct)).Single(c => c.PersonId == balance.PersonId);
-        Guid? walletId = null;
-
-        if (balance.Net != 0)
-        {
-            if (await ChooseWalletAsync(balance.Currency, balance.Net > 0, ct) is not { } wallet)
-                return;
-
-            walletId = wallet.Id;
-        }
-
-        var when = ConsoleUi.ReadWhen();
-        var operation = await api.SettleAsync(
-            new { scope = "Contact", contactId = contact.Id, currency = balance.Currency, walletId, occurredAt = when }, ct);
-
-        ShowOperation(await api.WaitForOperationAsync(operation, ct), $"All settled with {contact.Name}.");
+        ConsoleUi.Table(await api.DebtPaymentsAsync(debt.Id, ct),
+            ("Date", p => p.OccurredAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")),
+            ("Payment", p => p.Description),
+            ("Paid", p => ConsoleUi.Money(p.Amount, debt.Currency)),
+            ("Status", p => p.Status == "Pending" ? "being recorded" : ""));
+        SystemConsole.WriteLine($"Left: {ConsoleUi.Money(debt.Remaining, debt.Currency)}");
+        ConsoleUi.Pause();
     }
 
     private async Task<Wallet?> ChooseWalletAsync(string currency, bool receiving, CancellationToken ct)

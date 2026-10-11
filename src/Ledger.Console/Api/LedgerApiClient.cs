@@ -241,8 +241,23 @@ public sealed class LedgerApiClient(HttpClient http)
         => SendAsync<Operation>(HttpMethod.Post, "api/debts/splits",
             new { groupId, total, currency, method, payers, participants, categoryId, description, occurredAt }, ct);
 
+    /// <summary>Pays one of a group's suggested payments.</summary>
     public Task<Operation> SettleAsync(object request, CancellationToken ct)
         => SendAsync<Operation>(HttpMethod.Post, "api/debts/settlements", request, ct);
+
+    /// <summary>Money paid between me and a contact (outside groups): it pays our debts oldest first.</summary>
+    public Task<Operation> RecordPaymentAsync(
+        Guid contactId, string currency, string direction, decimal amount, Guid walletId, string? description,
+        DateTimeOffset? occurredAt, CancellationToken ct)
+        => SendAsync<Operation>(HttpMethod.Post, "api/debts/payments",
+            new { contactId, currency, direction, amount, walletId, description, occurredAt }, ct);
+
+    /// <summary>What a new payment (contact, currency, direction) or an edit of one (operationId) would pay.</summary>
+    public Task<PaymentPreview> PreviewPaymentAsync(object request, CancellationToken ct)
+        => SendAsync<PaymentPreview>(HttpMethod.Post, "api/debts/payments/preview", request, ct);
+
+    public Task<IReadOnlyList<DebtPayment>> DebtPaymentsAsync(Guid debtId, CancellationToken ct)
+        => GetAsync<IReadOnlyList<DebtPayment>>($"api/debts/{debtId}/payments", ct);
 
     public Task<Operation> OperationAsync(Guid id, CancellationToken ct)
         => GetAsync<Operation>($"api/debts/operations/{id}", ct);
