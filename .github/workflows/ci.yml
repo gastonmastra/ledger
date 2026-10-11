@@ -35,4 +35,4 @@ jobs:
           cache-dependency-path: clients/web/package-lock.json
       - run: npm ci
       - run: npm test -- --watch=false
-      - run: npx ng build
+      - run: npm run build
