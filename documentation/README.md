@@ -1405,7 +1405,7 @@ The detail pop-ups close with the chosen action and the page runs its existing h
 | Manifest | `public/manifest.webmanifest` (copied into `/en/` and `/es/`) | `standalone`, `start_url`/`scope` `./`, theme colours, icons 192/512/maskable |
 | Icons | `public/icons/`, `public/favicon.ico` | `npm run icons -- path/to/icon.png` (Playwright renders every size; maskable with padding; Apple icon on a solid background) |
 | `index.html` | | manifest link, `theme-color` (light/dark), Apple tags, `viewport-fit=cover` |
-| Service worker | `ngsw-config.json`, `public/sw.js`, `provideServiceWorker('sw.js')` | Built with `npm run build` (`ng build --service-worker=ngsw-config.json`; `angular.json` is not changed). Each language has its own worker, scoped to `/en/` or `/es/`. Not registered by `ng serve`. |
+| Service worker | `ngsw-config.json`, `public/sw.js`, `provideServiceWorker('sw.js')` | Enabled in the production configuration of `angular.json` (`"serviceWorker": "ngsw-config.json"`), so every production build (`npx ng build`, `npm run build`) includes it. Each language has its own worker, scoped to `/en/` or `/es/`. Not registered by `ng serve`. |
 | What is cached | | The app shell (prefetch) and images (lazy). **No data groups: the API is never cached**; `/config.json` is always read from the network. |
 | `sw.js` | | Angular's worker plus one rule: **requests to other origins (Keycloak) are left to the browser**. Angular's worker would re-send them itself; the login and token requests must go straight to Keycloak. |
 | Update prompt | `core/pwa/app-updates.ts` | After a deploy the new version downloads in the background; a toast offers **Reload**. Checks when the app comes back to the foreground and every 30 minutes. |
