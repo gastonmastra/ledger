@@ -6,13 +6,13 @@ import { Category } from '../../core/api/models';
 import { DataChanges } from '../../core/data-changes';
 import { categoryTypeLabel } from '../../core/i18n/labels';
 import { ToastService } from '../../core/notifications/toast.service';
-import { Badge, Button, Card, ConfirmService, DialogService, EmptyState, Icon, PageHeader, Spinner, Table } from '../../ui';
+import { ActionsMenu, Badge, Button, Card, ConfirmService, DialogService, EmptyState, Icon, MenuAction, PageHeader, Spinner, Table } from '../../ui';
 import { NameDialog, NameDialogData } from '../shared/name-dialog';
 import { CategoryDialog } from './category-dialog';
 
 @Component({
   selector: 'app-categories-page',
-  imports: [PageHeader, Card, Table, Badge, Button, Icon, EmptyState, Spinner],
+  imports: [PageHeader, Card, Table, Badge, Button, Icon, EmptyState, Spinner, ActionsMenu],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <ui-page-header i18n-heading="@@categories.title" heading="Categories"
@@ -42,8 +42,7 @@ import { CategoryDialog } from './category-dialog';
                 <td class="font-medium">{{ category.name }}</td>
                 <td><ui-badge [tone]="category.type === 'Income' ? 'success' : 'neutral'">{{ typeLabel(category.type) }}</ui-badge></td>
                 <td class="text-right">
-                  <button uiButton variant="ghost" size="sm" type="button" (click)="rename(category)" i18n="@@ui.rename">Rename</button>
-                  <button uiButton variant="ghost" size="sm" type="button" (click)="archive(category)" i18n="@@categories.archive">Archive</button>
+                  <ui-actions-menu [actions]="menu(category)" />
                 </td>
               </tr>
             }
@@ -58,6 +57,13 @@ export class CategoriesPage {
   private readonly changes = inject(DataChanges);
   private readonly dialogs = inject(DialogService);
   private readonly confirm = inject(ConfirmService);
+
+  protected menu(category: Category): MenuAction[] {
+    return [
+      { label: $localize`:@@ui.rename:Rename`, icon: 'pencil', run: () => this.rename(category) },
+      { label: $localize`:@@categories.archive:Archive`, icon: 'archive', run: () => this.archive(category) },
+    ];
+  }
   private readonly toasts = inject(ToastService);
 
   protected readonly typeLabel = categoryTypeLabel;

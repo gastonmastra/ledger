@@ -7,6 +7,7 @@ import { DataChanges } from '../../core/data-changes';
 import { assetTypeLabel, valuationSourceLabel } from '../../core/i18n/labels';
 import { ToastService } from '../../core/notifications/toast.service';
 import {
+  ActionsMenu,
   Badge,
   Button,
   Card,
@@ -14,13 +15,16 @@ import {
   DialogService,
   EmptyState,
   Icon,
+  MenuAction,
   MoneyPipe,
   PageHeader,
+  RowAction,
   Spinner,
   Stat,
   Table,
 } from '../../ui';
 import { amountClass, amountTone } from '../shared/amount';
+import { AssetAction, AssetDetailDialog } from './asset-detail-dialog';
 import { AssetDialog } from './asset-dialog';
 import { AssetHistoryDialog } from './asset-history-dialog';
 import { PricePipe, QuantityPipe } from './formatting';
@@ -45,6 +49,8 @@ import { TradesTable } from './trades-table';
     PricePipe,
     QuantityPipe,
     TradesTable,
+    ActionsMenu,
+    RowAction,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './investments-page.html',
@@ -80,6 +86,46 @@ export class InvestmentsPage {
         onCleanup(() => clearTimeout(timer));
       }
     });
+  }
+
+  /** Sell, already owned and new asset, under "More ▾" (Buy stays the main button). */
+  protected readonly moreMenu: MenuAction[] = [
+    { label: $localize`:@@trade.sellTitle:Sell`, run: () => this.trade('Sell') },
+    { label: $localize`:@@investments.alreadyOwned:I already own some`, run: () => this.trade('Opening') },
+    { label: $localize`:@@asset.newTitle:New asset`, icon: 'plus', run: () => this.create() },
+  ];
+  protected readonly moreLabel = $localize`:@@ui.more:More`;
+
+  /** The detail pop-up; its buttons run the same actions as the menu. */
+  protected async open(asset: Asset): Promise<void> {
+    const action = await this.dialogs.open<AssetAction, Asset>(AssetDetailDialog, asset);
+
+    switch (action) {
+      case 'buy': return this.trade('Buy', asset);
+      case 'sell': return this.trade('Sell', asset);
+      case 'price': return this.updatePrice(asset);
+      case 'history': return this.history(asset);
+      case 'edit': return this.edit(asset);
+      case 'archive': return this.archive(asset);
+    }
+  }
+
+  protected menu(asset: Asset): MenuAction[] {
+    const active = asset.status === 'Active';
+
+    return [
+      { label: $localize`:@@trade.buyTitle:Buy`, icon: 'plus', run: () => this.trade('Buy', asset), hidden: !active },
+      { label: $localize`:@@trade.sellTitle:Sell`, run: () => this.trade('Sell', asset), hidden: !active || asset.quantity <= 0 },
+      { label: $localize`:@@price.title:Update price`, run: () => this.updatePrice(asset), hidden: !active },
+      { label: $localize`:@@history.title:History`, icon: 'clock', run: () => this.history(asset) },
+      { label: $localize`:@@ui.edit:Edit`, icon: 'pencil', run: () => this.edit(asset), hidden: !active },
+      {
+        label: $localize`:@@wallets.archive:Archive`,
+        icon: 'archive',
+        run: () => this.archive(asset),
+        hidden: !active || asset.quantity !== 0 || asset.hasPendingTrade,
+      },
+    ];
   }
 
   protected async trade(kind: TradeKind, asset?: Asset): Promise<void> {

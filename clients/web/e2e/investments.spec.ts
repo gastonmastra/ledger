@@ -1,5 +1,5 @@
 import { Page, expect, test } from '@playwright/test';
-import { login, selectOptionContaining, unique } from './helpers';
+import { login, rowAction, selectOptionContaining, unique } from './helpers';
 
 async function createWallet(page: Page, name: string, opening: string): Promise<void> {
   const dialog = page.getByRole('dialog');
@@ -45,13 +45,13 @@ test.describe('Ledger web: investments', () => {
     await expect(row).toContainText('-$10.00');
 
     // A new sell price changes the value; no money moves.
-    await row.getByRole('button', { name: 'Update price' }).click();
+    await rowAction(row, 'Update price');
     await dialog.getByLabel('Sell price').fill('150');
     await dialog.getByRole('button', { name: 'Save' }).click();
     await expect(page.getByText('Price recorded.')).toBeVisible();
     await expect(row).toContainText('$300.00');
 
-    await row.getByRole('button', { name: 'Sell' }).click();
+    await rowAction(row, 'Sell');
     await dialog.getByLabel('Quantity').fill('1');
     await dialog.getByLabel('Price per unit received').fill('150');
     await selectOptionContaining(dialog.getByLabel('Into wallet'), walletName);
@@ -60,7 +60,7 @@ test.describe('Ledger web: investments', () => {
     await expect(page.getByText('Sale recorded.')).toBeVisible();
     await expect(row).toContainText('$150.00');
     // The sale in the trades list, with its realized gain (150 received − 100 average cost).
-    await expect(page.getByRole('row').filter({ hasText: '+$50.00' }).first()).toContainText('Sell');
+    await expect(page.locator('app-trades-table').getByRole('row').filter({ hasText: '+$50.00' }).first()).toContainText('Sell');
 
     await page.goto('wallets');
     await expect(page.getByRole('row', { name: new RegExp(walletName) })).toContainText('$950.00');

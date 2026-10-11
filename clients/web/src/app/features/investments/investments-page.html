@@ -5,9 +5,7 @@
       <ui-icon name="plus" size="sm" />
       <ng-container i18n="@@trade.buyTitle">Buy</ng-container>
     </button>
-    <button uiButton variant="secondary" type="button" (click)="trade('Sell')" i18n="@@trade.sellTitle">Sell</button>
-    <button uiButton variant="ghost" type="button" (click)="trade('Opening')" i18n="@@investments.alreadyOwned">I already own some</button>
-    <button uiButton variant="ghost" type="button" (click)="create()" i18n="@@asset.newTitle">New asset</button>
+    <ui-actions-menu [actions]="moreMenu" [text]="moreLabel" icon="dots" />
   </div>
 </ui-page-header>
 
@@ -57,7 +55,7 @@
       </thead>
       <tbody>
         @for (asset of assets.value(); track asset.id) {
-          <tr>
+          <tr uiRowAction (rowOpen)="open(asset)">
             <td>
               <div class="font-medium">
                 {{ asset.name }}
@@ -92,26 +90,7 @@
               }
             </td>
             <td class="text-right">
-              @if (asset.status === 'Active') {
-                <div class="flex flex-wrap justify-end gap-1">
-                  <button uiButton variant="ghost" size="sm" type="button" (click)="trade('Buy', asset)" i18n="@@trade.buyTitle">Buy</button>
-                  @if (asset.quantity > 0) {
-                    <button uiButton variant="ghost" size="sm" type="button" (click)="trade('Sell', asset)" i18n="@@trade.sellTitle">Sell</button>
-                  }
-                  <button uiButton variant="ghost" size="sm" type="button" (click)="updatePrice(asset)" i18n="@@price.title">Update price</button>
-                  <button uiButton variant="ghost" size="sm" type="button" (click)="history(asset)">
-                    <ui-icon name="clock" size="sm" /><ng-container i18n="@@history.title">History</ng-container>
-                  </button>
-                  <button uiButton variant="ghost" size="sm" type="button" (click)="edit(asset)" i18n="@@ui.edit">Edit</button>
-                  @if (asset.quantity === 0 && !asset.hasPendingTrade) {
-                    <button uiButton variant="ghost" size="sm" type="button" (click)="archive(asset)" i18n="@@wallets.archive">Archive</button>
-                  }
-                </div>
-              } @else {
-                <button uiButton variant="ghost" size="sm" type="button" (click)="history(asset)">
-                  <ui-icon name="clock" size="sm" /><ng-container i18n="@@history.title">History</ng-container>
-                </button>
-              }
+              <ui-actions-menu [actions]="menu(asset)" />
             </td>
           </tr>
         }

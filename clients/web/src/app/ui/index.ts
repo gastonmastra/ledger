@@ -1,4 +1,5 @@
 // Public API of the UI kit. Feature code imports from here only.
+export * from './actions-menu';
 export * from './badge';
 export * from './button';
 export * from './card';
@@ -8,6 +9,7 @@ export * from './cx';
 export * from './datetime-input';
 export * from './dialog';
 export * from './empty-state';
+export * from './filter-chips';
 export * from './form-field';
 export * from './icon';
 export * from './input';
@@ -15,6 +17,7 @@ export * from './money.pipe';
 export * from './page-header';
 export * from './pagination';
 export * from './reason-field';
+export * from './row-action';
 export * from './spinner';
 export * from './stat';
 export * from './table';

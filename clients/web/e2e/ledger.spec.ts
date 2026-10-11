@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { login, selectOptionContaining, unique } from './helpers';
+import { login, menuAction, selectOptionContaining, unique } from './helpers';
 
 test.describe('Ledger web', () => {
   test.beforeEach(async ({ page }) => {
@@ -54,7 +54,7 @@ test.describe('Ledger web', () => {
     await expect(page.getByRole('row', { name: new RegExp(contactName) })).toBeVisible();
 
     await page.getByRole('link', { name: 'Debts & splits' }).first().click();
-    await page.getByRole('button', { name: 'Lend money' }).click();
+    await menuAction(page, 'Add', 'Lend money');
     await dialog.getByLabel('To').selectOption({ label: contactName });
     await selectOptionContaining(dialog.getByLabel('From wallet'), walletName);
     await dialog.getByLabel('Amount').fill('20');
