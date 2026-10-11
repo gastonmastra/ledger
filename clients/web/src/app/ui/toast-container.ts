@@ -25,6 +25,10 @@ const tones: Record<ToastTone, string> = {
         [attr.role]="toast.tone === 'error' ? 'alert' : 'status'"
       >
         <p class="flex-1">{{ toast.message }}</p>
+        @if (toast.action; as action) {
+          <button type="button" class="cursor-pointer font-medium text-primary hover:underline"
+                  (click)="action.run(); toasts.dismiss(toast.id)">{{ action.label }}</button>
+        }
         <button
           type="button"
           class="text-muted hover:text-foreground cursor-pointer"

@@ -19,3 +19,37 @@
 .ui-dialog-backdrop {
   background: var(--overlay);
 }
+
+/* Side panel (desktop) and bottom sheet (phones): DialogService.open(..., 'panel'). */
+.ui-panel .ui-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.ui-panel .ui-dialog-body {
+  flex: 1;
+  max-height: none;
+}
+.ui-panel-side .ui-dialog {
+  border-radius: 0;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+.ui-panel-sheet .ui-dialog {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  max-height: 90vh;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.ui-panel-sheet .ui-dialog-body {
+  max-height: 70vh;
+}
+
+/* Installed app on phones with a notch / home indicator (index.html sets viewport-fit=cover). */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}

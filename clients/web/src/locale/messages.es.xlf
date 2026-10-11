@@ -3399,8 +3399,8 @@
         <target state="translated">Cambio esperando tu respuesta</target>
       </trans-unit>
       <trans-unit id="operations.recordedBy" datatype="html">
-        <source>recorded by <x id="NAME" equiv-text="{{ operation.recordedByName // i18n(ph=&quot;name&quot;) }}"/></source>
-        <target state="translated">registrado por <x id="NAME" equiv-text="{{ operation.recordedByName // i18n(ph=&amp;quot;name&amp;quot;) }}"/></target>
+        <source>recorded by <x id="NAME" equiv-text="{{ o.recordedByName // i18n(ph=&quot;name&quot;) }}"/></source>
+        <target state="translated">registrado por <x id="NAME" equiv-text="{{ o.recordedByName // i18n(ph=&quot;name&quot;) }}"/></target>
       </trans-unit>
       <trans-unit id="ui.edit" datatype="html">
         <source>Edit</source>
@@ -4110,30 +4110,6 @@
           <context context-type="linenumber">68</context>
         </context-group>
       </trans-unit>
-      <trans-unit id="debtPayments.title" datatype="html">
-        <source>Payments of this debt</source>
-        <target state="translated">Pagos de esta deuda</target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debt-payments-dialog.ts</context>
-          <context context-type="linenumber">15,16</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="debtPayments.summary" datatype="html">
-        <source><x id="PAID" equiv-text="{{ debt.paid | money: debt.currency // i18n(ph=&quot;paid&quot;) }}"/> paid of <x id="AMOUNT" equiv-text="{{ debt.amount | money: debt.currency // i18n(ph=&quot;amount&quot;) }}"/></source>
-        <target state="translated"><x id="PAID" equiv-text="{{ debt.paid | money: debt.currency // i18n(ph=&quot;paid&quot;) }}"/> pagado de <x id="AMOUNT" equiv-text="{{ debt.amount | money: debt.currency // i18n(ph=&quot;amount&quot;) }}"/></target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debt-payments-dialog.ts</context>
-          <context context-type="linenumber">18,19</context>
-        </context-group>
-      </trans-unit>
-      <trans-unit id="debtPayments.left" datatype="html">
-        <source><x id="LEFT" equiv-text="{{ debt.remaining | money: debt.currency // i18n(ph=&quot;left&quot;) }}"/> left</source>
-        <target state="translated">quedan <x id="LEFT" equiv-text="{{ debt.remaining | money: debt.currency // i18n(ph=&quot;left&quot;) }}"/></target>
-        <context-group purpose="location">
-          <context context-type="sourcefile">src/app/features/debts/debt-payments-dialog.ts</context>
-          <context context-type="linenumber">20,21</context>
-        </context-group>
-      </trans-unit>
       <trans-unit id="debtPayments.none" datatype="html">
         <source>Nothing paid yet.</source>
         <target state="translated">Todavía no se pagó nada.</target>
@@ -4207,8 +4183,8 @@
         </context-group>
       </trans-unit>
       <trans-unit id="history.extraDebt" datatype="html">
-        <source><x id="AMOUNT" equiv-text="{{ version.extraAmount | money: version.currency // i18n(ph=&quot;amount&quot;) }}"/> beyond what was owed became a new debt</source>
-        <target state="translated"><x id="AMOUNT" equiv-text="{{ version.extraAmount | money: version.currency // i18n(ph=&quot;amount&quot;) }}"/> por encima de lo que se debía se convirtió en una nueva deuda</target>
+        <source><x id="AMOUNT" equiv-text="{{ o.extraAmount | money: o.currency // i18n(ph=&quot;amount&quot;) }}"/> beyond what was owed became a new debt</source>
+        <target state="translated"><x id="AMOUNT" equiv-text="{{ o.extraAmount | money: o.currency // i18n(ph=&quot;amount&quot;) }}"/> por encima de lo que se debía se convirtió en una nueva deuda</target>
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operation-history-dialog.ts</context>
           <context context-type="linenumber">54,55</context>
@@ -4436,6 +4412,414 @@
         <context-group purpose="location">
           <context context-type="sourcefile">src/app/features/debts/operations-list.ts</context>
           <context context-type="linenumber">82,83</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="error.offline" datatype="html">
+        <source>You are offline. Try again when you have a connection.</source>
+        <target state="translated">No tienes conexión. Vuelve a intentarlo cuando tengas conexión.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/api/error-messages.ts</context>
+          <context context-type="linenumber">95</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="pwa.updateReady" datatype="html">
+        <source>A new version of Ledger is available.</source>
+        <target state="translated">Hay una nueva versión de Ledger.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/pwa/app-updates.ts</context>
+          <context context-type="linenumber">24</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="pwa.reload" datatype="html">
+        <source>Reload</source>
+        <target state="translated">Recargar</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/pwa/app-updates.ts</context>
+          <context context-type="linenumber">25</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debtDetail.amount" datatype="html">
+        <source>Amount</source>
+        <target state="translated">Monto</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-detail-dialog.ts</context>
+          <context context-type="linenumber">34,35</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debtDetail.paid" datatype="html">
+        <source>Paid</source>
+        <target state="translated">Pagado</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-detail-dialog.ts</context>
+          <context context-type="linenumber">38,39</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debtDetail.left" datatype="html">
+        <source>Left</source>
+        <target state="translated">Queda</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-detail-dialog.ts</context>
+          <context context-type="linenumber">42,43</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debtDetail.operation" datatype="html">
+        <source>What created it</source>
+        <target state="translated">Qué la creó</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-detail-dialog.ts</context>
+          <context context-type="linenumber">72,74</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
+          <context context-type="linenumber">124</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debtDetail.owesYou" datatype="html">
+        <source><x id="name" equiv-text="this.debt.counterpartyName"/> owes you</source>
+        <target state="translated"><x id="name" equiv-text="this.debt.counterpartyName"/> te debe</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-detail-dialog.ts</context>
+          <context context-type="linenumber">85</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debtDetail.youOwe" datatype="html">
+        <source>You owe <x id="name" equiv-text="this.debt.counterpartyName"/></source>
+        <target state="translated">Le debes a <x id="name" equiv-text="this.debt.counterpartyName"/></target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debt-detail-dialog.ts</context>
+          <context context-type="linenumber">86</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debts.add" datatype="html">
+        <source>Add</source>
+        <target state="translated">Agregar</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
+          <context context-type="linenumber">101</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="debts.seeDebts" datatype="html">
+        <source>See debts</source>
+        <target state="translated">Ver deudas</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/debts-page.ts</context>
+          <context context-type="linenumber">131</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="operations.pendingDetail" datatype="html">
+        <source>A change asked by <x id="NAME" equiv-text="{{ change.requestedByName // i18n(ph=&quot;name&quot;) }}"/> is waiting for <x id="PEOPLE" equiv-text="{{ change.waitingFor.join(&apos;, &apos;) // i18n(ph=&quot;people&quot;) }}"/>: “<x id="REASON" equiv-text="{{ change.reason // i18n(ph=&quot;reason&quot;) }}"/>”</source>
+        <target state="translated">Un cambio pedido por <x id="NAME" equiv-text="{{ change.requestedByName // i18n(ph=&quot;name&quot;) }}"/> está esperando a <x id="PEOPLE" equiv-text="{{ change.waitingFor.join(&apos;, &apos;) // i18n(ph=&quot;people&quot;) }}"/>: “<x id="REASON" equiv-text="{{ change.reason // i18n(ph=&quot;reason&quot;) }}"/>”</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/operation-detail-dialog.ts</context>
+          <context context-type="linenumber">45,46</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="operations.paidBy" datatype="html">
+        <source>Paid by</source>
+        <target state="translated">Pagado por</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/operation-detail-dialog.ts</context>
+          <context context-type="linenumber">49,50</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="operations.sharedBy" datatype="html">
+        <source>Shared by</source>
+        <target state="translated">Compartido entre</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/debts/operation-detail-dialog.ts</context>
+          <context context-type="linenumber">57,58</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="assetDetail.costBasis" datatype="html">
+        <source>Cost</source>
+        <target state="translated">Costo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/investments/asset-detail-dialog.ts</context>
+          <context context-type="linenumber">35,36</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="assetDetail.realized" datatype="html">
+        <source>Realized gain</source>
+        <target state="translated">Ganancia realizada</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/investments/asset-detail-dialog.ts</context>
+          <context context-type="linenumber">45,46</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="assetDetail.lastTrade" datatype="html">
+        <source>Last trade</source>
+        <target state="translated">Última operación</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/investments/asset-detail-dialog.ts</context>
+          <context context-type="linenumber">48,49</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ui.more" datatype="html">
+        <source>More</source>
+        <target state="translated">Más</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/investments/investments-page.ts</context>
+          <context context-type="linenumber">97</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.deviceTitle" datatype="html">
+        <source>This device</source>
+        <target state="translated">Este dispositivo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">24,25</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.installTitle" datatype="html">
+        <source>Install the app</source>
+        <target state="translated">Instalar la app</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">27,28</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.installed" datatype="html">
+        <source>Ledger is installed on this device.</source>
+        <target state="translated">Ledger está instalada en este dispositivo.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">30,31</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.installHint" datatype="html">
+        <source>Use Ledger like an app: its own icon and window, and it opens even without a connection.</source>
+        <target state="translated">Usa Ledger como una app: con su propio ícono y ventana, y se abre incluso sin conexión.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">33,34</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.install" datatype="html">
+        <source>Install app</source>
+        <target state="translated">Instalar app</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">34,35</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.installIos" datatype="html">
+        <source>On iPhone or iPad: tap Share, then “Add to Home Screen”.</source>
+        <target state="translated">En iPhone o iPad: toca Compartir y luego “Agregar a inicio”.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">37,38</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.installIosHint" datatype="html">
+        <source>Open Ledger in Safari to do it.</source>
+        <target state="translated">Abre Ledger en Safari para hacerlo.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">38,40</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.installUnavailable" datatype="html">
+        <source>Open Ledger in Chrome, Edge or Safari (on iPhone) to install it. If you already installed it, open it from its icon.</source>
+        <target state="translated">Abre Ledger en Chrome, Edge o Safari (en iPhone) para instalarla. Si ya la instalaste, ábrela desde su ícono.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">41,44</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.remember" datatype="html">
+        <source>Remember me on this device</source>
+        <target state="translated">Recordarme en este dispositivo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">50,51</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.rememberHint" datatype="html">
+        <source>You stay logged in after closing the app (until you log out). Don’t turn it on in shared devices.</source>
+        <target state="translated">Sigues con la sesión iniciada después de cerrar la app (hasta que cierres sesión). No lo actives en dispositivos compartidos.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">51,53</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.securityTitle" datatype="html">
+        <source>Security</source>
+        <target state="translated">Seguridad</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">58,59</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.passkeyTitle" datatype="html">
+        <source>Passkey (Face ID, fingerprint)</source>
+        <target state="translated">Llave de acceso (Face ID, huella)</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">60,61</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.passkeyHint" datatype="html">
+        <source>Optional: log in with Face ID, your fingerprint or your device’s lock instead of typing the password. Your password keeps working.</source>
+        <target state="translated">Opcional: inicia sesión con Face ID, tu huella o el bloqueo de tu dispositivo en lugar de escribir la contraseña. Tu contraseña sigue funcionando.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">61,62</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.passkeySetUp" datatype="html">
+        <source>Set up a passkey</source>
+        <target state="translated">Configurar una llave de acceso</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">63,64</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.passkeyManage" datatype="html">
+        <source>Manage passkeys and password</source>
+        <target state="translated">Administrar llaves de acceso y contraseña</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">65,67</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.passkeyDone" datatype="html">
+        <source>Passkey ready. Next time, choose “Sign in with a passkey”.</source>
+        <target state="translated">Llave de acceso lista. La próxima vez, elige “Iniciar sesión con una llave de acceso”.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">124</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.passkeyFailed" datatype="html">
+        <source>The passkey could not be set up. Try again.</source>
+        <target state="translated">No se pudo configurar la llave de acceso. Inténtalo de nuevo.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">125</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.installedNow" datatype="html">
+        <source>Ledger installed.</source>
+        <target state="translated">Ledger instalada.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">135</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.forgotten" datatype="html">
+        <source>This device no longer keeps you logged in after closing the app.</source>
+        <target state="translated">Este dispositivo ya no mantiene tu sesión después de cerrar la app.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">140</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="transactions.postings" datatype="html">
+        <source>Movements</source>
+        <target state="translated">Movimientos</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/transaction-detail-dialog.ts</context>
+          <context context-type="linenumber">39,40</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="transactions.filters" datatype="html">
+        <source>Filters</source>
+        <target state="translated">Filtros</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/transaction-filters-panel.ts</context>
+          <context context-type="linenumber">33,35</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/transactions-page.html</context>
+          <context context-type="linenumber">16,17</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ui.done" datatype="html">
+        <source>Done</source>
+        <target state="translated">Listo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/transaction-filters-panel.ts</context>
+          <context context-type="linenumber">75,76</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="transactions.chipWallet" datatype="html">
+        <source>Wallet: <x id="name" equiv-text="name(this.wallets.value(), f.walletId)"/></source>
+        <target state="translated">Billetera: <x id="name" equiv-text="name(this.wallets.value(), f.walletId)"/></target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/transactions-page.ts</context>
+          <context context-type="linenumber">106</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="transactions.chipCategory" datatype="html">
+        <source>Category: <x id="name" equiv-text="name(this.categories.value(), f.categoryId)"/></source>
+        <target state="translated">Categoría: <x id="name" equiv-text="name(this.categories.value(), f.categoryId)"/></target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/transactions-page.ts</context>
+          <context context-type="linenumber">107</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="transactions.chipContact" datatype="html">
+        <source>Contact: <x id="name" equiv-text="name(this.contacts.value(), f.contactId)"/></source>
+        <target state="translated">Contacto: <x id="name" equiv-text="name(this.contacts.value(), f.contactId)"/></target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/transactions-page.ts</context>
+          <context context-type="linenumber">108</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="transactions.chipFrom" datatype="html">
+        <source>From <x id="date" equiv-text="f.from"/></source>
+        <target state="translated">Desde <x id="date" equiv-text="f.from"/></target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/transactions-page.ts</context>
+          <context context-type="linenumber">109</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="transactions.chipTo" datatype="html">
+        <source>To <x id="date" equiv-text="f.to"/></source>
+        <target state="translated">Hasta <x id="date" equiv-text="f.to"/></target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/transactions/transactions-page.ts</context>
+          <context context-type="linenumber">110</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="pwa.offline" datatype="html">
+        <source>You are offline. You see what was already loaded; changes need a connection.</source>
+        <target state="translated">No tienes conexión. Ves lo que ya estaba cargado; los cambios necesitan conexión.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/layout/shell.html</context>
+          <context context-type="linenumber">69,71</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ui.moreActions" datatype="html">
+        <source>More actions</source>
+        <target state="translated">Más acciones</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/ui/actions-menu.ts</context>
+          <context context-type="linenumber">74</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ui.removeFilter" datatype="html">
+        <source>Remove filter</source>
+        <target state="translated">Quitar filtro</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/ui/filter-chips.ts</context>
+          <context context-type="linenumber">22,23</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="ui.clearAll" datatype="html">
+        <source>Clear all</source>
+        <target state="translated">Quitar todo</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/ui/filter-chips.ts</context>
+          <context context-type="linenumber">28,30</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.rememberRefused" datatype="html">
+        <source>Your account can’t stay logged in on this device (ask the administrator for offline access). “Remember me” was turned off.</source>
+        <target state="translated">Tu cuenta no puede mantener la sesión en este dispositivo (pide acceso sin conexión al administrador). Se desactivó “Recordarme”.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/features/settings/settings-page.ts</context>
+          <context context-type="linenumber">120</context>
         </context-group>
       </trans-unit>
     </body>

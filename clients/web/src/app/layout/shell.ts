@@ -4,6 +4,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { LedgerApi } from '../core/api/ledger-api';
+import { Network } from '../core/pwa/network';
 import { AuthService } from '../core/auth/auth.service';
 import { DataChanges } from '../core/data-changes';
 import { LOCALES, LocaleService } from '../core/i18n/locale.service';
@@ -30,6 +31,7 @@ export class Shell {
   protected readonly theme = inject(ThemeService);
   protected readonly privacy = inject(PrivacyService);
   protected readonly locale = inject(LocaleService);
+  protected readonly network = inject(Network);
   protected readonly locales = LOCALES;
   protected readonly menuOpen = signal(false);
 

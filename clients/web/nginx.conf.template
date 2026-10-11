@@ -39,8 +39,27 @@ server {
         return 200 '{"keycloakIssuer":"${KEYCLOAK_ISSUER}"}';
     }
 
-    # Each language is a single-page app: unknown paths fall back to its index.html.
+    # Installable app (PWA): these decide which version runs, so the browser always checks for a newer one.
+    location ~ ^/(en|es)/(sw\.js|ngsw\.json|ngsw-worker\.js|safety-worker\.js|worker-basic\.min\.js)$ {
+        add_header Cache-Control "no-cache";
+    }
+
+    location ~ ^/(en|es)/manifest\.webmanifest$ {
+        types { }
+        default_type application/manifest+json;
+        add_header Cache-Control "no-cache";
+    }
+
+    # Bundles have a content hash in their name (main-Ab3_x-9Z.js): they never change, cache them for a year.
+    # (Quoted: nginx would read the {8} as a block.)
+    location ~ "^/(en|es)/(main|polyfills|styles|chunk|worker)-[A-Za-z0-9_-]{8}\.(js|css)$" {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # Each language is a single-page app: unknown paths fall back to its index.html (never cached, it points to
+    # the current bundles).
     location ~ ^/(en|es)/ {
+        add_header Cache-Control "no-cache";
         try_files $uri $uri/ /$1/index.html;
     }
 
