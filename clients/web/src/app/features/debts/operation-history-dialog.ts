@@ -45,6 +45,16 @@ export type OperationHistoryResult = { restore: OperationDetails } | undefined;
                   · {{ version.description }}
                 }
               </p>
+              @if (version.allocations?.length || version.extraAmount) {
+                <ul class="mt-1 grid gap-0.5 text-xs text-muted">
+                  @for (allocation of version.allocations; track allocation.debtId) {
+                    <li i18n="@@history.paidDebt">Paid {{ allocation.amount | money: version.currency // i18n(ph="amount") }} of {{ allocation.description || '—' // i18n(ph="debt") }} ({{ allocation.debtAmount | money: version.currency // i18n(ph="total") }})</li>
+                  }
+                  @if (version.extraAmount) {
+                    <li i18n="@@history.extraDebt">{{ version.extraAmount | money: version.currency // i18n(ph="amount") }} beyond what was owed became a new debt</li>
+                  }
+                </ul>
+              }
               @if (version.shares.length) {
                 <p class="mt-1 text-xs text-muted">
                   @for (share of version.shares; track share.personId; let last = $last) {

@@ -10,6 +10,7 @@ import { SplitDialog, SplitDialogData, SplitPerson } from '../shared/split-dialo
 import { LendDialog } from './debt-dialogs';
 import { InitialDebtDialog } from './initial-debt-dialog';
 import { OperationHistoryDialog, OperationHistoryResult } from './operation-history-dialog';
+import { PaymentDialog, PaymentDialogData } from './payment-dialog';
 import { SettlementEditDialog } from './settlement-edit-dialog';
 
 /**
@@ -33,7 +34,9 @@ export class OperationActions {
         await this.dialogs.open(InitialDebtDialog, operation);
         break;
       case 'Settlement':
-        await this.dialogs.open(SettlementEditDialog, operation);
+        // Outside groups it is a payment: its amount can change. A group settlement only its date and wallet.
+        if (operation.groupId) await this.dialogs.open(SettlementEditDialog, operation);
+        else await this.dialogs.open<boolean, PaymentDialogData>(PaymentDialog, { edit: operation }, 'lg');
         break;
       case 'Split':
         await this.dialogs.open<boolean, SplitDialogData>(
@@ -51,7 +54,7 @@ export class OperationActions {
       title: $localize`:@@operations.deleteTitle:Delete this ${kind}:kind:?`,
       message:
         operation.kind === 'Settlement'
-          ? $localize`:@@operations.deleteSettlement:The debts it paid will be open again. It stays in the history.`
+          ? $localize`:@@operations.deleteSettlement:What it paid will be owed again. It stays in the history.`
           : $localize`:@@operations.deleteMessage:It stays in the history and can be restored. Linked people involved have to confirm it.`,
       confirmLabel: $localize`:@@ui.delete:Delete`,
       danger: true,
@@ -85,7 +88,7 @@ export class OperationActions {
     if (result?.restore) await this.restore(result.restore);
   }
 
-  /** A settled debt cannot change: offers to undo (delete) the settlement that paid it. */
+  /** A paid debt cannot change: offers to undo (delete) the payment that paid it. */
   async undoSettlement(operation: OperationDetails): Promise<void> {
     const settlementId = operation.settlementOperationIds[0];
     if (!settlementId) return;

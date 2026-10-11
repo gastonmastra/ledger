@@ -57,7 +57,15 @@ const byCode: Record<string, () => string> = {
   'books.locked_for_other': () =>
     $localize`:@@error.booksLockedForOther:Someone involved closed their books for that date, so it cannot change.`,
   'debt.settled': () =>
-    $localize`:@@error.debtSettled:It was already settled. Undo (delete) the settlement first, then change it.`,
+    $localize`:@@error.debtPaid:It was already paid (fully or partly). Change or delete those payments first, then change it.`,
+  'payment.pending': () =>
+    $localize`:@@error.paymentPending:Another payment with this person is being recorded or changed. Try again once it is done.`,
+  'payment.nothing': () => $localize`:@@error.paymentNothing:There is nothing to pay: enter an amount.`,
+  'payment.amount_positive': () => $localize`:@@error.paymentAmount:The amount must be greater than zero.`,
+  'payment.self': () => $localize`:@@error.paymentSelf:A person cannot pay themselves.`,
+  'payment.too_much': () =>
+    $localize`:@@error.paymentTooMuch:The debts changed meanwhile. Check them and record the payment again.`,
+  'payment.incomplete': () => $localize`:@@error.paymentIncomplete:Choose the person, the currency and who paid.`,
   'operation.change_pending': () =>
     $localize`:@@error.changePending:A change is waiting for confirmation. Try again once it is answered.`,
   'operation.not_current': () => $localize`:@@error.notCurrent:Only the current version can be changed.`,

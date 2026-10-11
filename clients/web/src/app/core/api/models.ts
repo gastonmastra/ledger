@@ -297,7 +297,14 @@ export interface Debt {
   amount: number;
   currency: Currency;
   status: DebtStatus;
+  /** A payment (or a group settlement) still being recorded is paying it. */
   isSettling: boolean;
+  /** Paid so far (the whole amount once settled). Remaining: what is still owed. */
+  paid: number;
+  remaining: number;
+  isPartiallyPaid: boolean;
+  /** When the loan, split or existing debt that created it happened. */
+  occurredAt: string;
   description: string | null;
   createdAt: string;
   /** A change of its operation is waiting for confirmation. */
@@ -418,20 +425,82 @@ export interface SplitRequest {
   occurredAt?: string | null;
 }
 
-export type SettleRequest =
-  | { scope: 'Debt'; debtId: string; walletId: string; occurredAt?: string | null }
-  | { scope: 'Contact'; contactId: string; currency: Currency; walletId: string | null; occurredAt?: string | null }
-  | {
-      scope: 'GroupPair';
-      groupId: string;
-      fromPersonId: string;
-      toPersonId: string;
-      currency: Currency;
-      walletId: string | null;
-      occurredAt?: string | null;
-    };
+/** One suggested payment of a group's simplified balances. */
+export interface SettleRequest {
+  groupId: string;
+  fromPersonId: string;
+  toPersonId: string;
+  currency: Currency;
+  walletId: string | null;
+  occurredAt?: string | null;
+}
 
-export type SettlementScope = 'Debt' | 'Contact' | 'GroupPair';
+/** Debt and Contact: full settlements recorded before partial payments. Payment: debts outside groups. */
+export type SettlementScope = 'Debt' | 'Contact' | 'GroupPair' | 'Payment';
+
+export type PaymentDirection = 'TheyPaidMe' | 'IPaidThem';
+
+/** Money paid between me and a contact (outside groups): it pays our debts oldest first. */
+export interface RecordPaymentRequest {
+  contactId: string;
+  currency: Currency;
+  direction: PaymentDirection;
+  amount: number;
+  walletId: string;
+  occurredAt?: string | null;
+  description?: string | null;
+}
+
+/** A new payment (contactId, currency, direction) or an edit of one (operationId). */
+export interface PreviewPaymentRequest {
+  amount: number;
+  contactId?: string;
+  currency?: Currency;
+  direction?: PaymentDirection;
+  operationId?: string;
+}
+
+export interface PaymentPreviewLine {
+  debtId: string;
+  operationId: string;
+  description: string | null;
+  occurredAt: string;
+  direction: DebtDirection;
+  debtAmount: number;
+  remainingBefore: number;
+  paid: number;
+  remainingAfter: number;
+}
+
+/** Balances: positive when they owe me. Extra: paid beyond what was owed (a new debt). */
+export interface PaymentPreview {
+  lines: PaymentPreviewLine[];
+  extra: number;
+  extraDirection: DebtDirection | null;
+  balanceBefore: number;
+  balanceAfter: number;
+}
+
+/** A debt a payment paid (part of). */
+export interface PaymentAllocation {
+  debtId: string;
+  operationId: string;
+  description: string | null;
+  occurredAt: string;
+  direction: DebtDirection;
+  debtAmount: number;
+  amount: number;
+}
+
+/** A payment that paid (part of) a debt. */
+export interface DebtPayment {
+  settlementOperationId: string;
+  entryId: string;
+  status: OperationStatus;
+  occurredAt: string;
+  description: string | null;
+  amount: number;
+}
 export type ChangeKind = 'Revise' | 'Delete' | 'Restore';
 export type ChangeStatus = 'Pending' | 'Applying' | 'Applied' | 'Failed';
 export type ApprovalStatus = 'Pending' | 'Accepted' | 'Rejected';
@@ -490,8 +559,12 @@ export interface OperationDetails extends Operation {
   canRestore: boolean;
   /** Why it cannot change now (an error code). */
   blockedReason: string | null;
-  /** Settlements to undo before changing it. */
+  /** Payments (or settlements) to change or undo before changing it. */
   settlementOperationIds: string[];
+  /** Payments: the debts it paid and how much of each. */
+  allocations: PaymentAllocation[] | null;
+  /** Payments: paid beyond what was owed (it became a debt of the payee to the payer). */
+  extraAmount: number;
 }
 
 export interface OperationFilter {
