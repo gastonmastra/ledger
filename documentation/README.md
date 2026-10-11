@@ -25,6 +25,7 @@ For a quick start see the [root README](../README.md). For database migrations s
 17. [Linking contacts that are already in use](#17-linking-contacts-that-are-already-in-use)
 18. [Deployment (AWS)](#18-deployment-aws)
 19. [Deployment (VPS)](#19-deployment-vps)
+20. [Partial payments](#20-partial-payments)
 
 ---
 
@@ -59,7 +60,7 @@ Every product and architecture question was asked before implementation. The ans
 | P3 | Who are the "friends"? | **Both**: contacts (plain names) that can be **linked to a registered user**. | New **Contacts** module. |
 | P4 | Is a debt with a linked user mirrored into their books? | **Yes, applied automatically.** Cancelling or disputing it is future work. | Contacts that are missing on the other side are created automatically (P13). |
 | P5 | Split types | **Equal, custom amounts, percentages, "a friend paid for me".** | — |
-| P6 | How is a debt settled? | **Full settlement only**, both for one debt and for everything with a contact (P11). | No partial repayments. |
+| P6 | How is a debt settled? | ~~Full settlement only~~. Since §20: **payments of any amount**, applied to the oldest debts first (mutual debts cancel out, any extra becomes a debt the other way). Groups still pay their suggested payments. | Partially paid debts. |
 | P7 | What happens after a debt with a linked user is settled? | Their side is updated too, and a **"choose the wallet" item** is created so the money lands in (or leaves) one of their wallets. | *Pending wallet assignments* ([4.6](#46-pending-wallet-assignments)). |
 | P8 | Who can pay a split, and who is tracked? | **Any payer, all pairs tracked** (Splitwise-like). | Debts between two non-registered contacts live only in the Debts module. |
 | P9 | Groups? | **Yes**, as a **separate Groups module**, **shared** with every member who is a registered user. | — |
@@ -391,11 +392,10 @@ A **leg** is the effect on one registered user's books: an optional wallet, an o
 
 ### Settlements
 
-`POST /api/debts/settlements`, always a full settlement:
+* Outside groups: `POST /api/debts/payments { "contactId", "currency", "direction": "TheyPaidMe" | "IPaidThem", "amount", "walletId" }`. It pays the debts with that person from the oldest, mutual debts cancel out first and any extra becomes a debt the other way (§20). `POST /api/debts/payments/preview` shows what it would pay.
+* Groups: `POST /api/debts/settlements { "groupId", "fromPersonId", "toPersonId", "currency", "walletId?" }` must match a suggested payment exactly. `walletId` is required if I am the payer or the receiver.
 
-* `{ "scope": "Debt", "debtId", "walletId" }`: one debt outside groups.
-* `{ "scope": "Contact", "contactId", "currency", "walletId" }`: every open debt with that person in that currency; money moves only for the net.
-* `{ "scope": "GroupPair", "groupId", "fromPersonId", "toPersonId", "currency", "walletId?" }`: must match a suggested payment exactly. `walletId` is required if I am the payer or the receiver.
+(Before §20 settlements were full only, with scopes `Debt` and `Contact`; those stored settlements now behave as payments.)
 
 ## 7. Local environment, running and debugging
 
@@ -511,7 +511,7 @@ Configuration:
 
 * **Mirrored debts** can't yet be **cancelled or disputed** by the other user (agreed as future work).
 * No currency conversion in totals (by decision P2).
-* Settlement is full only (P6). Partial repayments would need a debt balance.
+* Payments apply oldest first; choosing which debt a payment pays is not supported (§20).
 * A contact can't be linked to a user once it's used (I8). Re-keying past debts would lift this.
 * Deleting a wallet right after creating it relies on retries while the account is still being created.
 * **Licensing:** MediatR 12 and MassTransit 8 are the last Apache versions. MassTransit 8 gets security fixes until the end of 2026; plan a move (to MassTransit 9 with a license, Wolverine, or plain RabbitMQ.Client, since the outbox and inbox are already ours).
@@ -1286,3 +1286,78 @@ docker exec ledger-postgres dropdb -U postgres --force keycloak     # optional
   * They were restored with these commands into a separate PostgreSQL, and a stock Keycloak 26.7.4 `start-dev` ran on it.
   * The issuer was the local URL. The copied password logged in, a wrong one was refused, and the token's `sub` matched the restored `ExternalId` (with its wallet).
   * The copied master admin logged in and added the localhost redirect URIs. After that, `http://localhost:4200/` got the login form and an unknown redirect was refused.
+
+---
+
+## 20. Partial payments
+
+Added on branch `feature/partial-payments`, to the API, the web app and the console. Use case: my brother owes me 150 (older) and 50. He pays me 170: the 150 is paid and only shows in the history, and 30 are left of the 50. Later I find out he paid 130: I change the payment, and now 20 are left of the 150 and the 50 is untouched.
+
+### 20.1 Decisions (asked before building)
+
+| Topic | Decision |
+| --- | --- |
+| What a payment pays | The **oldest debts first**, by the date of the loan, split or existing debt that created them. The debts it covers become **Settled** and only show as history; the next one is **partially paid**. |
+| Debts both ways | **Net first**: what we owe each other cancels out (oldest with oldest), then the money pays the payer's debts. |
+| Paying more than what is owed | The **extra becomes a new debt** the other way, created by the payment (he owes me 200 and pays 250: now I owe him 50). |
+| Scope | Debts **outside groups**. Groups keep paying their suggested payments (GroupPair, unchanged). |
+| Editing the payment | Through the usual **change flow** (§15): reversal plus a new version, linked users confirm it. The new amount is applied again from the oldest debt. Only whoever recorded the payment can change its amount or wallet. |
+| Editing a paid loan, split or existing debt | **Blocked** while it has payments (fully or partly): change or delete the payments first, as before with settled debts. |
+| The old actions | *Settle* (one debt) and *Settle up* (a person) are replaced by **Record payment**, pre-filled with the whole balance (the same result as *Settle up*). |
+| How it is shown | Debts show **what is left of the original** ("€20.00 of €150.00") with a *Partially paid* badge; balances count what is left. A payment lists the debts it paid; a debt lists its payments. A **preview** shows what a payment would pay before recording it. |
+
+This replaces decision P6 (full settlement only).
+
+### 20.2 Model
+
+* **`DebtPayment`** (`debts.debt_payments`): how much of one debt a settlement paid (`SettlementOperationId`, `DebtId`, `Amount`). A debt can have several. Rows are never deleted: they count while their settlement is the current version, reserve the debt while it is being recorded (`Pending`), and stay as history when the version is replaced, deleted or refused.
+* **`Debt.Paid`** (and `Remaining = Amount − Paid`, `IsPartiallyPaid`). `ApplyPayment` makes it Settled when nothing is left; `RemovePayment` reopens it. Group debts keep using `SettlementOperationId` (settled all at once when the group is even), and set `Paid = Amount` when settled.
+* **`PaymentAllocation.Allocate(payer, payee, amount, openDebts)`** (domain, pure):
+  1. offset: the oldest debt of each direction cancel out until one side is empty;
+  2. pay: the money pays the debts the payer owes the payee, oldest first (by the operation's date, then creation time);
+  3. extra: whatever is left is owed by the payee to the payer.
+* A payment is a `Settlement` operation with scope **`Payment`**: `FromPersonId` = payer, `ToPersonId` = payee, `Total` = the amount, `WalletId` = the initiator's wallet. Its extra debt has the payment as its operation, so a new version supersedes it like any debt of an operation.
+* **The ledger does not change.** Postings are per counterparty, not per debt, so allocations live only in Debts. Each user's leg (`LedgerLegs.ForPayment`) is: cash ±amount, Receivable/Payable reduced by what was paid in each direction, plus the extra as a new position. It balances (`cash + Σ positions = 0`).
+
+| Example (my books) | Postings |
+| --- | --- |
+| He owes 150 + 50, pays 170 | Wallet +170 · Owed to me [him] −170 |
+| He owes 200, I owe 30, he pays 100 | Wallet +100 · Owed to me [him] −130 · I owe [him] +30 |
+| He owes 200, pays 250 | Wallet +250 · Owed to me [him] −200 · I owe [him] −50 |
+
+### 20.3 Flows
+
+```text
+POST /api/debts/payments/preview { contactId, currency, direction, amount }   → lines (paid, left), extra, balance after
+POST /api/debts/payments { contactId, currency, direction: TheyPaidMe|IPaidThem, amount, walletId, occurredAt?, description? }
+  → refused while another payment between the two is being recorded or changed (payment.pending), or a debt has a pending change
+  → Debts: allocate, store the Payment + its rows (+ the extra debt) ──LedgerPostingRequested──► Transactions
+  ← Completed: each row applied to its debt (fully paid → Settled), the extra debt opened · Rejected: rows stop counting
+PUT /api/debts/operations/{id} { amount?, walletId?, occurredAt, description, reason }   (a payment)
+  → built again without the previous version (what it paid is available again, its extra debt left out); linked users confirm
+  → applied: the previous version's rows are taken back, the new ones applied, the old extra debt superseded
+DELETE /api/debts/operations/{id} → what it paid is owed again
+GET /api/debts/{id}/payments → the payments of a debt · GET /api/debts/operations/{id} → allocations and extraAmount
+```
+
+`POST /api/debts/settlements` now only pays a group's suggested payment (`groupId`, `fromPersonId`, `toPersonId`, `currency`, `walletId?`).
+
+### 20.4 Migration
+
+`PartialPayments` (Debts) adds `debts.Paid` and `debt_payments`, and backfills them:
+
+* every debt **outside groups** that a settlement paid (also one still being recorded) gets one payment row for its whole amount, and stops pointing at the settlement;
+* `Paid = Amount` for Settled debts (group debts too).
+
+Old settlements (scopes `Debt` and `Contact`) work like payments from then on: they can be deleted (the debts reopen) and their amount can be changed. Checked on a copy of the development database (2 settled debts → 2 rows for their full 62.00, no group debt touched, no settled debt without a row).
+
+### 20.5 Clients
+
+* **Web:** *Record a payment* (header) and *Record payment* per person (pre-filled with the balance) open `PaymentDialog`: person, currency, who paid, amount, wallet, date, description and a **live preview** (each debt paid, what is left, any extra and the balance afterwards). Editing a payment opens the same dialog with the amount (group settlements keep `SettlementEditDialog`). The debts list shows *left of the original*, *Partially paid*, a *Payments* button and a *Show paid debts* switch (history). Operation history lists what each version paid. English and Spanish.
+* **Console:** Debts → *Record a payment (pays the oldest debts first)* with the preview and a confirmation; *Payments of a debt*; *Paid debts (history)*; the overview shows *Left* and *Of*. Editing a payment asks for the amount and shows the preview.
+
+### 20.6 Verified
+
+* **Unit:** the allocation (the brother example, the edit to 130, exact balance, netting both ways, overpayment, ordering of debts of the same moment, debts with nothing left, invalid amounts), `ApplyPayment`/`RemovePayment`, and that every leg balances (partial, exact, overpayment, with mutual debts; only registered people get a leg).
+* **Integration (Testcontainers):** the brother flow (preview, record, partial and settled debts, payments of a debt, allocations, a paid loan blocked, edit to 130, delete reopens); mutual debts plus an overpayment with a linked user (10 cancel out, 30 pay, 50 extra), only the recorder may change the amount, the edit confirmed by the linked user leaves both even; a partial payment copied into a user's books when a contact is linked. The existing settlement tests now record payments.
+* **Real stack** (copy of the development database, isolated vhost, API on 5219): the migration backfill; an old full settlement deleted (with the linked user's confirmation) reopens its debt; Playwright: the full E2E suite, including the brother scenario (record 170 → edit to 130 → delete) and paying an existing debt; a scripted console run (record a payment with its preview, the overview with partial debts, the payments of a debt).
