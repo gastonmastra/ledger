@@ -98,11 +98,12 @@ public class LedgerScenarioTests(LedgerApiFactory factory)
         Assert.Equal("Mirrored", aliceForBob.GetProperty("origin").GetString());
 
         // Bob settles up; the money reaches Alice's pending list until she picks a wallet.
-        var settlement = await bob.PostJsonAsync("/api/debts/settlements", new
+        var settlement = await bob.PostJsonAsync("/api/debts/payments", new
         {
-            scope = "Contact",
             contactId = aliceForBob.GetProperty("id").GetGuid(),
             currency = "EUR",
+            direction = "IPaidThem",
+            amount = 30,
             walletId = bobBank
         }, HttpStatusCode.Accepted);
         Assert.Equal("Completed", (await bob.CompletedOperationAsync(settlement)).GetProperty("status").GetString());
@@ -186,7 +187,6 @@ public class LedgerScenarioTests(LedgerApiFactory factory)
 
         var settle = await alice.PostJsonAsync("/api/debts/settlements", new
         {
-            scope = "GroupPair",
             groupId,
             fromPersonId = carlId,
             toPersonId = aliceId,

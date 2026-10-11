@@ -119,11 +119,11 @@ public class LinkContactTests
         var dinnerDebt = Open(Debt.Create(dinner.Id, null, Alice, Carl, 30, Currency.EUR));
 
         var settlement = Completed(DebtOperation.Settlement(
-            Alice, SettlementScope.Debt, null, Pedro, Alice, 50, Currency.EUR, null, When.AddDays(2), null));
-        loanDebt.StartSettlement(settlement.Id);
-        loanDebt.CompleteSettlement(settlement.Id);
+            Alice, SettlementScope.Payment, null, Pedro, Alice, 50, Currency.EUR, null, When.AddDays(2), null));
+        var payment = DebtPayment.Create(settlement.Id, loanDebt.Id, 50);
+        loanDebt.ApplyPayment(50);
 
-        var copies = MergeCopies.Build([settlement, dinner, loan], [loanDebt, dinnerDebt], Pedro, PedroUser);
+        var copies = MergeCopies.Build([settlement, dinner, loan], [loanDebt, dinnerDebt], [payment], Pedro, PedroUser);
 
         // The dinner did not leave Pedro owing or owed anything: nothing to copy.
         Assert.Equal([loan.Id, settlement.Id], copies.Select(c => c.Operation.Id));
@@ -154,7 +154,7 @@ public class LinkContactTests
         var payment = Completed(DebtOperation.Settlement(
             Alice, SettlementScope.GroupPair, group, Pedro, Alice, 20, Currency.EUR, null, When.AddDays(1), null));
 
-        var copies = MergeCopies.Build([expense, payment], [], Pedro, PedroUser);
+        var copies = MergeCopies.Build([expense, payment], [], [], Pedro, PedroUser);
 
         Assert.Equal(-50m, copies[0].Leg.Positions.Single(p => p.CounterpartyId == group).Amount);
         Assert.Equal(PositionSides.Payable, copies[0].Leg.Positions.Single().Side);
