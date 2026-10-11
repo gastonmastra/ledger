@@ -45,20 +45,31 @@ public sealed record RecordSplitCommand(
     string? Description) : ICommand<OperationDto>;
 
 /// <summary>
-/// Full settlement. Scope Debt needs DebtId; Contact needs ContactId and Currency;
-/// GroupPair needs GroupId, FromPersonId, ToPersonId and Currency.
-/// WalletId is required whenever money leaves or enters my pocket.
+/// One suggested payment of a group's simplified balances (debts outside groups are paid with
+/// <see cref="RecordPaymentCommand"/>). WalletId is required whenever money leaves or enters my pocket.
 /// </summary>
 public sealed record SettleCommand(
     Guid UserId,
-    SettlementScope Scope,
-    Guid? DebtId,
-    Guid? ContactId,
-    Guid? GroupId,
-    Guid? FromPersonId,
-    Guid? ToPersonId,
-    string? Currency,
+    Guid GroupId,
+    Guid FromPersonId,
+    Guid ToPersonId,
+    string Currency,
     Guid? WalletId,
+    DateTimeOffset OccurredAt,
+    string? Description) : ICommand<OperationDto>;
+
+/// <summary>
+/// Money paid between me and a contact outside groups, applied to our debts in that currency: mutual debts cancel
+/// out, then it pays the payer's debts oldest first; anything beyond that becomes a debt of the payee to the payer.
+/// WalletId: the wallet the money left or entered.
+/// </summary>
+public sealed record RecordPaymentCommand(
+    Guid UserId,
+    Guid ContactId,
+    string Currency,
+    PaymentDirection Direction,
+    decimal Amount,
+    Guid WalletId,
     DateTimeOffset OccurredAt,
     string? Description) : ICommand<OperationDto>;
 
@@ -117,13 +128,19 @@ internal sealed class SettleValidator : AbstractValidator<SettleCommand>
 {
     public SettleValidator()
     {
-        RuleFor(x => x.DebtId).NotNull().When(x => x.Scope == SettlementScope.Debt);
-        RuleFor(x => x.ContactId).NotNull().When(x => x.Scope == SettlementScope.Contact);
-        RuleFor(x => x.GroupId).NotNull().When(x => x.Scope == SettlementScope.GroupPair);
-        RuleFor(x => x.FromPersonId).NotNull().When(x => x.Scope == SettlementScope.GroupPair);
-        RuleFor(x => x.ToPersonId).NotNull().When(x => x.Scope == SettlementScope.GroupPair);
-        RuleFor(x => x.Currency).Must(Currencies.IsSupported).WithMessage("Unsupported currency.")
-            .When(x => x.Scope != SettlementScope.Debt);
+        RuleFor(x => x.Currency).Must(Currencies.IsSupported).WithMessage("Unsupported currency.");
+        RuleFor(x => x.Description).MaximumLength(DebtOperation.DescriptionMaxLength);
+        RuleFor(x => x.OccurredAt).NotInFuture();
+    }
+}
+
+internal sealed class RecordPaymentValidator : AbstractValidator<RecordPaymentCommand>
+{
+    public RecordPaymentValidator()
+    {
+        RuleFor(x => x.Amount).GreaterThan(0).PrecisionScale(19, Money.Decimals, true);
+        RuleFor(x => x.Currency).Must(Currencies.IsSupported).WithMessage("Unsupported currency.");
+        RuleFor(x => x.Direction).IsInEnum();
         RuleFor(x => x.Description).MaximumLength(DebtOperation.DescriptionMaxLength);
         RuleFor(x => x.OccurredAt).NotInFuture();
     }
@@ -136,11 +153,13 @@ internal sealed class OperationHandlers(
     OperationLifecycle lifecycle,
     BooksLockGuard locks,
     GroupBalances groupBalances,
-    MergeGuard merges)
+    MergeGuard merges,
+    PaymentBook payments)
     : ICommandHandler<RecordLoanCommand, OperationDto>,
       ICommandHandler<RecordSplitCommand, OperationDto>,
       ICommandHandler<RecordInitialDebtCommand, OperationDto>,
       ICommandHandler<SettleCommand, OperationDto>,
+      ICommandHandler<RecordPaymentCommand, OperationDto>,
       ICommandHandler<ApplyLedgerResultCommand>
 {
     public async Task<OperationDto> Handle(RecordLoanCommand command, CancellationToken cancellationToken)
@@ -179,13 +198,38 @@ internal sealed class OperationHandlers(
     }
 
     public async Task<OperationDto> Handle(SettleCommand command, CancellationToken cancellationToken)
-        => command.Scope switch
-        {
-            SettlementScope.Debt => await SettleDebtAsync(command, cancellationToken),
-            SettlementScope.Contact => await SettleContactAsync(command, cancellationToken),
-            SettlementScope.GroupPair => await SettleGroupPairAsync(command, cancellationToken),
-            _ => throw new ArgumentOutOfRangeException(nameof(command))
-        };
+        => await SettleGroupPairAsync(command, cancellationToken);
+
+    public async Task<OperationDto> Handle(RecordPaymentCommand command, CancellationToken cancellationToken)
+    {
+        var me = await people.MeAsync(command.UserId, cancellationToken);
+        var contact = await people.ContactAsync(command.UserId, command.ContactId, cancellationToken);
+        var currency = Currencies.Parse(command.Currency);
+
+        if (await payments.PaymentInProgressAsync(me.PersonId, contact.PersonId, currency, null, cancellationToken))
+            throw new DomainException(
+                "payment.pending",
+                $"Another payment with {contact.Name} is being recorded or changed. Try again once it is done.");
+
+        var debtOperations = dbContext.Debts
+            .Where(d => d.GroupId == null
+                        && d.Currency == currency
+                        && d.Status == DebtStatus.Open
+                        && ((d.CreditorPersonId == me.PersonId && d.DebtorPersonId == contact.PersonId)
+                            || (d.CreditorPersonId == contact.PersonId && d.DebtorPersonId == me.PersonId)))
+            .Select(d => d.OperationId);
+
+        if (await dbContext.Operations.AnyAsync(o => debtOperations.Contains(o.Id) && o.PendingChangeId != null, cancellationToken))
+            throw new DomainException(
+                "operation.change_pending",
+                "A change of one of these debts is waiting for confirmation. Record the payment once it is answered.");
+
+        var built = await factory.PaymentAsync(
+            command.UserId, contact, command.Direction == PaymentDirection.IPaidThem, command.Amount, currency,
+            command.WalletId, command.OccurredAt, command.Description, null, cancellationToken);
+
+        return await RecordAsync(built, command.UserId, cancellationToken);
+    }
 
     public async Task Handle(ApplyLedgerResultCommand command, CancellationToken cancellationToken)
     {
@@ -204,78 +248,15 @@ internal sealed class OperationHandlers(
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task<OperationDto> SettleDebtAsync(SettleCommand command, CancellationToken cancellationToken)
-    {
-        var debt = await dbContext.Debts.SingleOrDefaultAsync(d => d.Id == command.DebtId, cancellationToken);
-
-        if (debt is null || !debt.Involves(command.UserId))
-            throw new NotFoundException("Debt", command.DebtId!);
-
-        if (debt.GroupId is not null)
-            throw new DomainException(
-                "settlement.group_debt",
-                "Group debts are settled with the group's suggested payments.");
-
-        var circle = await people.CircleAsync(command.UserId, cancellationToken);
-        var other = circle.GetValueOrDefault(debt.CreditorPersonId == command.UserId ? debt.DebtorPersonId : debt.CreditorPersonId)
-            ?? throw new NotYetAvailableException("The other person is not in your contacts yet. Try again in a moment.");
-
-        return await SettleDebtsAsync(command, other, [debt], debt.Currency, cancellationToken);
-    }
-
-    private async Task<OperationDto> SettleContactAsync(SettleCommand command, CancellationToken cancellationToken)
-    {
-        var me = await people.MeAsync(command.UserId, cancellationToken);
-        var contact = await people.ContactAsync(command.UserId, command.ContactId!.Value, cancellationToken);
-        var currency = Currencies.Parse(command.Currency!);
-
-        var debts = await dbContext.Debts
-            .Where(d => d.GroupId == null
-                        && d.Status == DebtStatus.Open
-                        && d.Currency == currency
-                        && ((d.CreditorPersonId == me.PersonId && d.DebtorPersonId == contact.PersonId)
-                            || (d.CreditorPersonId == contact.PersonId && d.DebtorPersonId == me.PersonId)))
-            .ToListAsync(cancellationToken);
-
-        if (debts.Count == 0)
-            throw new DomainException("settlement.nothing", $"There are no open {currency} debts with {contact.Name}.");
-
-        return await SettleDebtsAsync(command, contact, debts, currency, cancellationToken);
-    }
-
-    private async Task<OperationDto> SettleDebtsAsync(
-        SettleCommand command,
-        PersonInfo other,
-        IReadOnlyList<Debt> debts,
-        Currency currency,
-        CancellationToken cancellationToken)
-    {
-        var operationIds = debts.Select(d => d.OperationId).Distinct().ToList();
-
-        if (await dbContext.Operations.AnyAsync(o => operationIds.Contains(o.Id) && o.PendingChangeId != null, cancellationToken))
-            throw new DomainException(
-                "operation.change_pending",
-                "A change of one of these debts is waiting for confirmation. Settle it once it is answered.");
-
-        var built = await factory.DebtSettlementAsync(
-            command.UserId, command.Scope, other, debts, currency, command.WalletId, command.OccurredAt,
-            command.Description, cancellationToken);
-
-        foreach (var debt in debts)
-            debt.StartSettlement(built.Operation.Id);
-
-        return await RecordAsync(built, command.UserId, cancellationToken);
-    }
-
     private async Task<OperationDto> SettleGroupPairAsync(SettleCommand command, CancellationToken cancellationToken)
     {
-        var groupId = command.GroupId!.Value;
-        var currency = Currencies.Parse(command.Currency!);
+        var groupId = command.GroupId;
+        var currency = Currencies.Parse(command.Currency);
         var (groupName, members) = await people.GroupAsync(command.UserId, groupId, cancellationToken);
 
-        var from = members.GetValueOrDefault(command.FromPersonId!.Value)
+        var from = members.GetValueOrDefault(command.FromPersonId)
             ?? throw new DomainException("settlement.not_member", "The payer is not a member of the group.");
-        var to = members.GetValueOrDefault(command.ToPersonId!.Value)
+        var to = members.GetValueOrDefault(command.ToPersonId)
             ?? throw new DomainException("settlement.not_member", "The receiver is not a member of the group.");
 
         var pending = await dbContext.Operations.AnyAsync(
@@ -315,6 +296,7 @@ internal sealed class OperationHandlers(
 
         dbContext.Operations.Add(built.Operation);
         dbContext.Debts.AddRange(built.Debts);
+        dbContext.Payments.AddRange(built.Payments);
 
         await lifecycle.RequestPostingAsync(built.Operation, built.Legs, cancellationToken);
 
@@ -330,7 +312,8 @@ internal sealed class OperationLifecycle(
     IDebtsDbContext dbContext,
     IDebtsEventBus eventBus,
     OperationFactory factory,
-    GroupBalances groupBalances)
+    GroupBalances groupBalances,
+    PaymentBook payments)
 {
     /// <summary>
     /// Saves the operation and asks the ledger to record it. When no registered user is affected
@@ -371,11 +354,18 @@ internal sealed class OperationLifecycle(
 
         if (operation.Kind == OperationKind.Settlement)
         {
-            foreach (var debt in await SettledByAsync(operation.Id, cancellationToken))
-                debt.CompleteSettlement(operation.Id);
-
             if (operation.GroupId is { } groupId)
+            {
+                foreach (var debt in await SettledByAsync(operation.Id, cancellationToken))
+                    debt.CompleteSettlement(operation.Id);
+
                 await SettleGroupDebtsIfBalancedAsync(operation, groupId, cancellationToken);
+            }
+            else
+            {
+                // What the payment paid; its rows simply stop counting if it is refused instead.
+                await payments.ApplyAsync(operation.Id, undo: false, cancellationToken);
+            }
         }
 
         await PublishCompletedAsync(operation, cancellationToken);
@@ -409,7 +399,7 @@ internal sealed class OperationLifecycle(
         return stored.Union(dbContext.Debts.Local.Where(d => d.OperationId == operationId)).ToList();
     }
 
-    /// <summary>The debts a settlement pays (stored or just added).</summary>
+    /// <summary>The group debts a group settlement settled (stored or just added).</summary>
     public async Task<IReadOnlyList<Debt>> SettledByAsync(Guid settlementId, CancellationToken cancellationToken)
     {
         var stored = await dbContext.Debts.Where(d => d.SettlementOperationId == settlementId).ToListAsync(cancellationToken);

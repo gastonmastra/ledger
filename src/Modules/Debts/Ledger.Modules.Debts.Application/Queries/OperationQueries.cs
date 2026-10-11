@@ -9,6 +9,18 @@ namespace Ledger.Modules.Debts.Application.Queries;
 
 public sealed record PersonAmountDto(Guid PersonId, string Name, decimal Amount, Guid? WalletId = null);
 
+/// <summary>A debt a payment paid (part of), from the viewer's point of view.</summary>
+/// <param name="OperationId">The loan, split or existing debt that created the debt.</param>
+/// <param name="DebtAmount">The original amount of the debt.</param>
+public sealed record PaymentAllocationDto(
+    Guid DebtId,
+    Guid OperationId,
+    string? Description,
+    DateTimeOffset OccurredAt,
+    Queries.DebtDirection Direction,
+    decimal DebtAmount,
+    decimal Amount);
+
 public sealed record PendingChangeDto(
     Guid ChangeId,
     ChangeKind Kind,
@@ -24,7 +36,9 @@ public sealed record PendingChangeDto(
 /// </summary>
 /// <param name="Direction">Existing debts: whether the viewer owes or is owed.</param>
 /// <param name="BlockedReason">Why it cannot be edited or deleted now (an error code), if so.</param>
-/// <param name="SettlementOperationIds">Settlements to undo before changing it.</param>
+/// <param name="SettlementOperationIds">Settlements (payments) to change or undo before changing it.</param>
+/// <param name="Allocations">Payments: the debts it paid and how much of each.</param>
+/// <param name="ExtraAmount">Payments: what it paid beyond what was owed (a debt of the payee to the payer).</param>
 public sealed record OperationDetailsDto(
     Guid Id,
     Guid EntryId,
@@ -62,7 +76,9 @@ public sealed record OperationDetailsDto(
     bool CanDelete,
     bool CanRestore,
     string? BlockedReason,
-    IReadOnlyList<Guid> SettlementOperationIds);
+    IReadOnlyList<Guid> SettlementOperationIds,
+    IReadOnlyList<PaymentAllocationDto>? Allocations = null,
+    decimal ExtraAmount = 0);
 
 /// <param name="IncludeHistory">Also replaced, deleted and refused versions.</param>
 public sealed record GetOperationsQuery(
@@ -263,6 +279,30 @@ internal sealed class OperationQueryHandlers(IDebtsDbContext dbContext, PeopleDi
             .Where(d => ids.Contains(d.OperationId))
             .ToListAsync(cancellationToken);
 
+        // Payments that paid the debts of these operations (only current ones block a change).
+        var debtIds = debts.Select(d => d.Id).ToList();
+        var currentIds = dbContext.Operations
+            .Where(o => o.Status == OperationStatus.Pending || o.Status == OperationStatus.Completed)
+            .Select(o => o.Id);
+        var paidBy = await dbContext.Payments.AsNoTracking()
+            .Where(p => debtIds.Contains(p.DebtId) && currentIds.Contains(p.SettlementOperationId))
+            .Select(p => new { p.DebtId, p.SettlementOperationId })
+            .ToListAsync(cancellationToken);
+
+        // What the payments among these operations paid.
+        var rows = await dbContext.Payments.AsNoTracking()
+            .Where(p => ids.Contains(p.SettlementOperationId))
+            .ToListAsync(cancellationToken);
+        var rowDebtIds = rows.Select(r => r.DebtId).Distinct().ToList();
+        var paidDebts = await dbContext.Debts.AsNoTracking()
+            .Where(d => rowDebtIds.Contains(d.Id))
+            .ToDictionaryAsync(d => d.Id, cancellationToken);
+        var paidDebtOperationIds = paidDebts.Values.Select(d => d.OperationId).Distinct().ToList();
+        var paidDebtOperations = await dbContext.Operations.AsNoTracking()
+            .Where(o => paidDebtOperationIds.Contains(o.Id))
+            .Select(o => new { o.Id, o.Description, o.OccurredAt })
+            .ToDictionaryAsync(o => o.Id, cancellationToken);
+
         var myContacts = await dbContext.Contacts.AsNoTracking()
             .Where(c => c.OwnerId == me)
             .ToListAsync(cancellationToken);
@@ -290,18 +330,45 @@ internal sealed class OperationQueryHandlers(IDebtsDbContext dbContext, PeopleDi
                 : null;
 
             var opDebts = debts.Where(d => d.OperationId == o.Id).ToList();
+            var opDebtIds = opDebts.Select(d => d.Id).ToHashSet();
             var settlements = opDebts
                 .Where(d => d.SettlementOperationId != null && (d.Status == DebtStatus.Settled || d.IsSettling))
                 .Select(d => d.SettlementOperationId!.Value)
+                .Concat(paidBy.Where(p => opDebtIds.Contains(p.DebtId)).Select(p => p.SettlementOperationId))
                 .Distinct()
                 .ToList();
 
             string? blocked = null;
 
+            // Group settlements never block; a payment is blocked when the debt it created was paid.
             if (o.PendingChangeId is not null)
                 blocked = "operation.change_pending";
-            else if (o.Kind != OperationKind.Settlement && settlements.Count != 0)
+            else if (!(o.Kind == OperationKind.Settlement && o.GroupId is not null) && settlements.Count != 0)
                 blocked = "debt.settled";
+
+            List<PaymentAllocationDto>? allocations = null;
+
+            if (o.Kind == OperationKind.Settlement && o.GroupId is null)
+            {
+                allocations = rows
+                    .Where(r => r.SettlementOperationId == o.Id && paidDebts.ContainsKey(r.DebtId))
+                    .Select(r =>
+                    {
+                        var debt = paidDebts[r.DebtId];
+                        var origin = paidDebtOperations.GetValueOrDefault(debt.OperationId);
+
+                        return new PaymentAllocationDto(
+                            debt.Id,
+                            debt.OperationId,
+                            origin?.Description,
+                            origin?.OccurredAt ?? debt.CreatedAt,
+                            debt.CreditorPersonId == me ? Queries.DebtDirection.OwedToMe : Queries.DebtDirection.IOwe,
+                            debt.Amount,
+                            r.Amount);
+                    })
+                    .OrderBy(a => a.OccurredAt)
+                    .ToList();
+            }
 
             var isLatest = latestRevisions.GetValueOrDefault(o.EntryId) == o.Revision;
             var isCurrent = o.Status == OperationStatus.Completed;
@@ -361,7 +428,11 @@ internal sealed class OperationQueryHandlers(IDebtsDbContext dbContext, PeopleDi
                 isCurrent && blocked is null,
                 o.Status == OperationStatus.Deleted && isLatest && o.PendingChangeId is null && o.Kind != OperationKind.Settlement,
                 blocked,
-                settlements);
+                settlements,
+                allocations,
+                o.Kind == OperationKind.Settlement && o.GroupId is null
+                    ? opDebts.Where(d => d.Status is DebtStatus.Pending or DebtStatus.Open or DebtStatus.Settled).Sum(d => d.Amount)
+                    : 0);
         }).ToList();
     }
 

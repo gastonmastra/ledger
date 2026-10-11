@@ -11,6 +11,7 @@ public static class DependencyInjection
         services.AddScoped<PeopleDirectory>();
         services.AddScoped<GroupBalances>();
         services.AddScoped<OperationFactory>();
+        services.AddScoped<PaymentBook>();
         services.AddScoped<BooksLockGuard>();
         services.AddScoped<OperationLifecycle>();
         services.AddScoped<MergeGuard>();

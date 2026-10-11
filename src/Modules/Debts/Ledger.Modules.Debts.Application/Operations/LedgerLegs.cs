@@ -102,38 +102,50 @@ internal static class LedgerLegs
         return legs;
     }
 
-    /// <summary>Settling debts between two people: debts disappear and money changes hands.</summary>
-    public static IReadOnlyList<LedgerLeg> ForDebtSettlement(
-        DebtOperation settlement,
-        IReadOnlyList<Debt> debts,
-        PersonInfo first,
-        PersonInfo second,
+    /// <summary>
+    /// A payment between two people outside groups: money changes hands, the debts it pays shrink (both directions
+    /// when mutual debts cancel out) and anything paid beyond that becomes a debt of the payee to the payer.
+    /// Each leg balances: cash + Σ positions = 0.
+    /// </summary>
+    public static IReadOnlyList<LedgerLeg> ForPayment(
+        DebtOperation payment,
+        IReadOnlyList<OpenDebt> debts,
+        AllocationResult allocation,
+        PersonInfo payer,
+        PersonInfo payee,
         Guid initiatorUserId,
         Guid? walletId)
     {
+        var byId = debts.ToDictionary(d => d.DebtId);
         var legs = new List<LedgerLeg>();
 
-        foreach (var (person, other) in new[] { (first, second), (second, first) })
+        foreach (var person in new[] { payer, payee })
         {
             if (person.UserId is not { } userId)
                 continue;
 
-            var owedToPerson = debts.Where(d => d.CreditorPersonId == person.PersonId).Sum(d => d.Amount);
-            var owedByPerson = debts.Where(d => d.DebtorPersonId == person.PersonId).Sum(d => d.Amount);
+            var other = person == payer ? payee : payer;
+            var owedToPersonPaid = allocation.Allocations.Where(a => byId[a.DebtId].CreditorPersonId == person.PersonId).Sum(a => a.Amount);
+            var owedByPersonPaid = allocation.Allocations.Where(a => byId[a.DebtId].DebtorPersonId == person.PersonId).Sum(a => a.Amount);
+
+            // Receivable shrinks by what was paid to the person; the extra is a new receivable of the payer.
+            var receivable = -owedToPersonPaid + (person == payer ? allocation.Extra : 0);
+            // Payable (negative balance) shrinks by what the person paid; the extra is a new payable of the payee.
+            var payable = owedByPersonPaid - (person == payee ? allocation.Extra : 0);
 
             var positions = new List<LedgerPosition>();
 
-            if (owedToPerson != 0)
-                positions.Add(new LedgerPosition(other.PersonId, PositionSides.Receivable, -owedToPerson));
+            if (receivable != 0)
+                positions.Add(new LedgerPosition(other.PersonId, PositionSides.Receivable, receivable));
 
-            if (owedByPerson != 0)
-                positions.Add(new LedgerPosition(other.PersonId, PositionSides.Payable, owedByPerson));
+            if (payable != 0)
+                positions.Add(new LedgerPosition(other.PersonId, PositionSides.Payable, payable));
 
             legs.Add(new LedgerLeg(
                 userId,
                 userId == initiatorUserId ? walletId : null,
                 null,
-                owedToPerson - owedByPerson,
+                person == payer ? -payment.Total : payment.Total,
                 0,
                 positions));
         }

@@ -27,7 +27,11 @@ public sealed record DebtDto(
     string? Description,
     DateTimeOffset CreatedAt,
     bool PendingChange = false,
-    bool Disputed = false);
+    bool Disputed = false,
+    decimal Paid = 0,
+    decimal Remaining = 0,
+    bool IsPartiallyPaid = false,
+    DateTimeOffset? OccurredAt = null);
 
 public sealed record CounterpartyDebtsDto(
     Guid PersonId,
@@ -37,7 +41,7 @@ public sealed record CounterpartyDebtsDto(
     decimal IOwe,
     decimal Net);
 
-/// <param name="ByContact">Open debts outside groups, netted per person and currency.</param>
+/// <param name="ByContact">What is left of the open debts outside groups, netted per person and currency.</param>
 public sealed record MyDebtsDto(IReadOnlyList<DebtDto> Debts, IReadOnlyList<CounterpartyDebtsDto> ByContact);
 
 public sealed record GetMyDebtsQuery(Guid UserId, bool IncludeSettled) : IQuery<MyDebtsDto>;
@@ -80,20 +84,23 @@ internal sealed class DebtQueryHandlers(
 
         var debts = await dbContext.Debts.AsNoTracking()
             .Where(d => (d.CreditorPersonId == me || d.DebtorPersonId == me) && statuses.Contains(d.Status))
-            .OrderByDescending(d => d.CreatedAt)
             .ToListAsync(cancellationToken);
 
         var names = await people.NamesAsync(me, cancellationToken);
         var descriptions = await DescriptionsAsync(debts, cancellationToken);
-        var dtos = debts.Select(d => ToDto(d, me, names, descriptions)).ToList();
+        var settling = await BeingPaidAsync(debts, cancellationToken);
+        var dtos = debts
+            .Select(d => ToDto(d, me, names, descriptions, settling))
+            .OrderByDescending(d => d.OccurredAt).ThenByDescending(d => d.CreatedAt)
+            .ToList();
 
         var byContact = dtos
             .Where(d => d.GroupId is null && d.Status == DebtStatus.Open)
             .GroupBy(d => (d.CounterpartyPersonId, d.CounterpartyName, d.Currency))
             .Select(g =>
             {
-                var owedToMe = g.Where(d => d.Direction == DebtDirection.OwedToMe).Sum(d => d.Amount);
-                var iOwe = g.Where(d => d.Direction == DebtDirection.IOwe).Sum(d => d.Amount);
+                var owedToMe = g.Where(d => d.Direction == DebtDirection.OwedToMe).Sum(d => d.Remaining);
+                var iOwe = g.Where(d => d.Direction == DebtDirection.IOwe).Sum(d => d.Remaining);
 
                 return new CounterpartyDebtsDto(g.Key.CounterpartyPersonId, g.Key.CounterpartyName, g.Key.Currency,
                     owedToMe, iOwe, owedToMe - iOwe);
@@ -136,7 +143,7 @@ internal sealed class DebtQueryHandlers(
 
         // Raw pairs are shown from the creditor's side.
         var debtDtos = debts
-            .Select(d => ToDto(d, d.DebtorPersonId, names, descriptions) with { CounterpartyName = $"{Name(d.DebtorPersonId)} owes {Name(d.CreditorPersonId)}" })
+            .Select(d => ToDto(d, d.DebtorPersonId, names, descriptions, new HashSet<Guid>()) with { CounterpartyName = $"{Name(d.DebtorPersonId)} owes {Name(d.CreditorPersonId)}" })
             .ToList();
 
         return new GroupBalancesDto(query.GroupId, groupName, memberBalances, suggestions, debtDtos);
@@ -150,17 +157,31 @@ internal sealed class DebtQueryHandlers(
             .Where(o => operationIds.Contains(o.Id))
             .ToDictionaryAsync(
                 o => o.Id,
-                o => new OperationInfo(o.Description, o.PendingChangeId != null, o.IsDisputed),
+                o => new OperationInfo(o.Description, o.PendingChangeId != null, o.IsDisputed, o.OccurredAt),
                 cancellationToken);
     }
 
-    private sealed record OperationInfo(string? Description, bool PendingChange, bool Disputed);
+    /// <summary>Debts outside groups that a payment still being recorded is paying.</summary>
+    private async Task<HashSet<Guid>> BeingPaidAsync(IReadOnlyList<Debt> debts, CancellationToken cancellationToken)
+    {
+        var ids = debts.Where(d => d.GroupId is null && d.Status == DebtStatus.Open).Select(d => d.Id).ToList();
+        var pending = dbContext.Operations.Where(o => o.Status == OperationStatus.Pending).Select(o => o.Id);
+
+        return (await dbContext.Payments.AsNoTracking()
+                .Where(p => ids.Contains(p.DebtId) && pending.Contains(p.SettlementOperationId))
+                .Select(p => p.DebtId)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
+    }
+
+    private sealed record OperationInfo(string? Description, bool PendingChange, bool Disputed, DateTimeOffset OccurredAt);
 
     private static DebtDto ToDto(
         Debt debt,
         Guid me,
         IReadOnlyDictionary<Guid, string> names,
-        IReadOnlyDictionary<Guid, OperationInfo> operations)
+        IReadOnlyDictionary<Guid, OperationInfo> operations,
+        IReadOnlySet<Guid> beingPaid)
     {
         var owedToMe = debt.CreditorPersonId == me;
         var counterparty = owedToMe ? debt.DebtorPersonId : debt.CreditorPersonId;
@@ -176,10 +197,14 @@ internal sealed class DebtQueryHandlers(
             debt.Amount,
             debt.Currency.ToString(),
             debt.Status,
-            debt.IsSettling,
+            debt.IsSettling || beingPaid.Contains(debt.Id),
             operations.GetValueOrDefault(debt.OperationId)?.Description,
             debt.CreatedAt,
             operations.GetValueOrDefault(debt.OperationId)?.PendingChange ?? false,
-            operations.GetValueOrDefault(debt.OperationId)?.Disputed ?? false);
+            operations.GetValueOrDefault(debt.OperationId)?.Disputed ?? false,
+            debt.Status == DebtStatus.Settled ? debt.Amount : debt.Paid,
+            debt.Status == DebtStatus.Settled ? 0 : debt.Remaining,
+            debt.IsPartiallyPaid,
+            operations.GetValueOrDefault(debt.OperationId)?.OccurredAt ?? debt.CreatedAt);
     }
 }

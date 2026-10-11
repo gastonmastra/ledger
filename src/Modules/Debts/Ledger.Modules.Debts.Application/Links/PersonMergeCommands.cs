@@ -64,7 +64,7 @@ internal sealed class PersonMergeHandlers(
 
         var operations = await CurrentOperationsOf(person, cancellationToken);
         var debts = await DebtsOfAsync(person, cancellationToken);
-        var copies = MergeCopies.Build(operations, debts, person, user);
+        var copies = MergeCopies.Build(operations, debts, await PaymentsOfAsync(operations, cancellationToken), person, user);
         var parties = await PartiesAsync(copies, user, cancellationToken);
 
         var merge = PersonMerge.Start(command.RequestId, person, user, JsonSerializer.Serialize(parties, Json));
@@ -144,9 +144,11 @@ internal sealed class PersonMergeHandlers(
         if (request.TargetUserId != query.UserId && request.OwnerId != query.UserId)
             throw new NotFoundException("Link request", query.RequestId);
 
+        var operations = await CurrentOperationsOf(request.PersonId, cancellationToken);
         var copies = MergeCopies.Build(
-            await CurrentOperationsOf(request.PersonId, cancellationToken),
+            operations,
             await DebtsOfAsync(request.PersonId, cancellationToken),
+            await PaymentsOfAsync(operations, cancellationToken),
             request.PersonId,
             request.TargetUserId);
 
@@ -223,6 +225,15 @@ internal sealed class PersonMergeHandlers(
             return "You are already a member of a group where this contact is a member, so they can't be merged.";
 
         return null;
+    }
+
+    private async Task<IReadOnlyList<DebtPayment>> PaymentsOfAsync(IReadOnlyList<DebtOperation> operations, CancellationToken cancellationToken)
+    {
+        var ids = operations.Where(o => o.Kind == OperationKind.Settlement).Select(o => o.Id).ToList();
+
+        return await dbContext.Payments.AsNoTracking()
+            .Where(p => ids.Contains(p.SettlementOperationId))
+            .ToListAsync(cancellationToken);
     }
 
     private IQueryable<DebtOperation> OperationsOf(Guid person)

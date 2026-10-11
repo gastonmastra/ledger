@@ -13,7 +13,8 @@ namespace Ledger.Modules.Debts.Application.Operations;
 /// <summary>
 /// New values for an operation. Every field of the kind is sent again (the form is prefilled).
 /// Loan: ContactId, WalletId, Amount. Existing debt: ContactId, Direction, Amount, Currency.
-/// Split: Amount (total), Currency, Method, Payers, Participants, CategoryId. Settlement: WalletId.
+/// Split: Amount (total), Currency, Method, Payers, Participants, CategoryId.
+/// Payment (settlement outside groups): Amount, WalletId. Group settlement: WalletId.
 /// The contact, wallets, category and currency belong to whoever recorded the operation: for
 /// anybody else they are kept as they were.
 /// </summary>
@@ -133,7 +134,8 @@ internal sealed class ChangeHandlers(
     OperationFactory factory,
     OperationLifecycle lifecycle,
     BooksLockGuard locks,
-    MergeGuard merges)
+    MergeGuard merges,
+    PaymentBook payments)
     : ICommandHandler<ReviseOperationCommand, ChangeResultDto>,
       ICommandHandler<DeleteOperationCommand, ChangeResultDto>,
       ICommandHandler<RestoreOperationCommand, ChangeResultDto>,
@@ -311,6 +313,7 @@ internal sealed class ChangeHandlers(
             built.Operation.BecomeRevisionOf(operation, latest + 1);
             dbContext.Operations.Add(built.Operation);
             dbContext.Debts.AddRange(built.Debts);
+            dbContext.Payments.AddRange(built.Payments);
         }
 
         change.StartApplying(built?.Operation.Id);
@@ -384,7 +387,7 @@ internal sealed class ChangeHandlers(
                 debt.Supersede();
         }
 
-        if (operation.Kind == OperationKind.Settlement)
+        if (operation.Kind == OperationKind.Settlement && operation.GroupId is not null)
         {
             foreach (var debt in await lifecycle.SettledByAsync(operation.Id, cancellationToken))
             {
@@ -395,6 +398,10 @@ internal sealed class ChangeHandlers(
             }
         }
 
+        // A payment: what the previous version paid is owed again (a restore never applies to settlements).
+        if (operation.Kind == OperationKind.Settlement && operation.GroupId is null && change.Kind != ChangeKind.Restore)
+            await payments.ApplyAsync(operation.Id, undo: true, cancellationToken);
+
         if (replacement is not null)
         {
             replacement.Complete();
@@ -402,6 +409,9 @@ internal sealed class ChangeHandlers(
 
             foreach (var debt in await lifecycle.DebtsOfAsync(replacement.Id, cancellationToken))
                 debt.Activate();
+
+            if (replacement.Kind == OperationKind.Settlement && replacement.GroupId is null)
+                await payments.ApplyAsync(replacement.Id, undo: false, cancellationToken);
 
             await lifecycle.PublishCompletedAsync(replacement, cancellationToken);
         }
@@ -446,21 +456,37 @@ internal sealed class ChangeHandlers(
             throw new NotFoundException("Operation", operation.Id);
     }
 
-    /// <summary>Settled debts cannot change: the settlement has to be undone (deleted) first.</summary>
+    /// <summary>
+    /// Debts that were paid (fully or partly) cannot change: the payments have to be changed or deleted first.
+    /// That includes the debt a payment created when it paid more than what was owed. A payment cannot change
+    /// either while another payment between the same people is being recorded or changed.
+    /// </summary>
     private async Task EnsureNotPaidAsync(DebtOperation operation, CancellationToken cancellationToken)
     {
-        if (operation.Kind == OperationKind.Settlement)
+        if (operation.Kind == OperationKind.Settlement && operation.GroupId is not null)
             return;
 
-        var paid = await dbContext.Debts.AnyAsync(
-            d => d.OperationId == operation.Id
-                 && (d.Status == DebtStatus.Settled || (d.Status == DebtStatus.Open && d.SettlementOperationId != null)),
-            cancellationToken);
+        var debts = await dbContext.Debts.AsNoTracking()
+            .Where(d => d.OperationId == operation.Id)
+            .Select(d => new { d.Id, d.Status, d.SettlementOperationId, d.Paid })
+            .ToListAsync(cancellationToken);
+
+        var paid = debts.Any(d => d.Status == DebtStatus.Settled
+                                  || d.Paid > 0
+                                  || (d.Status == DebtStatus.Open && d.SettlementOperationId != null))
+                   || await payments.AnyPaidAsync(debts.Select(d => d.Id).ToList(), cancellationToken);
 
         if (paid)
             throw new DomainException(
                 "debt.settled",
-                "It was already settled. Undo (delete) the settlement first, then change it.");
+                "It was already paid (fully or partly). Change or delete those payments first, then change it.");
+
+        if (operation.Kind == OperationKind.Settlement
+            && await payments.PaymentInProgressAsync(
+                operation.FromPersonId!.Value, operation.ToPersonId!.Value, operation.Currency, operation.Id, cancellationToken))
+            throw new DomainException(
+                "payment.pending",
+                "Another payment between the same people is being recorded or changed. Try again once it is done.");
     }
 
     /// <summary>The requested values, keeping what only the initiator may change.</summary>
@@ -543,12 +569,29 @@ internal sealed class ChangeHandlers(
                 };
             }
 
-            case OperationKind.Settlement:
+            case OperationKind.Settlement when operation.GroupId is not null:
                 return common with
                 {
                     WalletId = isInitiator ? command.WalletId ?? previous.WalletId : previous.WalletId,
                     Description = command.Description ?? operation.Description
                 };
+
+            case OperationKind.Settlement:
+            {
+                var amount = command.Amount ?? previous.Amount;
+
+                if (amount != previous.Amount && !isInitiator)
+                    throw new DomainException(
+                        "operation.initiator_only",
+                        "Only the person who recorded the payment can change its amount.");
+
+                return common with
+                {
+                    Amount = amount,
+                    WalletId = isInitiator ? command.WalletId ?? previous.WalletId : previous.WalletId,
+                    Description = command.Description ?? operation.Description
+                };
+            }
 
             default:
                 throw new ArgumentOutOfRangeException(nameof(operation));
@@ -638,13 +681,15 @@ internal sealed class ChangeHandlers(
 
             case OperationKind.Settlement:
             {
-                var otherId = operation.FromPersonId == initiator ? operation.ToPersonId!.Value : operation.FromPersonId!.Value;
+                // A payment (also the full settlements recorded before partial payments): built again from what is
+                // owed without the previous version, so a new amount is applied oldest first.
+                var initiatorPays = operation.FromPersonId == initiator;
+                var otherId = initiatorPays ? operation.ToPersonId!.Value : operation.FromPersonId!.Value;
                 var other = await PersonAsync(operation, otherId, cancellationToken);
-                var debts = await lifecycle.SettledByAsync(operation.Id, cancellationToken);
 
-                return await factory.DebtSettlementAsync(
-                    initiator, operation.Scope!.Value, other, debts, currency, draft.WalletId, draft.OccurredAt,
-                    draft.Description, cancellationToken, requireMyWallet);
+                return await factory.PaymentAsync(
+                    initiator, other, initiatorPays, draft.Amount, currency, draft.WalletId, draft.OccurredAt,
+                    draft.Description, operation.Id, cancellationToken, requireMyWallet);
             }
 
             default:

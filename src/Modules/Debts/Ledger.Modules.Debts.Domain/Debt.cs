@@ -2,7 +2,11 @@ using Ledger.BuildingBlocks.Domain;
 
 namespace Ledger.Modules.Debts.Domain;
 
-/// <summary>Money one person owes another, produced by a loan or a split.</summary>
+/// <summary>
+/// Money one person owes another, produced by a loan, an existing debt, a split or a payment that paid more than
+/// what was owed. Outside groups it is paid by <see cref="DebtPayment"/>s (maybe partially, oldest first);
+/// group debts are settled all at once when the group is even (<see cref="SettlementOperationId"/>).
+/// </summary>
 public sealed class Debt
 {
     private Debt()
@@ -18,10 +22,17 @@ public sealed class Debt
     public Guid CreditorPersonId { get; private set; }
     public Guid DebtorPersonId { get; private set; }
     public decimal Amount { get; private set; }
+
+    /// <summary>Paid so far by completed payments (outside groups) or the whole amount once settled.</summary>
+    public decimal Paid { get; private set; }
+
+    public decimal Remaining => Amount - Paid;
+    public bool IsPartiallyPaid => Status == DebtStatus.Open && Paid > 0;
+
     public Currency Currency { get; private set; }
     public DebtStatus Status { get; private set; }
 
-    /// <summary>The settlement paying the debt, while it is in progress or once done.</summary>
+    /// <summary>Group debts only: the group settlement that settled it, while it is in progress or once done.</summary>
     public Guid? SettlementOperationId { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
@@ -87,8 +98,42 @@ public sealed class Debt
             return;
 
         SettlementOperationId = settlementOperationId;
+        Paid = Amount;
         Status = DebtStatus.Settled;
         SettledAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>A payment was recorded (outside groups): fully paid debts become Settled.</summary>
+    public void ApplyPayment(decimal amount)
+    {
+        Money.EnsurePositive(amount);
+
+        if (Status != DebtStatus.Open)
+            throw new DomainException("debt.not_open", "Only open debts can be paid.");
+
+        if (amount > Remaining)
+            throw new DomainException("payment.too_much", "A payment cannot pay more than what is left of a debt.");
+
+        Paid += amount;
+
+        if (Remaining == 0)
+        {
+            Status = DebtStatus.Settled;
+            SettledAt = DateTimeOffset.UtcNow;
+        }
+    }
+
+    /// <summary>A payment was changed or deleted: what it paid is owed again.</summary>
+    public void RemovePayment(decimal amount)
+    {
+        Money.EnsurePositive(amount);
+
+        if (Status is not (DebtStatus.Open or DebtStatus.Settled))
+            return;
+
+        Paid = Math.Max(0, Paid - amount);
+        Status = DebtStatus.Open;
+        SettledAt = null;
     }
 
     public void CancelSettlement(Guid settlementOperationId)
@@ -104,6 +149,7 @@ public sealed class Debt
             return;
 
         Status = DebtStatus.Open;
+        Paid = 0;
         SettlementOperationId = null;
         SettledAt = null;
     }
@@ -118,4 +164,8 @@ public sealed class Debt
     public void Supersede() => Status = DebtStatus.Superseded;
 
     public bool IsPaid => Status == DebtStatus.Settled || IsSettling;
+
+    /// <summary>Creates the debt a payment leaves when it pays more than what was owed.</summary>
+    public static Debt ForExtraPayment(Guid settlementOperationId, Guid payerPersonId, Guid payeePersonId, decimal extra, Currency currency)
+        => Create(settlementOperationId, null, payerPersonId, payeePersonId, extra, currency);
 }

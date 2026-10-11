@@ -133,6 +133,10 @@ namespace Ledger.Modules.Debts.Infrastructure.Migrations
                     b.Property<Guid>("OperationId")
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("Paid")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("numeric(19,4)");
+
                     b.Property<DateTimeOffset?>("SettledAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -343,6 +347,34 @@ namespace Ledger.Modules.Debts.Infrastructure.Migrations
                     b.HasIndex("GroupId", "Status");
 
                     b.ToTable("operations", "debts");
+                });
+
+            modelBuilder.Entity("Ledger.Modules.Debts.Domain.DebtPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("numeric(19,4)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DebtId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SettlementOperationId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DebtId");
+
+                    b.HasIndex("SettlementOperationId");
+
+                    b.ToTable("debt_payments", "debts");
                 });
 
             modelBuilder.Entity("Ledger.Modules.Debts.Domain.DebtUser", b =>
