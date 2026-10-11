@@ -9,6 +9,7 @@ import { meLabel } from '../../core/i18n/labels';
 import { OperationTracker } from '../../core/operations/operation-tracker';
 import { ToastService } from '../../core/notifications/toast.service';
 import {
+  ActionsMenu,
   Badge,
   Button,
   Card,
@@ -16,6 +17,7 @@ import {
   DialogService,
   EmptyState,
   Icon,
+  MenuAction,
   MoneyPipe,
   PageHeader,
   Spinner,
@@ -29,7 +31,7 @@ import { AddMemberDialog } from './group-dialogs';
 
 @Component({
   selector: 'app-group-detail-page',
-  imports: [RouterLink, PageHeader, Card, Table, Badge, Button, Icon, EmptyState, Spinner, MoneyPipe, OperationsList],
+  imports: [RouterLink, PageHeader, Card, Table, Badge, Button, Icon, EmptyState, Spinner, MoneyPipe, OperationsList, ActionsMenu],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './group-detail-page.html',
 })
@@ -66,6 +68,14 @@ export class GroupDetailPage {
 
   protected memberName(member: GroupMember): string {
     return member.isMe ? meLabel() : member.displayName;
+  }
+
+  protected readonly groupMenu: MenuAction[] = [
+    { label: $localize`:@@groups.addMember:Add member`, icon: 'user', run: () => this.addMember() },
+  ];
+
+  protected memberMenu(member: GroupMember): MenuAction[] {
+    return [{ label: $localize`:@@groups.remove:Remove`, icon: 'trash', danger: true, run: () => this.removeMember(member) }];
   }
 
   protected addExpense(): void {

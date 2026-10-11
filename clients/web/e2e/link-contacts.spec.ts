@@ -1,5 +1,5 @@
 import { Browser, Page, expect, test } from '@playwright/test';
-import { login, unique } from './helpers';
+import { login, menuAction, rowAction, unique } from './helpers';
 
 async function asBob(browser: Browser): Promise<Page> {
   const page = await (await browser.newContext({ locale: 'en-US' })).newPage();
@@ -22,7 +22,7 @@ test.describe('Ledger web: linking a contact that already has debts', () => {
     await expect(page.getByRole('row', { name: new RegExp(contactName) })).toBeVisible();
 
     await page.goto('debts');
-    await page.getByRole('button', { name: 'Add existing debt' }).click();
+    await menuAction(page, 'Add', 'Add existing debt');
     await dialog.getByRole('radio', { name: 'They owed me' }).click();
     await dialog.getByLabel('Contact').selectOption({ label: contactName });
     await dialog.getByLabel('Amount').fill('25');
@@ -32,7 +32,7 @@ test.describe('Ledger web: linking a contact that already has debts', () => {
     // The person turns out to be Bob: linking needs his approval.
     await page.goto('contacts');
     const row = page.getByRole('row', { name: new RegExp(contactName) });
-    await row.getByRole('button', { name: 'Link' }).click();
+    await rowAction(row, 'Link');
     await expect(dialog).toContainText('They will be asked to accept');
     await dialog.getByLabel('Email of the user').fill('bob@ledger.local');
     await dialog.getByRole('button', { name: 'Send request' }).click();

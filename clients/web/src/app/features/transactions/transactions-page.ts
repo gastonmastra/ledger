@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
@@ -9,33 +9,32 @@ import { accountLabel, transactionKindLabel, transactionStatusLabel } from '../.
 import { ToastService } from '../../core/notifications/toast.service';
 import { firstValueFrom } from 'rxjs';
 import {
+  ActionsMenu,
   Badge,
   Button,
   Card,
   ConfirmService,
   DialogService,
   EmptyState,
-  FormField,
+  FilterChip,
+  FilterChips,
   Icon,
-  Input,
+  MenuAction,
   MoneyPipe,
   PageHeader,
   Pagination,
+  RowAction,
   Spinner,
 } from '../../ui';
 import { amountClass } from '../shared/amount';
 import { OperationActions } from '../debts/operation-actions';
 import { MovementDialog, MovementDialogData, MovementKind } from './movement-dialog';
+import { TransactionAction, TransactionDetailData, TransactionDetailDialog } from './transaction-detail-dialog';
+import { TransactionFilters, TransactionFiltersData, TransactionFiltersPanel } from './transaction-filters-panel';
 import { TransactionHistoryDialog, TransactionHistoryResult } from './transaction-history-dialog';
 import { TransferDialog } from './transfer-dialog';
 
-interface Filters {
-  walletId: string;
-  categoryId: string;
-  contactId: string;
-  from: string;
-  to: string;
-}
+type Filters = TransactionFilters;
 
 const EMPTY_FILTERS: Filters = { walletId: '', categoryId: '', contactId: '', from: '', to: '' };
 const PAGE_SIZE = 15;
@@ -50,12 +49,13 @@ const PAGE_SIZE = 15;
     Badge,
     Button,
     Icon,
-    Input,
-    FormField,
     EmptyState,
     Spinner,
     Pagination,
     MoneyPipe,
+    ActionsMenu,
+    RowAction,
+    FilterChips,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './transactions-page.html',
@@ -90,6 +90,88 @@ export class TransactionsPage {
     }),
     stream: ({ params }) => this.api.transactions({ ...toQuery(params.filters, params.page), includeHistory: params.includeHistory }),
   });
+
+  /** How many filters are on (Show changes included), for the Filters button. */
+  protected readonly activeCount = computed(
+    () => Object.values(this.filters()).filter((v) => !!v).length + (this.includeHistory() ? 1 : 0),
+  );
+
+  /** The active filters as removable chips. */
+  protected readonly chips = computed<FilterChip[]>(() => {
+    const f = this.filters();
+    const name = <T extends { id: string; name: string }>(items: T[] | undefined, id: string) =>
+      items?.find((i) => i.id === id)?.name ?? '…';
+    const chips: FilterChip[] = [];
+
+    if (f.walletId) chips.push({ key: 'walletId', label: $localize`:@@transactions.chipWallet:Wallet: ${name(this.wallets.value(), f.walletId)}:name:` });
+    if (f.categoryId) chips.push({ key: 'categoryId', label: $localize`:@@transactions.chipCategory:Category: ${name(this.categories.value(), f.categoryId)}:name:` });
+    if (f.contactId) chips.push({ key: 'contactId', label: $localize`:@@transactions.chipContact:Contact: ${name(this.contacts.value(), f.contactId)}:name:` });
+    if (f.from) chips.push({ key: 'from', label: $localize`:@@transactions.chipFrom:From ${f.from}:date:` });
+    if (f.to) chips.push({ key: 'to', label: $localize`:@@transactions.chipTo:To ${f.to}:date:` });
+    if (this.includeHistory()) chips.push({ key: 'history', label: $localize`:@@transactions.showChanges:Show changes` });
+
+    return chips;
+  });
+
+  protected openFilters(): void {
+    void this.dialogs.open<void, TransactionFiltersData>(TransactionFiltersPanel, {
+      filters: this.filters,
+      includeHistory: this.includeHistory,
+      wallets: this.wallets.value() ?? [],
+      categories: this.categories.value() ?? [],
+      contacts: this.contacts.value() ?? [],
+      set: (key, value) => this.setFilter(key, value),
+      toggleHistory: () => this.toggleHistory(),
+      clear: () => this.clearFilters(),
+    }, 'panel');
+  }
+
+  /** "Clear all": every filter and Show changes. */
+  protected clearAll(): void {
+    this.clearFilters();
+    this.includeHistory.set(false);
+  }
+
+  protected removeChip(key: string): void {
+    if (key === 'history') this.toggleHistory();
+    else this.setFilter(key as keyof Filters, '');
+  }
+
+  /** The wallet movements shown in the row (or every posting when no wallet is involved). */
+  protected rowPostings(transaction: Transaction) {
+    const wallets = transaction.postings.filter((p) => p.walletId);
+    return wallets.length ? wallets : transaction.postings.slice(0, 1);
+  }
+
+  protected menu(transaction: Transaction): MenuAction[] {
+    return [
+      { label: $localize`:@@ui.edit:Edit`, icon: 'pencil', run: () => this.edit(transaction), hidden: !transaction.editable },
+      { label: $localize`:@@ui.delete:Delete`, icon: 'trash', run: () => this.remove(transaction), hidden: !transaction.deletable, danger: true },
+      {
+        label: $localize`:@@transactions.openOperation:Operation`,
+        icon: 'scale',
+        run: () => this.openOperation(transaction),
+        hidden: !this.isDebtOperation(transaction),
+        hint: $localize`:@@transactions.openOperationHint:Loans, splits and settlements are changed in Debts & splits.`,
+      },
+      { label: $localize`:@@history.title:History`, icon: 'clock', run: () => this.history(transaction) },
+    ];
+  }
+
+  /** The detail pop-up; its buttons run the same actions as the menu. */
+  protected async open(transaction: Transaction): Promise<void> {
+    const action = await this.dialogs.open<TransactionAction, TransactionDetailData>(
+      TransactionDetailDialog,
+      { transaction, isDebtOperation: this.isDebtOperation(transaction) },
+    );
+
+    switch (action) {
+      case 'edit': return this.edit(transaction);
+      case 'delete': return this.remove(transaction);
+      case 'operation': return this.openOperation(transaction);
+      case 'history': return this.history(transaction);
+    }
+  }
 
   protected toggleHistory(): void {
     this.includeHistory.update((v) => !v);
@@ -153,7 +235,7 @@ export class TransactionsPage {
 
   /** Opens the loan, split or settlement the transaction belongs to. */
   protected openOperation(transaction: Transaction): void {
-    if (transaction.correlationId) void this.operations.history(transaction.correlationId);
+    if (transaction.correlationId) void this.operations.open(transaction.correlationId);
   }
 
   protected setFilter(key: keyof Filters, value: string): void {

@@ -7,6 +7,7 @@ import { DataChanges } from '../../core/data-changes';
 import { walletStatusLabel } from '../../core/i18n/labels';
 import { ToastService } from '../../core/notifications/toast.service';
 import {
+  ActionsMenu,
   Badge,
   Button,
   Card,
@@ -14,18 +15,21 @@ import {
   DialogService,
   EmptyState,
   Icon,
+  MenuAction,
   MoneyPipe,
   PageHeader,
+  RowAction,
   Spinner,
   Table,
 } from '../../ui';
 import { NameDialog, NameDialogData } from '../shared/name-dialog';
 import { AdjustBalanceDialog, OpeningBalanceDialog } from './balance-dialogs';
+import { WalletAction, WalletDetailDialog } from './wallet-detail-dialog';
 import { WalletDialog } from './wallet-dialog';
 
 @Component({
   selector: 'app-wallets-page',
-  imports: [PageHeader, Card, Table, Badge, Button, Icon, EmptyState, Spinner, MoneyPipe],
+  imports: [PageHeader, Card, Table, Badge, Button, Icon, EmptyState, Spinner, MoneyPipe, ActionsMenu, RowAction],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './wallets-page.html',
 })
@@ -52,6 +56,31 @@ export class WalletsPage {
         onCleanup(() => clearTimeout(timer));
       }
     });
+  }
+
+  /** The detail pop-up; its buttons run the same actions as the menu. */
+  protected async open(wallet: Wallet): Promise<void> {
+    const action = await this.dialogs.open<WalletAction, Wallet>(WalletDetailDialog, wallet);
+
+    switch (action) {
+      case 'opening': return this.openingBalance(wallet);
+      case 'adjust': return this.adjust(wallet);
+      case 'rename': return this.rename(wallet);
+      case 'archive': return this.archive(wallet);
+      case 'delete': return this.remove(wallet);
+    }
+  }
+
+  protected menu(wallet: Wallet): MenuAction[] {
+    const ready = wallet.isReady;
+
+    return [
+      { label: $localize`:@@wallets.openingAction:Opening balance`, run: () => this.openingBalance(wallet), hidden: !ready },
+      { label: $localize`:@@wallets.adjustAction:Adjust balance`, run: () => this.adjust(wallet), hidden: !ready },
+      { label: $localize`:@@ui.rename:Rename`, icon: 'pencil', run: () => this.rename(wallet) },
+      { label: $localize`:@@wallets.archive:Archive`, icon: 'archive', run: () => this.archive(wallet) },
+      { label: $localize`:@@ui.delete:Delete`, icon: 'trash', run: () => this.remove(wallet), danger: true },
+    ];
   }
 
   protected async create(): Promise<void> {

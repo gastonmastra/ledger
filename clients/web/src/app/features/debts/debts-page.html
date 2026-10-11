@@ -1,9 +1,6 @@
 <ui-page-header i18n-heading="@@debts.title" heading="Debts & splits"
                 i18n-subtitle="@@debts.subtitle" subtitle="What people owe you and what you owe them.">
-  <button uiButton variant="secondary" type="button" (click)="openDialog('initial')" i18n="@@debts.initial">Add existing debt</button>
-  <button uiButton variant="secondary" type="button" (click)="openDialog('friend')" i18n="@@debts.friendPaid">A friend paid for me</button>
-  <button uiButton variant="secondary" type="button" (click)="openDialog('lend')" i18n="@@debts.lend">Lend money</button>
-  <button uiButton variant="secondary" type="button" (click)="recordPayment()" i18n="@@debts.recordPayment">Record a payment</button>
+  <ui-actions-menu [actions]="addMenu" [text]="addLabel" icon="plus" />
   <button uiButton type="button" (click)="splitWithContacts()">
     <ui-icon name="plus" size="sm" /><ng-container i18n="@@debts.split">Split an expense</ng-container>
   </button>
@@ -38,13 +35,16 @@
         </thead>
         <tbody>
           @for (balance of data!.byContact; track balance.personId + balance.currency) {
-            <tr>
+            <tr uiRowAction (rowOpen)="openPerson(balance)">
               <td class="font-medium">{{ balance.name }}</td>
               <td class="text-right tabular-nums">{{ balance.owedToMe | money: balance.currency }}</td>
               <td class="text-right tabular-nums">{{ balance.iOwe | money: balance.currency }}</td>
               <td class="text-right font-medium tabular-nums" [class]="amountClass(balance.net)">{{ balance.net | money: balance.currency: true }}</td>
               <td class="text-right">
-                <button uiButton variant="secondary" size="sm" type="button" (click)="payBalance(balance)" i18n="@@debts.recordPaymentShort">Record payment</button>
+                <div class="flex items-center justify-end gap-1">
+                  <button uiButton variant="secondary" size="sm" type="button" class="hidden sm:inline-flex" (click)="payBalance(balance)" i18n="@@debts.recordPaymentShort">Record payment</button>
+                  <ui-actions-menu [actions]="personMenu(balance)" />
+                </div>
               </td>
             </tr>
           }
@@ -73,7 +73,7 @@
         </thead>
         <tbody>
           @for (debt of data!.debts; track debt.id) {
-            <tr>
+            <tr uiRowAction (rowOpen)="openDebt(debt)">
               <td>
                 <span class="font-medium">{{ debt.counterpartyName }}</span>
                 @if (debt.groupName) {
@@ -108,9 +108,7 @@
                 </div>
               </td>
               <td class="text-right">
-                @if (!debt.groupId && debt.paid > 0) {
-                  <button uiButton variant="ghost" size="sm" type="button" (click)="showPayments(debt)" i18n="@@debts.payments">Payments</button>
-                }
+                <ui-actions-menu [actions]="debtMenu(debt)" />
               </td>
             </tr>
           }
