@@ -3,6 +3,8 @@
   "displayName": "Ledger",
   "enabled": true,
   "sslRequired": "external",
+  "webAuthnPolicyPasswordlessRpEntityName": "Ledger",
+  "webAuthnPolicyPasswordlessPasskeysEnabled": true,
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
